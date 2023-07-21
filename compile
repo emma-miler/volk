@@ -1,0 +1,5 @@
+cd scripts
+llc sample.bc
+gcc sample.s
+./a.out
+echo $?

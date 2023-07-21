@@ -34,6 +34,7 @@ bin
 
 # Build files
 cmake
+build/
 
 # Editor
 *.kdev4
