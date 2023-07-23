@@ -234,7 +234,7 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression()
             OperatorToken operatorToken = *static_cast<OperatorToken*>(tokens.front().get());
             tokens.pop_front();
             // Check if operator is unary
-            auto unaryOperator = std::find(UnaryOperators.begin(), UnaryOperators.end(), operatorToken->OpType);
+            auto unaryOperator = std::find(UnaryOperators.begin(), UnaryOperators.end(), operatorToken.OpType);
             if (unaryOperator == UnaryOperators.end())
             {
                 Log::LEXER->critical("Found non-unary operator at start of value expression");
