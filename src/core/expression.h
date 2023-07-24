@@ -23,6 +23,14 @@ enum class ExpressionType
     ReturnExpr,
 };
 
+
+enum class ValueExpressionType
+{
+    Nullary,
+    Unary,
+    Binary,
+};
+
 static std::map<ExpressionType, std::string> ExpressionTypeNames =
 {
     {ExpressionType::Declaration, "Declaration"},
@@ -54,6 +62,12 @@ public:
     {
         throw std::runtime_error("Pure virtual call to Expression::ToIR()");
     }
+
+    virtual std::string ToHumanReadableString(std::string depthPrefix)
+    {
+        return ToString();
+    }
+
 };
 
 class DeclarationExpression : public Expression
@@ -80,21 +94,27 @@ public:
     }
 };
 
+/// ==========
+/// Value Expressions
+/// ==========
+
 class ValueExpression : public Expression
 {
 public:
-    std::string Value;
+    ValueExpressionType OperatoryArity;
 
 public:
-    ValueExpression(std::string value) : Expression(ExpressionType::Value)
+    ValueExpression(ValueExpressionType arity) : Expression(ExpressionType::Value)
     {
-        Value = value;
+        OperatoryArity = arity;
     }
 
 public:
-    std::string ToString()
+    virtual std::string ToString()
     {
-        return fmt::format("ValueExpression(value='{}')", Value);
+        // TODO: make this automatically cast the this pointer to the correct type
+        // by using OperatorType, and call the ToString of that type instead
+        return fmt::format("Pure virtual call to ValueExpression::ToString()");
     }
 
     virtual std::string ToIR()
@@ -103,7 +123,77 @@ public:
     }
 };
 
-class BinaryOperatorExpression : public Expression
+// Holds immediate values
+class ImmediateValueExpression : public ValueExpression
+{
+public:
+    std::string Value;
+
+public:
+    ImmediateValueExpression(std::string value) : ValueExpression(ValueExpressionType::Nullary)
+    {
+        Value = value;
+    }
+
+    std::string ToString()
+    {
+        return fmt::format("ImmediateValueExpression(value='{}')", Value);
+    }
+
+    std::string ToHumanReadableString(std::string depthPrefix)
+    {
+        return fmt::format("ImmediateValueExpression(\n{}value='{}'\n{})", depthPrefix, Value, depthPrefix);
+    }
+};
+
+// Holds variable names
+class IndirectValueExpression : public ValueExpression
+{
+public:
+    std::string Value;
+
+public:
+    IndirectValueExpression(std::string value) : ValueExpression(ValueExpressionType::Nullary)
+    {
+        Value = value;
+    }
+
+    std::string ToString()
+    {
+        return fmt::format("IndirectValueExpression(value='{}')", Value);
+    }
+
+    std::string ToHumanReadableString(std::string depthPrefix)
+    {
+        return fmt::format("IndirectValueExpression(\n{}value='{}'\n{})", depthPrefix, Value, depthPrefix);
+    }
+};
+
+class UnaryValueExpression : public ValueExpression
+{
+public:
+    std::unique_ptr<Expression> Value;
+    OperatorType Operator;
+
+public:
+    UnaryValueExpression(OperatorType op, std::unique_ptr<Expression> value) : ValueExpression(ValueExpressionType::Unary)
+    {
+        Value = std::move(value);
+        Operator = op;
+    }
+
+    std::string ToString()
+    {
+        return fmt::format("UnaryValueExpression(op={}, value={})", OperatorTypeNames[Operator], Value->ToString());
+    }
+
+    std::string ToHumanReadableString(std::string depthPrefix)
+    {
+         return fmt::format("UnaryValueExpression(\n{}op={}, \n{}value={}\n{})", depthPrefix, OperatorTypeNames[Operator], depthPrefix, Value->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
+    }
+};
+
+class BinaryValueExpression : public ValueExpression
 {
 public:
     std::unique_ptr<Expression> Left;
@@ -111,11 +201,23 @@ public:
     OperatorType Operator;
 
 public:
-    BinaryOperatorExpression(OperatorType op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right) : Expression(ExpressionType::BinaryOperator)
+    BinaryValueExpression(OperatorType op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right) : ValueExpression(ValueExpressionType::Binary)
     {
         Left = std::move(left);
         Right = std::move(right);
         Operator = op;
+    }
+
+    std::string ToString()
+    {
+        return fmt::format("BinaryValueExpression(op={}, left={}, right={})",
+                           OperatorTypeNames[Operator], Left->ToString(), Right->ToString());
+    }
+
+    std::string ToHumanReadableString(std::string depthPrefix)
+    {
+        return fmt::format("BinaryValueExpression(\n{}op={}, \n{}left={}, \n{}right={}\n{})",
+                           depthPrefix, OperatorTypeNames[Operator], depthPrefix,  Left->ToHumanReadableString(depthPrefix + "\t"), depthPrefix, Right->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
     }
 };
 
@@ -135,12 +237,19 @@ public:
 public:
     std::string ToString()
     {
-        return fmt::format("AssignmentExpression(name='{}', value='{}')", Name, Value->ToString());
+        return fmt::format("AssignmentExpression(name='{}', value={})", Name, Value->ToString());
+    }
+
+    std::string ToHumanReadableString(std::string depthPrefix)
+    {
+         return fmt::format("AssignmentExpression(\n{}name='{}', \n{}value={}\n{})", depthPrefix, Name, depthPrefix, Value->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
     }
 
     virtual std::string ToIR()
     {
-        return fmt::format("store i32 {}, ptr %{}, align 4", Value->Value, Name);
+        // TODO: fix this, unravel calculation stack
+        // return fmt::format("store i32 {}, ptr %{}, align 4", Value->Value, Name);
+        return "ERR";
     }
 };
 
@@ -163,7 +272,9 @@ public:
 
     virtual std::string ToIR()
     {
-        return fmt::format("%ret = load i32, ptr %{}, align 4\n\tret i32 %ret", Value->Value);
+        // TODO: fix this, unravel calculation stack
+        // return fmt::format("%ret = load i32, ptr %{}, align 4\n\tret i32 %ret", Value->Value);
+        return "ERR";
     }
 };
 

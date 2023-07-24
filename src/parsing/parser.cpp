@@ -52,7 +52,7 @@ void VKParser::printExpressionTree()
     Log::LEXER->debug("Read {} expressions: ", Expressions.size());
     for (auto&& expr : Expressions)
     {
-        Log::LEXER->debug("{}", expr->ToString());
+        Log::PARSER->debug("{}", expr->ToString());
     }
 }
 
@@ -184,7 +184,7 @@ int VKParser::readToken(std::string_view data)
     if (op != OperatorTypeLookup.end())
     {
         totalRead++;
-        Tokens.push_back(std::make_unique<Token>(TokenType::Operator, data.substr(0, totalRead), currentPosition(totalRead)));
+        Tokens.push_back(std::make_unique<OperatorToken>(data.substr(0, totalRead), currentPosition(totalRead)));
         charactersReadThisLine += totalRead;
         return totalRead;
     }
@@ -196,10 +196,62 @@ int VKParser::readToken(std::string_view data)
     exit(1);
 }
 
+std::unique_ptr<ValueExpression> ConsumeNullaryOrUnaryValueExpression(std::deque<std::unique_ptr<Token>>& tokens)
+{
+    ValueExpressionType exprType = ValueExpressionType::Nullary;
+    OperatorType opType = OperatorType::Null;
+    /// ==========
+    /// Unary Operator
+    /// ==========
+    if (tokens.front()->Type == TokenType::Operator)
+    {
+        OperatorToken operatorToken = *static_cast<OperatorToken*>(tokens.front().get());
+        tokens.pop_front();
+        // Check if operator is unary
+        auto unaryOperator = std::find(UnaryOperators.begin(), UnaryOperators.end(), operatorToken.OpType);
+        Log::PARSER->trace("{}", (void*)unaryOperator);
+        Log::PARSER->trace("{}", (void*)UnaryOperators.end());
+        Log::PARSER->trace("{}", operatorToken.ToString());
+        if (unaryOperator == UnaryOperators.end())
+        {
+            Log::PARSER->critical("Found non-unary operator '{}' at start of value expression", operatorToken.ToString());
+            throw std::format_error("");
+        }
+        exprType = ValueExpressionType::Unary;
+        opType = *unaryOperator;
+    }
+
+    Token token = *static_cast<OperatorToken*>(tokens.front().get());
+    tokens.pop_front();
+    std::unique_ptr<ValueExpression> expr;
+    if (token.Type == TokenType::ImmediateValue)
+    {
+        expr = std::make_unique<ImmediateValueExpression>(token.Value);
+    }
+    else if (token.Type == TokenType::Name)
+    {
+        expr = std::make_unique<IndirectValueExpression>(token.Value);
+    }
+
+    if (exprType == ValueExpressionType::Nullary)
+    {
+        return expr;
+    }
+    else if (exprType == ValueExpressionType::Unary)
+    {
+        return std::make_unique<UnaryValueExpression>(opType, std::move(expr));
+    }
+    Log::PARSER->critical("Unknown ValueExpressionType in ConsumeNullaryOrUnaryValueExpression");
+    throw std::format_error("");
+
+}
+
 std::unique_ptr<ValueExpression> VKParser::parseValueExpression()
 {
     std::unique_ptr<Token> token = std::move(Tokens.front());
     Tokens.pop_front();
+
+    std::optional<std::unique_ptr<ValueExpression>> storedExpression = std::nullopt;
 
     // Pop tokens until we find an end-of-statement
     std::deque<std::unique_ptr<Token>> tokens;
@@ -211,15 +263,15 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression()
         tokens.push_back(std::move(Tokens.front()));
         Tokens.pop_front();
     }
-    Log::LEXER->debug("Popped {} tokens while parsing value expression", tokens.size());
+    Log::PARSER->debug("Popped {} tokens while parsing value expression", tokens.size());
     for (auto&& token : tokens)
     {
-        Log::LEXER->debug("{:16s} : '{}'", TokenTypeNames[token->Type], token->Value);
+        Log::PARSER->debug("{:16s} : '{}'", TokenTypeNames[token->Type], token->Value);
     }
 
     if (tokens.size() == 1)
     {
-        return std::make_unique<ValueExpression>(tokens.front()->Value);
+        return std::make_unique<ImmediateValueExpression>(tokens.front()->Value);
     }
     // This should maybe be implemented as a stack machine
     // Where 1 token is popped at a time, and depending on the type
@@ -227,23 +279,31 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression()
     // Operator precedence is a spook anyway, just use parens
     while (tokens.size() != 0)
     {
-         // Operators may appear at the start of a value expression
-        // but only if they are unary
-        if (tokens.front()->Type == TokenType::Operator)
+        if (!storedExpression.has_value())
         {
-            OperatorToken operatorToken = *static_cast<OperatorToken*>(tokens.front().get());
-            tokens.pop_front();
-            // Check if operator is unary
-            auto unaryOperator = std::find(UnaryOperators.begin(), UnaryOperators.end(), operatorToken.OpType);
-            if (unaryOperator == UnaryOperators.end())
+            Log::PARSER->trace("getting value expression");
+            storedExpression = std::move(ConsumeNullaryOrUnaryValueExpression(tokens));
+            Log::PARSER->trace("got value expression");
+            Log::PARSER->trace("{}", storedExpression.value()->ToString());
+        }
+        else
+        {
+            if (tokens.front()->Type != TokenType::Operator)
             {
-                Log::LEXER->critical("Found non-unary operator at start of value expression");
+                Log::PARSER->critical("Found non-operator token while expected in value expression");
+                Log::PARSER->critical("{}", tokens.front()->ToString());
                 throw std::format_error("");
             }
+
+            OperatorToken operatorToken = *static_cast<OperatorToken*>(tokens.front().get());
+            tokens.pop_front();
+
+            std::unique_ptr<ValueExpression> secondStoredExpr = std::move(ConsumeNullaryOrUnaryValueExpression(tokens));
+
+            storedExpression = std::make_unique<BinaryValueExpression>(operatorToken.OpType, std::move(storedExpression.value()), std::move(secondStoredExpr));
         }
     }
-
-    throw std::format_error("");
+    return std::move(storedExpression.value());
 }
 
 
@@ -298,11 +358,11 @@ void VKParser::parse()
     }
     else
     {
-        Log::LEXER->error("Managed to parse the following tokens:");
+        Log::PARSER->error("Managed to parse the following tokens:");
         printExpressionTree();
-        Log::LEXER->error("{}", Lines[token->Position.LineIndex]);
-        Log::LEXER->error("{: >{}}", '^', token->Position.LineOffset);
-        Log::LEXER->error("Failed to parse token with type '{}'", TokenTypeNames[token->Type]);
+        Log::PARSER->error("{}", Lines[token->Position.LineIndex]);
+        Log::PARSER->error("{: >{}}", '^', token->Position.LineOffset);
+        Log::PARSER->error("Failed to parse token with type '{}'", TokenTypeNames[token->Type]);
         throw std::format_error("");
     }
 }

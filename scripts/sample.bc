@@ -1,12 +1,11 @@
 define dso_local i32 @main() {
 entry:
 	%a = alloca i32, align 4
-	store i32 32, ptr %a, align 4
+	ERR
 	%b = alloca i32, align 4
-	store i32 17, ptr %b, align 4
+	ERR
 	%c = alloca i32, align 4
-	store i32 a, ptr %c, align 4
-	%ret = load i32, ptr %a, align 4
-	ret i32 %ret
+	ERR
+	ERR
 }
 declare i32 @printf(ptr noundef, ...) #2

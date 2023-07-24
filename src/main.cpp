@@ -11,7 +11,7 @@
 
 int main(int argc, char **argv)
 {
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::trace);
     InitializeLogging();
     spdlog::info("starting");
 
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
     for (auto&& expr : parser.Expressions)
     {
-        Volk::Log::FRONTEND->debug(expr->ToString());
+        Volk::Log::FRONTEND->debug(expr->ToHumanReadableString("\t"));
     }
 
     std::ofstream output ("scripts/sample.bc");

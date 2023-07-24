@@ -9,6 +9,7 @@ namespace Volk
 
 enum class OperatorType
 {
+    Null,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -24,6 +25,7 @@ constexpr std::array<Volk::OperatorType, 2> UnaryOperators =
 
 static std::map<OperatorType, std::string> OperatorTypeNames =
 {
+    {OperatorType::Null, "Null"},
     {OperatorType::OperatorPlus, "OperatorPlus"},
     {OperatorType::OperatorMinus, "OperatorMinus"},
     {OperatorType::OperatorMultiply, "OperatorMultiply"},
