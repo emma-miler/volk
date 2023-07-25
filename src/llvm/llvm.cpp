@@ -10,9 +10,16 @@ std::string VKLLVM::generateOutput(VKParser& parser)
     output << "define dso_local i32 @main() {\n";
     output << "entry:\n";
 
+    ExpressionStack stack;
+
     for (auto&& expr : parser.Expressions)
     {
-        output << "\t" << expr->ToIR() << std::endl;
+        expr->ToIR(stack);
+    }
+
+    for (std::string& line : stack.Expressions)
+    {
+        output << "\t" << line << std::endl;
     }
 
     output << "}\n";

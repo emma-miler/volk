@@ -40,4 +40,14 @@ static std::map<std::string, OperatorType> OperatorTypeLookup =
     {"/", OperatorType::OperatorDivide},
 };
 
+
+static std::map<OperatorType, std::string> OperatorInstructionLookup =
+{
+    {OperatorType::Null, "null"},
+    {OperatorType::OperatorPlus, "add"},
+    {OperatorType::OperatorMinus, "sub"},
+    {OperatorType::OperatorMultiply, "mul"},
+    {OperatorType::OperatorDivide, "sdiv"},
+};
+
 }

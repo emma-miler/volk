@@ -1,5 +1,5 @@
 cd scripts
-llc sample.bc
+llc sample.ll
 gcc sample.s
 ./a.out
 echo $?

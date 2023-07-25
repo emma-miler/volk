@@ -81,9 +81,14 @@ int VKParser::readWhile(std::string_view& data, std::function<bool(char)> predic
     exit(1);
 }
 
-bool isValidNameCharacter(char c)
+bool isValidNameFirstCharacter(char c)
 {
     return std::isalpha(c) || c == '_';
+}
+
+bool isValidNameCharacter(char c)
+{
+    return std::isalnum(c) || c == '_';
 }
 
 bool isValidNumberCharacter(char c)
@@ -128,7 +133,7 @@ int VKParser::readToken(std::string_view data)
     /// ==========
     /// Names
     /// ==========
-    if (isValidNameCharacter(c))
+    if (isValidNameFirstCharacter(c))
     {
         totalRead++;
         totalRead += readWhile(data, isValidNameCharacter);
@@ -167,7 +172,7 @@ int VKParser::readToken(std::string_view data)
     }
 
     /// ==========
-    /// Operators
+    /// Assignment Operator
     /// ==========
     if (c == '=')
     {
@@ -271,7 +276,14 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression()
 
     if (tokens.size() == 1)
     {
-        return std::make_unique<ImmediateValueExpression>(tokens.front()->Value);
+        if (tokens.front()->Type == TokenType::ImmediateValue)
+        {
+            return std::make_unique<ImmediateValueExpression>(tokens.front()->Value);
+        }
+        if (tokens.front()->Type == TokenType::Name)
+        {
+            return std::make_unique<IndirectValueExpression>(tokens.front()->Value);
+        }
     }
     // This should maybe be implemented as a stack machine
     // Where 1 token is popped at a time, and depending on the type

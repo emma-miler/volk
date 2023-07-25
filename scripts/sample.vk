@@ -1,4 +1,7 @@
-int a = 32;
-int b = 17;
-int c = +a + b - 5;
-return a;
+int a = 5;
+int b = 16;
+int c = a + b + -5;
+int a1b = 1;
+int a2c = 2;
+int a3d = 3;
+return c * 10;

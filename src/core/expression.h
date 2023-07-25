@@ -41,6 +41,23 @@ static std::map<ExpressionType, std::string> ExpressionTypeNames =
     {ExpressionType::ReturnExpr, "ReturnExpr"}
 };
 
+class ExpressionStack
+{
+public:
+    std::vector<std::string> Expressions;
+    int NameCounter;
+    std::string ActiveVariable;
+    int IsActivePtr;
+
+public:
+    ExpressionStack()
+    {
+        NameCounter = 0;
+        ActiveVariable = "";
+        IsActivePtr = 0;
+    }
+};
+
 class Expression
 {
 public:
@@ -58,7 +75,8 @@ public:
         throw std::runtime_error("Pure virtual call to Expression::ToString()");
     }
 
-    virtual std::string ToIR()
+    // Output is the variable name
+    virtual void ToIR(ExpressionStack& stack)
     {
         throw std::runtime_error("Pure virtual call to Expression::ToIR()");
     }
@@ -88,9 +106,11 @@ public:
         return fmt::format("DeclarationExpression(type='{}', name='{}')", Typename, Name);
     }
 
-    virtual std::string ToIR()
+    virtual void ToIR(ExpressionStack& stack)
     {
-        return fmt::format("%{} = alloca i32, align 4", Name);
+        stack.Expressions.push_back("; START DECLARATION");
+        stack.Expressions.push_back(fmt::format("%{} = alloca i32, align 4", Name));
+        stack.Expressions.push_back("; END DECLARATION\n");
     }
 };
 
@@ -117,9 +137,9 @@ public:
         return fmt::format("Pure virtual call to ValueExpression::ToString()");
     }
 
-    virtual std::string ToIR()
+    virtual void ToIR(ExpressionStack& stack)
     {
-        throw std::runtime_error("Pure ValueExpession cannot be converted directly to LLVM IR");
+        throw std::runtime_error("Pure ValueExpression cannot be converted directly to LLVM IR");
     }
 };
 
@@ -144,6 +164,19 @@ public:
     {
         return fmt::format("ImmediateValueExpression(\n{}value='{}'\n{})", depthPrefix, Value, depthPrefix);
     }
+
+    virtual void ToIR(ExpressionStack& stack)
+    {
+        int variableName = stack.NameCounter++;
+        // Allocate the variable
+        stack.Expressions.push_back("; START IMMEDIATE VALUE");
+        stack.Expressions.push_back(fmt::format("%{} = alloca i32, align 4", variableName));
+        // Assign the value
+        stack.Expressions.push_back(fmt::format("store i32 {}, ptr %{}, align 4", Value, variableName));
+        stack.Expressions.push_back("; END IMMEDIATE VALUE\n");
+        stack.ActiveVariable = std::to_string(variableName);
+        stack.IsActivePtr = 1;
+    }
 };
 
 // Holds variable names
@@ -166,6 +199,17 @@ public:
     std::string ToHumanReadableString(std::string depthPrefix)
     {
         return fmt::format("IndirectValueExpression(\n{}value='{}'\n{})", depthPrefix, Value, depthPrefix);
+    }
+
+    virtual void ToIR(ExpressionStack& stack)
+    {
+        int variableName = stack.NameCounter++;
+        stack.Expressions.push_back("; START INDIRECT VALUE");
+        // Assign the value
+        stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}, align 4", variableName, Value));
+        stack.Expressions.push_back("; END INDIRECT VALUE\n");
+        stack.ActiveVariable = std::to_string(variableName);
+        stack.IsActivePtr = 0;
     }
 };
 
@@ -190,6 +234,25 @@ public:
     std::string ToHumanReadableString(std::string depthPrefix)
     {
          return fmt::format("UnaryValueExpression(\n{}op={}, \n{}value={}\n{})", depthPrefix, OperatorTypeNames[Operator], depthPrefix, Value->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
+    }
+
+    virtual void ToIR(ExpressionStack& stack)
+    {
+        Value->ToIR(stack);
+        std::string valueVariableName = stack.ActiveVariable;
+        // Perform the operator
+        stack.Expressions.push_back("; START UNARY OPERATOR");
+        if (stack.IsActivePtr)
+        {
+            int variableName = stack.NameCounter++;
+            stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}, align 4", variableName, valueVariableName));
+            valueVariableName = std::to_string(variableName);
+        }
+        int variableName = stack.NameCounter++;
+        stack.Expressions.push_back(fmt::format("%{} = {} nsw i32 0, %{}", variableName, Operator == OperatorType::OperatorMinus ? "sub" : "add", valueVariableName));
+        stack.Expressions.push_back("; END UNARY OPERATOR\n");
+        stack.ActiveVariable = std::to_string(variableName);
+        stack.IsActivePtr = 0;
     }
 };
 
@@ -219,6 +282,47 @@ public:
         return fmt::format("BinaryValueExpression(\n{}op={}, \n{}left={}, \n{}right={}\n{})",
                            depthPrefix, OperatorTypeNames[Operator], depthPrefix,  Left->ToHumanReadableString(depthPrefix + "\t"), depthPrefix, Right->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
     }
+
+    virtual void ToIR(ExpressionStack& stack)
+    {
+        Left->ToIR(stack);
+        std::string leftName = stack.ActiveVariable;
+        int isLeftPtr = stack.IsActivePtr;
+
+        Right->ToIR(stack);
+        std::string rightName = stack.ActiveVariable;
+        int isRightPtr = stack.IsActivePtr;
+
+        // LLVM does not allow you to operate on an immediate i32 with a ptr value or vice versa,
+        // and requires that the type of both operands is the same,
+        // so we must load the left and/or right side into a temp variable
+        if (isLeftPtr || isRightPtr)
+        {
+            stack.Expressions.push_back("; START BINARY OPERATOR PRELOAD");
+            if (isLeftPtr)
+            {
+                int variableName = stack.NameCounter++;
+                stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}, align 4", variableName, leftName));
+                leftName = std::to_string(variableName);
+            }
+            if (isRightPtr)
+            {
+                int variableName = stack.NameCounter++;
+                stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}, align 4", variableName, rightName));
+                rightName = std::to_string(variableName);
+            }
+            stack.Expressions.push_back("; END BINARY OPERATOR PRELOAD\n");
+        }
+
+
+        int variableName = stack.NameCounter++;
+        // Perform the operator
+        stack.Expressions.push_back("; START BINARY OPERATOR");
+        stack.Expressions.push_back(fmt::format("%{} = {} i32 %{}, %{}", variableName, OperatorInstructionLookup[Operator], leftName, rightName));
+        stack.Expressions.push_back("; END BINARY OPERATOR\n");
+        stack.ActiveVariable = std::to_string(variableName);
+        stack.IsActivePtr = 0;
+    }
 };
 
 
@@ -245,11 +349,24 @@ public:
          return fmt::format("AssignmentExpression(\n{}name='{}', \n{}value={}\n{})", depthPrefix, Name, depthPrefix, Value->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
     }
 
-    virtual std::string ToIR()
+    virtual void ToIR(ExpressionStack& stack)
     {
-        // TODO: fix this, unravel calculation stack
-        // return fmt::format("store i32 {}, ptr %{}, align 4", Value->Value, Name);
-        return "ERR";
+
+        if (Value->OperatoryArity == ValueExpressionType::Nullary)
+        {
+            ImmediateValueExpression value = *static_cast<ImmediateValueExpression*>(Value.get());
+            stack.Expressions.push_back("; START ASSIGNMENT");
+            stack.Expressions.push_back(fmt::format("store i32 {}, ptr %{}, align 4", value.Value, Name));
+        }
+        else
+        {
+            Value->ToIR(stack);
+            std::string valueName = stack.ActiveVariable;
+            stack.Expressions.push_back("; START ASSIGNMENT");
+            stack.Expressions.push_back(fmt::format("store {} %{}, ptr %{}, align 4", stack.IsActivePtr ? "ptr" : "i32", valueName, Name));
+        }
+        stack.Expressions.push_back("; END ASSIGNMENT\n");
+        stack.ActiveVariable = "NULL";
     }
 };
 
@@ -270,11 +387,21 @@ public:
         return fmt::format("ReturnExpression(value='{}')", Value->ToString());
     }
 
-    virtual std::string ToIR()
+    virtual void ToIR(ExpressionStack& stack)
     {
-        // TODO: fix this, unravel calculation stack
-        // return fmt::format("%ret = load i32, ptr %{}, align 4\n\tret i32 %ret", Value->Value);
-        return "ERR";
+        Value->ToIR(stack);
+        int variableName = stack.NameCounter++;
+        stack.Expressions.push_back("; START RETURN");
+        if (stack.IsActivePtr)
+        {
+            stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}, align 4", variableName, stack.ActiveVariable));
+            stack.Expressions.push_back(fmt::format("ret i32 %{}", variableName));
+        }
+        else
+        {
+            stack.Expressions.push_back(fmt::format("ret i32 %{}", stack.ActiveVariable));
+        }
+        stack.Expressions.push_back("; END RETURN\n");
     }
 };
 
