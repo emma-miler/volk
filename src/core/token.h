@@ -3,6 +3,7 @@
 #include <string>
 #include <string_view>
 #include <map>
+#include "exceptions.h"
 
 #include "../log/log.h"
 
@@ -13,22 +14,28 @@ namespace Volk
 
 enum class TokenType
 {
+    Dummy,
     Name,
     ImmediateValue,
     Assignment,
     Operator,
     Return,
     EndOfStatement,
+    OpenExpressionScope,
+    CloseExpressionScope,
 };
 
 static std::map<TokenType, std::string> TokenTypeNames =
 {
+    {TokenType::Dummy, "DUMMY_INTERNAL"},
     {TokenType::Name, "Name"},
     {TokenType::ImmediateValue, "ImmediateValue"},
     {TokenType::Assignment, "Assignment"},
     {TokenType::Operator, "Operator"},
     {TokenType::Return, "Return"},
-    {TokenType::EndOfStatement, "EndOfStatement"}
+    {TokenType::EndOfStatement, "EndOfStatement"},
+    {TokenType::OpenExpressionScope, "OpenExpressionScope"},
+    {TokenType::CloseExpressionScope, "CloseExpressionScope"}
 };
 
 typedef struct
@@ -66,6 +73,10 @@ public:
     OperatorType OpType;
 
 public:
+    static OperatorToken Dummy()
+    {
+        return OperatorToken();
+    }
     OperatorToken(std::string_view value, SourcePosition position) : Token(TokenType::Operator, value, position)
     {
         auto optype = OperatorTypeLookup.find(std::string(value));
@@ -73,10 +84,15 @@ public:
         {
             Log::LEXER->critical("Failed to parse operator type. This should never happen!");
             Log::LEXER->critical("Operator value: '{}'", value);
-            throw std::format_error("");
+            throw parse_error("");
         }
         OpType = optype->second;
         Log::LEXER->trace("Assigning operator token type '{}' for value '{}'", OperatorTypeNames[OpType], value);
+    }
+private:
+    OperatorToken() : Token(TokenType::Operator, "", SourcePosition())
+    {
+        OpType = OperatorType::Null;
     }
 };
 

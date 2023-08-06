@@ -8,17 +8,17 @@ set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES})
 include_directories(${CMAKE_SOURCE_DIR}/include/)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(spdlog REQUIRED)
+
+add_library(spdlog SHARED IMPORTED)
 
 file(GLOB_RECURSE ASTERI_SRC_FILES CONFIGURE_DEPENDS
     "src/*/*.cpp"
 )
 add_executable(volk src/main.cpp ${ASTERI_SRC_FILES})
 
-target_link_libraries(volk PRIVATE spdlog::spdlog)
+target_link_libraries(volk spdlog::spdlog)
 
 target_compile_options(volk PRIVATE -g)
 

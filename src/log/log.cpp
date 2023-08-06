@@ -2,8 +2,7 @@
 #include "log.h"
 #include "../util/color.h"
 #include <spdlog/sinks/basic_file_sink.h>
-#include <fmt/core.h>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 
 #include <string_view>
 
@@ -18,7 +17,7 @@ std::shared_ptr<spdlog::logger> createLogger(std::string name, Color color)
 {
 // return "[" + color.ToANSIColor() + name + "\033[39;49m]";
 
-    auto logger = std::make_shared<spdlog::logger>(color.ToANSIColor() + "[" + name + "]" + Color::ANSIResetCode);
+    auto logger = std::make_shared<spdlog::logger>(color.ToANSIColor() + "[" + name + "]" + ANSIResetCode);
     logger->set_level(spdlog::default_logger()->level());
     for (auto&& sink : spdlog::default_logger()->sinks())
     {

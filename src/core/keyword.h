@@ -5,7 +5,7 @@
 
 namespace Volk
 {
-constexpr std::array<std::string, 1> Keywords =
+const std::array<std::string, 1> Keywords =
 {
     "return"
 };

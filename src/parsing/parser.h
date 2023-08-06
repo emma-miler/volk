@@ -30,7 +30,8 @@ public:
     void printExpressionTree();
 
     void parse();
-    std::unique_ptr<ValueExpression> parseValueExpression();
+    std::unique_ptr<ValueExpression> parseValueExpression(int depth);
+    std::unique_ptr<ValueExpression> ConsumeNullaryOrUnaryValueExpression(int depth);
 
 public:
     VKParser() : lastConsumedToken(TokenType::EndOfStatement, "", {0,0,0}) {};

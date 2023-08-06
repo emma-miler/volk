@@ -8,13 +8,10 @@ main:                                   # @main
 # %bb.0:                                # %entry
 	movl	$5, -4(%rsp)
 	movl	$16, -8(%rsp)
-	movl	$5, -16(%rsp)
-	movl	$16, -12(%rsp)
-	movl	$1, -20(%rsp)
-	movl	$2, -24(%rsp)
-	movl	$3, -28(%rsp)
-	movl	$10, -32(%rsp)
-	movl	$160, %eax
+	movl	$42, -16(%rsp)
+	movl	$16, -20(%rsp)
+	movl	$6720, -12(%rsp)                # imm = 0x1A40
+	movl	$6720, %eax                     # imm = 0x1A40
 	retq
 .Lfunc_end0:
 	.size	main, .Lfunc_end0-main

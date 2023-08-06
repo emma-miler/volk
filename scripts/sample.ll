@@ -20,79 +20,54 @@ entry:
 	%c = alloca i32, align 4
 	; END DECLARATION
 
-	; START INDIRECT VALUE
-	%0 = load i32, ptr %a, align 4
-	; END INDIRECT VALUE
-
-	; START INDIRECT VALUE
-	%1 = load i32, ptr %b, align 4
-	; END INDIRECT VALUE
-
-	; START BINARY OPERATOR
-	%2 = add i32 %0, %1
-	; END BINARY OPERATOR
-
 	; START IMMEDIATE VALUE
-	%3 = alloca i32, align 4
-	store i32 5, ptr %3, align 4
+	%0 = alloca i32, align 4
+	store i32 42, ptr %0, align 4
 	; END IMMEDIATE VALUE
 
-	; START UNARY OPERATOR
-	%4 = load i32, ptr %3, align 4
-	%5 = sub nsw i32 0, %4
-	; END UNARY OPERATOR
-
-	; START BINARY OPERATOR
-	%6 = add i32 %2, %5
-	; END BINARY OPERATOR
-
-	; START ASSIGNMENT
-	store i32 %6, ptr %c, align 4
-	; END ASSIGNMENT
-
-	; START DECLARATION
-	%a1b = alloca i32, align 4
-	; END DECLARATION
-
-	; START ASSIGNMENT
-	store i32 1, ptr %a1b, align 4
-	; END ASSIGNMENT
-
-	; START DECLARATION
-	%a2c = alloca i32, align 4
-	; END DECLARATION
-
-	; START ASSIGNMENT
-	store i32 2, ptr %a2c, align 4
-	; END ASSIGNMENT
-
-	; START DECLARATION
-	%a3d = alloca i32, align 4
-	; END DECLARATION
-
-	; START ASSIGNMENT
-	store i32 3, ptr %a3d, align 4
-	; END ASSIGNMENT
-
 	; START INDIRECT VALUE
-	%7 = load i32, ptr %c, align 4
+	%1 = load i32, ptr %a, align 4
 	; END INDIRECT VALUE
-
-	; START IMMEDIATE VALUE
-	%8 = alloca i32, align 4
-	store i32 10, ptr %8, align 4
-	; END IMMEDIATE VALUE
 
 	; START BINARY OPERATOR PRELOAD
-	%9 = load i32, ptr %8, align 4
+	%2 = load i32, ptr %0, align 4
 	; END BINARY OPERATOR PRELOAD
 
 	; START BINARY OPERATOR
-	%10 = mul i32 %7, %9
+	%3 = mul i32 %2, %1
 	; END BINARY OPERATOR
 
+	; START INDIRECT VALUE
+	%4 = load i32, ptr %b, align 4
+	; END INDIRECT VALUE
+
+	; START IMMEDIATE VALUE
+	%5 = alloca i32, align 4
+	store i32 16, ptr %5, align 4
+	; END IMMEDIATE VALUE
+
+	; START BINARY OPERATOR PRELOAD
+	%6 = load i32, ptr %5, align 4
+	; END BINARY OPERATOR PRELOAD
+
+	; START BINARY OPERATOR
+	%7 = add i32 %4, %6
+	; END BINARY OPERATOR
+
+	; START BINARY OPERATOR
+	%8 = mul i32 %3, %7
+	; END BINARY OPERATOR
+
+	; START ASSIGNMENT
+	store i32 %8, ptr %c, align 4
+	; END ASSIGNMENT
+
+	; START INDIRECT VALUE
+	%9 = load i32, ptr %c, align 4
+	; END INDIRECT VALUE
+
 	; START RETURN
-	ret i32 %10
+	ret i32 %9
 	; END RETURN
 
 }

@@ -2,6 +2,7 @@
 
 #include <string>
 
+const std::string ANSIResetCode = "\033[39;49m";
 
 //-----------------------------------------------------------------------------
 // Purpose: Basic handler for an rgb set of colors
@@ -10,7 +11,6 @@
 class Color
 {
 public:
-  static constexpr std::string ANSIResetCode = "\033[39;49m";
   public:
 	Color(int r, int g, int b, int a = 255)
 	{
