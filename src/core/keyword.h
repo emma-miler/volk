@@ -5,15 +5,17 @@
 
 namespace Volk
 {
-const std::array<std::string, 1> Keywords =
+const std::array<std::string, 2> Keywords =
 {
-    "return"
+    "return",
+    "func"
 };
 
 
 static std::map<std::string, TokenType> KeywordLookup =
 {
-    {"return", TokenType::Return}
+    {"return", TokenType::Return},
+    {"func", TokenType::FunctionPrefix}
 };
 
 }

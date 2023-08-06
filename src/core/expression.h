@@ -9,7 +9,7 @@
 namespace Volk
 {
 
-class VKExpression;
+class Expression;
 
 #include "../parsing/parser.h"
 

@@ -23,6 +23,10 @@ enum class TokenType
     EndOfStatement,
     OpenExpressionScope,
     CloseExpressionScope,
+    FunctionPrefix,
+    OpenScope,
+    CloseScope,
+    CommaSeperator,
 };
 
 static std::map<TokenType, std::string> TokenTypeNames =
@@ -35,7 +39,11 @@ static std::map<TokenType, std::string> TokenTypeNames =
     {TokenType::Return, "Return"},
     {TokenType::EndOfStatement, "EndOfStatement"},
     {TokenType::OpenExpressionScope, "OpenExpressionScope"},
-    {TokenType::CloseExpressionScope, "CloseExpressionScope"}
+    {TokenType::CloseExpressionScope, "CloseExpressionScope"},
+    {TokenType::FunctionPrefix, "FunctionPrefix"},
+    {TokenType::OpenScope, "OpenScope"},
+    {TokenType::CloseScope, "CloseScope"},
+    {TokenType::CommaSeperator, "CommaSeperator"},
 };
 
 typedef struct

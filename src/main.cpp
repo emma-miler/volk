@@ -11,7 +11,7 @@
 
 int main(int argc, char **argv)
 {
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::trace);
     InitializeLogging();
     spdlog::info("starting");
 
@@ -41,9 +41,18 @@ int main(int argc, char **argv)
     }
     parser.printExpressionTree();
 
-    for (auto&& expr : parser.Expressions)
+    for (auto&& expr : parser.DefaultScope->Expressions)
     {
         Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString("\t"));
+    }
+
+    for (auto&& func : parser.RootNamespace->Functions)
+    {
+        Volk::Log::FRONTEND->debug("Function: '{}'", func->Name);
+        for (auto&& expr : func->FunctionScope->Expressions)
+        {
+            Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString("\t"));
+        }
     }
 
     std::ofstream output ("scripts/sample.ll");

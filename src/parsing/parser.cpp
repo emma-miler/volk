@@ -37,7 +37,7 @@ void VKParser::consume(std::string file)
             printCurrentTokens();
             return;
         }
-        charactersReadThisLine += read;
+        Log::FRONTEND->debug("read {} chars", read);
         content = content.substr(read);
     }
 }
@@ -110,35 +110,35 @@ int VKParser::readToken(std::string_view data)
         Log::LEXER->debug("End of file!");
         return -1;
     }
-    if (c == ' ') {
+    else if (c == ' ') {
         Log::LEXER->trace("Skipping whitespace");
-        charactersReadThisLine++;
-        return 1;
+        //charactersReadThisLine++;
+        totalRead++;
     }
-    if (c == '\n')
+    else if (c == '\n')
     {
+        Log::LEXER->trace("Skipping newline");
         charactersReadThisLine = 0;
         lineIndex++;
-        Log::LEXER->trace("Skipping whitespace");
-        return 1;
+        totalRead++;
     }
 
     /// ==========
     /// End of Statement
     /// ==========
-    if (c == ';')
+    else if (c == ';')
     {
+        Log::LEXER->trace("Read EOS");
         totalRead++;
         Tokens.push_back(std::make_unique<Token>(TokenType::EndOfStatement, data.substr(0, totalRead), currentPosition(totalRead)));
-        charactersReadThisLine += totalRead;
-        return totalRead;
     }
 
     /// ==========
     /// Names
     /// ==========
-    if (isValidNameFirstCharacter(c))
+    else if (isValidNameFirstCharacter(c))
     {
+        Log::LEXER->trace("Read name");
         totalRead++;
         totalRead += readWhile(data, isValidNameCharacter);
         std::string name = std::string(data.substr(0, totalRead));
@@ -147,80 +147,103 @@ int VKParser::readToken(std::string_view data)
             Tokens.push_back(std::make_unique<Token>(TokenType::Name, data.substr(0, totalRead), currentPosition(totalRead)));
         else
             Tokens.push_back(std::make_unique<Token>(keywordTokenType->second, data.substr(0, totalRead), currentPosition(totalRead)));
-        charactersReadThisLine += totalRead;
-        return totalRead;
     }
 
     /// ==========
     /// Immediate Strings
     /// ==========
-    if (c == '"')
+    else if (c == '"')
     {
+        Log::LEXER->trace("Read string");
         totalRead++;
         totalRead += readUntilNext(data, '"');
         Tokens.push_back(std::make_unique<Token>(TokenType::ImmediateValue, data.substr(0, totalRead), currentPosition(totalRead)));
-        charactersReadThisLine += totalRead;
-        return totalRead;
     }
 
     /// ==========
     /// Expression Scope
     /// ==========
-    if (c == '(')
+    else if (c == '(')
     {
+        Log::LEXER->trace("Read ExprScopeOpen");
         totalRead++;
         Tokens.push_back(std::make_unique<Token>(TokenType::OpenExpressionScope, data.substr(0, totalRead), currentPosition(totalRead)));
-        charactersReadThisLine += totalRead;
-        return totalRead;
     }
-    if (c == ')')
+    else if (c == ')')
     {
+        Log::LEXER->trace("Read ExprScopeClose");
         totalRead++;
         Tokens.push_back(std::make_unique<Token>(TokenType::CloseExpressionScope, data.substr(0, totalRead), currentPosition(totalRead)));
-        charactersReadThisLine += totalRead;
-        return totalRead;
+    }
+
+    /// ==========
+    /// Scope
+    /// ==========
+    else if (c == '{')
+    {
+        Log::LEXER->trace("Read ScopeOpen");
+        totalRead++;
+        Tokens.push_back(std::make_unique<Token>(TokenType::OpenScope, data.substr(0, totalRead), currentPosition(totalRead)));
+    }
+    else if (c == '}')
+    {
+        Log::LEXER->trace("Read ScopeClose");
+        totalRead++;
+        Tokens.push_back(std::make_unique<Token>(TokenType::CloseScope, data.substr(0, totalRead), currentPosition(totalRead)));
     }
 
     /// ==========
     /// Immediate Numbers
     /// ==========
-    if (std::isdigit(c))
+    else if (std::isdigit(c))
     {
+        Log::LEXER->trace("Read number");
         totalRead++;
         totalRead += readWhile(data, isValidNumberCharacter);
         Tokens.push_back(std::make_unique<Token>(TokenType::ImmediateValue, data.substr(0, totalRead), currentPosition(totalRead)));
-        charactersReadThisLine += totalRead;
-        return totalRead;
     }
 
     /// ==========
     /// Assignment Operator
     /// ==========
-    if (c == '=')
+    else if (c == '=')
     {
+        Log::LEXER->trace("Read Assign");
         totalRead++;
         Tokens.push_back(std::make_unique<Token>(TokenType::Assignment, data.substr(0, totalRead), currentPosition(totalRead)));
-        charactersReadThisLine += totalRead;
-        return totalRead;
     }
 
     /// ==========
     /// Binary Operators
     /// ==========
-    auto op = OperatorTypeLookup.find(std::string(1, c));
-    if (op != OperatorTypeLookup.end())
+    else if (OperatorTypeLookup.find(std::string(1, c)) != OperatorTypeLookup.end())
     {
+        Log::LEXER->trace("Read BinaryOperator");
         totalRead++;
         Tokens.push_back(std::make_unique<OperatorToken>(data.substr(0, totalRead), currentPosition(totalRead)));
-        charactersReadThisLine += totalRead;
-        return totalRead;
     }
 
-    printCurrentTokens();
-    Log::LEXER->error("{}", Lines[lineIndex]);
-    Log::LEXER->error("{: >{}}", '^', charactersReadThisLine);
-    Log::LEXER->error("Failed to parse character '{}' (0x{:0x}) Bailing", c, c);
-    exit(1);
+    /// ==========
+    /// Comma Seperator
+    /// ==========
+    else if (c == ',')
+    {
+        Log::LEXER->trace("Read Comma");
+        totalRead++;
+        Tokens.push_back(std::make_unique<Token>(TokenType::CommaSeperator, data.substr(0, totalRead), currentPosition(totalRead)));
+    }
+
+    else
+    {
+        printCurrentTokens();
+        Log::LEXER->error("{}", Lines[lineIndex]);
+        Log::LEXER->error("{: >{}}", '^', charactersReadThisLine + 1);
+        Log::LEXER->error("Failed to parse character '{}' (0x{:0x}) Bailing", c, c);
+        exit(1);
+    }
+    charactersReadThisLine += totalRead;
+    return totalRead;
+
 }
 
 std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(int depth)
@@ -350,6 +373,23 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
     }
 }
 
+std::unique_ptr<Token> VKParser::expectToken(TokenType expectedType)
+{
+    std::unique_ptr<Token> token = std::move(Tokens.front()); Tokens.pop_front();
+    if (token->Type != expectedType)
+    {
+        Log::PARSER->error("{}", Lines[token->Position.LineIndex]);
+        std::string space = fmt::format("{: >{}}", ' ', token->Position.LineOffset);
+        std::string tokenIndicator = fmt::format("{:^>{}}", ' ', token->Position.Length + 1);
+        Log::PARSER->error(space + tokenIndicator);
+        Log::PARSER->error("Expected token type '{}', instead found '{}'", TokenTypeNames[expectedType], TokenTypeNames[token->Type]);
+        Log::PARSER->error("Managed to parse the following tokens:");
+        printExpressionTree();
+
+        throw parse_error("");
+    }
+    return token;
+}
 
 void VKParser::parse()
 {
@@ -357,6 +397,22 @@ void VKParser::parse()
     Tokens.pop_front();
     if (token->Type == TokenType::EndOfStatement)
     {
+        return;
+    }
+    if (token->Type == TokenType::CloseScope)
+    {
+        if (Scopes.size() == 1)
+        {
+            Log::PARSER->error("{}", Lines[token->Position.LineIndex]);
+            std::string space = fmt::format("{: >{}}", ' ', token->Position.LineOffset);
+            std::string tokenIndicator = fmt::format("{:^>{}}", ' ', token->Position.Length + 1);
+            Log::PARSER->error(space + tokenIndicator);
+            Log::PARSER->error("Unexpected scope end");
+            Log::PARSER->error("Managed to parse the following tokens:");
+            printExpressionTree();
+            throw parse_error("");
+        }
+        Scopes.pop_front();
         return;
     }
     if (token->Type == TokenType::Name)
@@ -367,9 +423,8 @@ void VKParser::parse()
         /// ==========
         if (nextType == TokenType::Name)
         {
-            std::unique_ptr<Token> nameToken = std::move(Tokens.front());
-            Tokens.pop_front();
-            Expressions.push_back(std::make_unique<DeclarationExpression>(token->Value, nameToken->Value));
+            std::unique_ptr<Token> nameToken = expectToken(TokenType::Name);
+            Scopes.front()->Expressions.push_back(std::make_unique<DeclarationExpression>(token->Value, nameToken->Value));
 
             nextType = Tokens.front()->Type;
             if (nextType != TokenType::Assignment)
@@ -383,23 +438,53 @@ void VKParser::parse()
         /// ==========
         if (nextType == TokenType::Assignment)
         {
-            std::unique_ptr<Token> operatorToken = std::move(Tokens.front());
-            Tokens.pop_front();
-            if (operatorToken->Value == "=")
-            {
-                Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0)));
-                return;
-            }
-            else
-            {
-                throw parse_error("");
-            }
+            std::unique_ptr<Token> operatorToken = expectToken(TokenType::Assignment);
+            Scopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0)));
+            return;
         }
     }
     if (token->Type == TokenType::Return)
     {
-        Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0)));
+        Scopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0)));
+        return;
     }
+
+    /// ==========
+    /// Function Declaration
+    /// ==========
+    if (token->Type == TokenType::FunctionPrefix)
+    {
+        std::unique_ptr<Token> typeToken = expectToken(TokenType::Name);
+        std::unique_ptr<Token> nameToken = expectToken(TokenType::Name);
+        expectToken(TokenType::OpenExpressionScope);
+        std::unique_ptr<FunctionObject> functionObject = std::make_unique<FunctionObject>(nameToken->Value, typeToken->Value);
+        while (1)
+        {
+            if (Tokens.front()->Type == TokenType::CloseExpressionScope)
+            {
+                Tokens.pop_front();
+                break;
+            }
+            std::unique_ptr<Token> paramTypeToken = expectToken(TokenType::Name);
+            std::unique_ptr<Token> paramNameToken = expectToken(TokenType::Name);
+            if (Tokens.front()->Type == TokenType::CloseExpressionScope)
+            {
+                Tokens.pop_front();
+                functionObject->Parameters.push_back(FunctionParameter{paramNameToken->Value, paramTypeToken->Value});
+                break;
+            }
+            expectToken(TokenType::CommaSeperator);
+        }
+
+        Scopes.push_front(functionObject->FunctionScope);
+
+        RootNamespace->Functions.push_back(std::move(functionObject));
+
+        expectToken(TokenType::OpenScope);
+
+        return;
+    }
+
     else
     {
         Log::PARSER->error("Managed to parse the following tokens:");

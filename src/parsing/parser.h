@@ -10,6 +10,8 @@ class VKParser;
 #include <deque>
 #include <memory>
 
+#include "../core/namespace.h"
+
 namespace Volk
 {
 class VKParser
@@ -23,6 +25,11 @@ public:
     int lineIndex = 0;
     std::vector<std::string> Lines;
 
+    std::unique_ptr<Namespace> RootNamespace;
+    std::shared_ptr<Scope> DefaultScope;
+
+    std::deque<std::shared_ptr<Scope>> Scopes;
+
 
 public:
     void consume(std::string data);
@@ -34,7 +41,12 @@ public:
     std::unique_ptr<ValueExpression> ConsumeNullaryOrUnaryValueExpression(int depth);
 
 public:
-    VKParser() : lastConsumedToken(TokenType::EndOfStatement, "", {0,0,0}) {};
+    VKParser() : lastConsumedToken(TokenType::EndOfStatement, "", {0,0,0})
+    {
+        RootNamespace = std::make_unique<Namespace>("");
+        DefaultScope = std::make_shared<Scope>();
+        Scopes.push_front(DefaultScope);
+    };
 
 private:
     SourcePosition currentPosition(int length);
@@ -43,5 +55,7 @@ private:
 
     int readUntilNext(std::string_view& data, char character);
     int readWhile(std::string_view& data, std::function<bool(char)> predicate);
+
+    std::unique_ptr<Token> expectToken(TokenType type);
 };
 }
