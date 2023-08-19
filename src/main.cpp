@@ -43,15 +43,16 @@ int main(int argc, char **argv)
 
     for (auto&& expr : parser.DefaultScope->Expressions)
     {
-        Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString("\t"));
+        Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString(""));
     }
 
     for (auto&& func : parser.RootNamespace->Functions)
     {
         Volk::Log::FRONTEND->debug("Function: '{}'", func->Name);
+        Volk::Log::FRONTEND->debug(func->ToHumanReadable());
         for (auto&& expr : func->FunctionScope->Expressions)
         {
-            Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString("\t"));
+            Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString(""));
         }
     }
 

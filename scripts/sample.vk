@@ -1,9 +1,7 @@
-func int test(int a, int b, test abc, int a, int b, int c)
+func int sum(int a, int b)
 {
-    int abc = 5;
+	return a + b;
 }
 
-int a = 5;
-int b = 16;
-int c = (42 * a * (b+16));
-return c;
+int b = sum(5, 6);
+return b;

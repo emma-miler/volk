@@ -57,5 +57,6 @@ private:
     int readWhile(std::string_view& data, std::function<bool(char)> predicate);
 
     std::unique_ptr<Token> expectToken(TokenType type);
+    std::optional<std::unique_ptr<Token>> softExpectToken(TokenType type);
 };
 }

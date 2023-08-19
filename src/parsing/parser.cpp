@@ -110,7 +110,7 @@ int VKParser::readToken(std::string_view data)
         Log::LEXER->debug("End of file!");
         return -1;
     }
-    else if (c == ' ') {
+    else if (c == ' ' || c == '\t') {
         Log::LEXER->trace("Skipping whitespace");
         //charactersReadThisLine++;
         totalRead++;
@@ -254,6 +254,8 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     /// ==========
     /// Nested expression
     /// ==========
+    // TODO: need to check for function here
+    // Maybe need to add a context variable to this function's arguments
     if (Tokens.front()->Type == TokenType::OpenExpressionScope)
     {
         Tokens.pop_front();
@@ -315,6 +317,8 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
 
 std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
 {
+    Log::PARSER->trace("parseValueExpression depth = {}", depth);
+    Log::PARSER->trace("front token = {}", Tokens.front()->ToString());
     std::optional<std::unique_ptr<ValueExpression>> leftHandSide = std::nullopt;
     std::optional<std::unique_ptr<ValueExpression>> rightHandSide = std::nullopt;
     OperatorToken operatorToken = OperatorToken::Dummy();
@@ -323,6 +327,9 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
 
     while (Tokens.size() != 0)
     {
+        // If we are the top level of a nested expression, we look for an EndOfStatement token
+        // Otherwise, we look for a CloseExpressionScope token, since we must first close all
+        // the open ExpressionScopes, aka every '(' must have a matching ')'
         if ((depth == 0 && Tokens.front()->Type == TokenType::EndOfStatement) ||
             (depth > 0 && Tokens.front()->Type == TokenType::CloseExpressionScope))
         {
@@ -330,17 +337,40 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
         }
         if (isExpectingOperator)
         {
-            if (Tokens.front()->Type != TokenType::Operator)
+            // We have already parsed the left-hand side of a possibly multivalued expression
+            // This means we can either find a binary operator, or a function call
+            if (Tokens.front()->Type == TokenType::Operator)
             {
-                Log::PARSER->critical("Found non-operator token while expected in value expression");
-                Log::PARSER->critical("{}", Tokens.front()->ToString());
-                throw parse_error("");
+                operatorToken = *static_cast<OperatorToken*>(Tokens.front().get());
+                Tokens.pop_front();
+                isExpectingOperator = false;
+                continue;
+            }
+            else if (Tokens.front()->Type == TokenType::OpenExpressionScope)
+            {
+                std::string funcName = (*static_cast<IndirectValueExpression*>(leftHandSide->get())).Value;
+                std::unique_ptr<FunctionCallValueExpression> func = std::make_unique<FunctionCallValueExpression>(funcName);
+                Tokens.pop_front();
+                int i = 0;
+                while (Tokens.front()->Type != TokenType::CloseExpressionScope)
+                {
+                    func->Arguments.push_back(ConsumeNullaryOrUnaryValueExpression(depth));
+                    Log::PARSER->trace("func argument {}", i);
+                    i++;
+                    if (!softExpectToken(TokenType::CommaSeperator).has_value())
+                        break;
+                }
+                leftHandSide = std::move(func);
+                isExpectingOperator = true;
+                continue;
             }
 
-            operatorToken = *static_cast<OperatorToken*>(Tokens.front().get());
-            Tokens.pop_front();
-            isExpectingOperator = false;
-            continue;
+            Log::PARSER->critical("Found unexpected token while parsing");
+            Log::PARSER->critical("Expected either 'Operator' or 'OpenExpressionScope', instead got '{}'", TokenTypeNames[Tokens.front()->Type]);
+            Log::PARSER->critical("{}", Tokens.front()->ToString());
+            throw parse_error("");
+
+
         }
         Log::PARSER->trace("getting value expression");
         if (!leftHandSide.has_value())
@@ -390,6 +420,17 @@ std::unique_ptr<Token> VKParser::expectToken(TokenType expectedType)
     }
     return token;
 }
+
+std::optional<std::unique_ptr<Token>> VKParser::softExpectToken(TokenType expectedType)
+{
+    std::unique_ptr<Token> token = std::move(Tokens.front()); Tokens.pop_front();
+    if (token->Type != expectedType)
+    {
+        return std::nullopt;
+    }
+    return token;
+}
+
 
 void VKParser::parse()
 {
@@ -467,10 +508,10 @@ void VKParser::parse()
             }
             std::unique_ptr<Token> paramTypeToken = expectToken(TokenType::Name);
             std::unique_ptr<Token> paramNameToken = expectToken(TokenType::Name);
+            functionObject->Parameters.push_back(FunctionParameter{paramNameToken->Value, paramTypeToken->Value});
             if (Tokens.front()->Type == TokenType::CloseExpressionScope)
             {
                 Tokens.pop_front();
-                functionObject->Parameters.push_back(FunctionParameter{paramNameToken->Value, paramTypeToken->Value});
                 break;
             }
             expectToken(TokenType::CommaSeperator);
