@@ -49,6 +49,7 @@ public:
         RootNamespace = std::make_unique<Namespace>("");
         DefaultScope = std::make_shared<Scope>();
         Scopes.push_front(DefaultScope);
+        DefaultScope->AddBuiltinTypes();
     };
 
 private:
