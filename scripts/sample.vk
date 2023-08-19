@@ -1,7 +1,2 @@
-func int sum(int a, int b)
-{
-	return a + b;
-}
-
-int b = sum(5, 6);
-return b;
+string test = "1";
+return 6;

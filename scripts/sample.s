@@ -1,37 +1,25 @@
 	.text
 	.file	"sample.ll"
-	.globl	sum                             # -- Begin function sum
-	.p2align	4, 0x90
-	.type	sum,@function
-sum:                                    # @sum
-	.cfi_startproc
-# %bb.0:
-	movl	(%rdi), %eax
-	addl	(%rsi), %eax
-	retq
-.Lfunc_end0:
-	.size	sum, .Lfunc_end0-sum
-	.cfi_endproc
-                                        # -- End function
 	.globl	main                            # -- Begin function main
 	.p2align	4, 0x90
 	.type	main,@function
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	subq	$24, %rsp
-	.cfi_def_cfa_offset 32
-	movl	$5, 16(%rsp)
-	movl	$6, 12(%rsp)
-	leaq	16(%rsp), %rdi
-	leaq	12(%rsp), %rsi
-	callq	sum
-	movl	%eax, 20(%rsp)
-	addq	$24, %rsp
-	.cfi_def_cfa_offset 8
+	movq	$.L.str.0, -24(%rsp)
+	leaq	-24(%rsp), %rax
+	movq	%rax, -8(%rsp)
+	movl	$6, -12(%rsp)
+	movl	$6, %eax
 	retq
-.Lfunc_end1:
-	.size	main, .Lfunc_end1-main
+.Lfunc_end0:
+	.size	main, .Lfunc_end0-main
 	.cfi_endproc
                                         # -- End function
+	.type	.L.str.0,@object                # @.str.0
+	.section	.rodata.str1.1,"aMS",@progbits,1
+.L.str.0:
+	.asciz	"1"
+	.size	.L.str.0, 2
+
 	.section	".note.GNU-stack","",@progbits

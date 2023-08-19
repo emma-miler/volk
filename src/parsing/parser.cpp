@@ -3,6 +3,7 @@
 #include "../core/keyword.h"
 #include "../core/operator.h"
 #include "../core/exceptions.h"
+#include "../util/string.h"
 
 #include <spdlog/spdlog.h>
 
@@ -47,7 +48,21 @@ void VKParser::printCurrentTokens()
     Log::LEXER->debug("Read {} tokens: ", Tokens.size());
     for (auto&& token : Tokens)
     {
+        if (token->Type == TokenType::StringConstant)
+        {
+            Log::LEXER->debug("{:16s} : '{}'", TokenTypeNames[token->Type], string_sanitize(StringTable[atoi(token->Value.c_str())]));
+            continue;
+        }
         Log::LEXER->debug("{:16s} : '{}'", TokenTypeNames[token->Type], token->Value);
+    }
+}
+
+void VKParser::printStringTable()
+{
+    Log::LEXER->debug("String table ({}): ", StringTable.size());
+    for (int i = 0; i < StringTable.size(); i++)
+    {
+        Log::PARSER->debug("{} ({}): '{}'", i, StringTable[i].length(), string_sanitize(StringTable[i]));
     }
 }
 
@@ -156,8 +171,11 @@ int VKParser::readToken(std::string_view data)
     {
         Log::LEXER->trace("Read string");
         totalRead++;
-        totalRead += readUntilNext(data, '"');
-        Tokens.push_back(std::make_unique<Token>(TokenType::ImmediateValue, data.substr(0, totalRead), currentPosition(totalRead)));
+        std::string_view toRead = data.substr(1, data.length() - 1);
+        totalRead += readUntilNext(toRead, '"') - 1;
+        Tokens.push_back(std::make_unique<StringToken>(data.substr(1, totalRead), currentPosition(totalRead), StringTable));
+
+        totalRead += 2;
     }
 
     /// ==========
@@ -296,13 +314,17 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     {
         expr = std::make_unique<IndirectValueExpression>(token.Value);
     }
+    else if (token.Type == TokenType::StringConstant)
+    {
+        expr = std::make_unique<StringConstantValueExpression>(token.Value);
+    }
     else
     {
         Log::PARSER->critical("Unexpected token {} in while parsing ConsumeNullaryOrUnaryValueExpression", token.ToString());
         throw parse_error("");
     }
 
-    if (exprType == ValueExpressionType::Nullary)
+    if (exprType == ValueExpressionType::Nullary || exprType == ValueExpressionType::StringConstant)
     {
         return expr;
     }

@@ -1,10 +1,17 @@
 #pragma once
 
-enum VKValueType
+#include "object.h"
+
+namespace Volk
 {
-    // Value types are intrinsic, non-reference types that hold an immediate value
-    bool = 0,
-    char = 1,
-    uint = 2,
-    int = 3
+
+class Type : Object
+{
+public:
+    Type(std::string name) : Object(name)
+    {
+
+    }
+};
+
 }

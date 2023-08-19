@@ -4,6 +4,7 @@
 #include <string_view>
 #include <map>
 #include "exceptions.h"
+#include "../util/string.h"
 
 #include "../log/log.h"
 
@@ -27,6 +28,7 @@ enum class TokenType
     OpenScope,
     CloseScope,
     CommaSeperator,
+    StringConstant,
 };
 
 static std::map<TokenType, std::string> TokenTypeNames =
@@ -44,6 +46,7 @@ static std::map<TokenType, std::string> TokenTypeNames =
     {TokenType::OpenScope, "OpenScope"},
     {TokenType::CloseScope, "CloseScope"},
     {TokenType::CommaSeperator, "CommaSeperator"},
+    {TokenType::StringConstant, "StringConstant"},
 };
 
 typedef struct
@@ -101,6 +104,16 @@ private:
     OperatorToken() : Token(TokenType::Operator, "", SourcePosition())
     {
         OpType = OperatorType::Null;
+    }
+};
+
+class StringToken : public Token
+{
+public:
+    StringToken(std::string_view value, SourcePosition position, std::vector<std::string>& table) : Token(TokenType::StringConstant, "", position)
+    {
+        Value = std::to_string(table.size());
+        table.push_back(string_desanitize(std::string(value)));
     }
 };
 

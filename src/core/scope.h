@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include "type.h"
 
 #include "expression.h"
 namespace Volk {
@@ -13,6 +14,8 @@ public:
 
 public:
     Scope() {}
+
+    void AddBuiltinTypes();
 };
 
 }

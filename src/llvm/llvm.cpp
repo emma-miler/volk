@@ -2,11 +2,22 @@
 
 #include <sstream>
 
+#include "../util/string.h"
+
 namespace Volk
 {
 std::string VKLLVM::generateOutput(VKParser& parser)
 {
     std::stringstream output;
+
+    int i = 0;
+    for (auto&& entry : parser.StringTable)
+    {
+        output << fmt::format("@.str.{} = private unnamed_addr constant [{} x i8] c\"{}\", align 1",
+                              i,
+                              entry.length() + 1,
+                              string_as_llvm_string(entry) + "\\00") << std::endl;
+    }
 
 
     for (auto&& func : parser.RootNamespace->Functions)

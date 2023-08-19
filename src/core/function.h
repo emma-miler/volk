@@ -2,11 +2,13 @@
 
 #include <vector>
 #include <memory>
+#include <string>
 
 #include "object.h"
 #include "scope.h"
 
-namespace Volk {
+namespace Volk
+{
 
 class FunctionParameter : public Object
 {

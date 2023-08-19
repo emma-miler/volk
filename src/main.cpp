@@ -6,10 +6,12 @@
 #include "log/log.h"
 #include "llvm/llvm.h"
 
+#include "util/options.h"
+
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/sink.h>
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
     spdlog::set_level(spdlog::level::trace);
     InitializeLogging();
@@ -20,6 +22,17 @@ int main(int argc, char **argv)
     std::string line;
     std::ifstream script ("scripts/sample.vk");
 
+    for (int i = 0; i < argc; i++)
+    {
+        std::string arg = argv[i];
+        Volk::Log::FRONTEND->debug("Arg: '{}'", arg);
+        if (arg == "-fno-verbose-ir")
+        {
+            FF_LLVM_VERBOSE = 0;
+        }
+    }
+
+    Volk::Log::FRONTEND->info("Feature flag LLVM_VERBOSE: {}", FF_LLVM_VERBOSE);
 
 
     if (!script.is_open())
@@ -39,6 +52,7 @@ int main(int argc, char **argv)
     {
         parser.parse();
     }
+    parser.printStringTable();
     parser.printExpressionTree();
 
     for (auto&& expr : parser.DefaultScope->Expressions)
