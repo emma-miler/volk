@@ -1,10 +1,13 @@
 #include <iostream>
 #include <fstream>
 
+#include "parsing/lexer.h"
 #include "parsing/parser.h"
 #include "spdlog/spdlog.h"
 #include "log/log.h"
 #include "llvm/llvm.h"
+
+#include "core/program.h"
 
 #include "util/options.h"
 
@@ -17,7 +20,6 @@ int main(int argc, char *argv[])
     InitializeLogging();
     spdlog::info("starting");
 
-    Volk::VKParser parser{};
     Volk::VKLLVM llvm{};
     std::string line;
     std::ifstream script ("scripts/sample.vk");
@@ -47,20 +49,28 @@ int main(int argc, char *argv[])
     std::cout << content << std::endl;
     std::cout << "\n" << std::endl;
 
-    parser.consume(content);
-    while (parser.Tokens.size() > 0)
+    Volk::Program program;
+
+
+
+    Volk::LexFile(content, program);
+
+    Volk::VKParser parser { &program };
+
+    while (program.Tokens.size() > 0)
     {
         parser.parse();
     }
-    parser.printStringTable();
-    parser.printExpressionTree();
+    program.printStringTable();
+    program.printExpressionTree();
 
-    for (auto&& expr : parser.DefaultScope->Expressions)
+    for (auto&& expr : program.DefaultScope->Expressions)
     {
+        parser.visitExpression(expr.get(), program.DefaultScope.get());
         Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString(""));
     }
 
-    for (auto&& func : parser.RootNamespace->Functions)
+    for (auto&& func : program.RootNamespace->Functions)
     {
         Volk::Log::FRONTEND->debug("Function: '{}'", func->Name);
         Volk::Log::FRONTEND->debug(func->ToHumanReadable());
@@ -71,7 +81,7 @@ int main(int argc, char *argv[])
     }
 
     std::ofstream output ("scripts/sample.ll");
-    output << llvm.generateOutput(parser);
+    output << llvm.generateOutput(program);
     output.close();
 
     return 0;

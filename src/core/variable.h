@@ -8,11 +8,11 @@ namespace Volk
 class Variable : public Object
 {
 public:
-    std::unique_ptr<Type> Type;
+    std::shared_ptr<Type> Type;
 
-    Variable(std::string name, std::unique_ptr<Volk::Type> type) : Object(name)
+    Variable(std::string name, std::shared_ptr<Volk::Type> type) : Object(name)
     {
-        this->Type = std::move(type);
+        this->Type = type;
     }
 };
 }

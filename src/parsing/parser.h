@@ -10,6 +10,7 @@ class VKParser;
 #include <deque>
 #include <memory>
 #include <optional>
+#include "../core/program.h"
 
 #include "../core/namespace.h"
 
@@ -18,49 +19,28 @@ namespace Volk
 class VKParser
 {
 public:
-    std::string Source;
-    std::deque<std::unique_ptr<Token>> Tokens;
-    std::vector<std::unique_ptr<Expression>> Expressions;
     Token lastConsumedToken;
-    int charactersReadThisLine = 0;
-    int lineIndex = 0;
-    std::vector<std::string> Lines;
-
-    std::unique_ptr<Namespace> RootNamespace;
-    std::shared_ptr<Scope> DefaultScope;
-
-    std::deque<std::shared_ptr<Scope>> Scopes;
-
+    Program* Program;
 
 public:
-    void consume(std::string data);
-    void printCurrentTokens();
-    void printExpressionTree();
-    void printStringTable();
 
     void parse();
     std::unique_ptr<ValueExpression> parseValueExpression(int depth);
     std::unique_ptr<ValueExpression> ConsumeNullaryOrUnaryValueExpression(int depth);
 
-    std::vector<std::string> StringTable;
+    void visitExpression(Expression* expression, Scope* scope);
 
 public:
-    VKParser() : lastConsumedToken(TokenType::EndOfStatement, "", {0,0,0})
+    VKParser(Volk::Program* program) : lastConsumedToken(TokenType::EndOfStatement, "", {0,0,0})
     {
-        RootNamespace = std::make_unique<Namespace>("");
-        DefaultScope = std::make_shared<Scope>();
-        Scopes.push_front(DefaultScope);
-        DefaultScope->AddBuiltinTypes();
-    };
+        Program = program;
+    }
 
 private:
-    SourcePosition currentPosition(int length);
-    // Returns amount of characters read
-    int readToken(std::string_view data);
-
     int readUntilNext(std::string_view& data, char character);
     int readWhile(std::string_view& data, std::function<bool(char)> predicate);
 
+    void popToken();
     std::unique_ptr<Token> expectToken(TokenType type);
     std::optional<std::unique_ptr<Token>> softExpectToken(TokenType type);
 };

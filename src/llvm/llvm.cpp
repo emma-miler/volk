@@ -6,12 +6,12 @@
 
 namespace Volk
 {
-std::string VKLLVM::generateOutput(VKParser& parser)
+std::string VKLLVM::generateOutput(Program& program)
 {
     std::stringstream output;
 
     int i = 0;
-    for (auto&& entry : parser.StringTable)
+    for (auto&& entry : program.StringTable)
     {
         output << fmt::format("@.str.{} = private unnamed_addr constant [{} x i8] c\"{}\", align 1",
                               i,
@@ -20,7 +20,7 @@ std::string VKLLVM::generateOutput(VKParser& parser)
     }
 
 
-    for (auto&& func : parser.RootNamespace->Functions)
+    for (auto&& func : program.RootNamespace->Functions)
     {
         ExpressionStack stack;
         output << func->ToIR();
@@ -41,7 +41,7 @@ std::string VKLLVM::generateOutput(VKParser& parser)
 
     output << "define dso_local noundef i32 @main() {\n";
     output << "entry:\n";
-    for (auto&& expr : parser.DefaultScope->Expressions)
+    for (auto&& expr : program.DefaultScope->Expressions)
     {
         expr->ToIR(stack);
     }

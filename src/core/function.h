@@ -32,9 +32,9 @@ public:
     std::shared_ptr<Scope> FunctionScope;
 
 public:
-    FunctionObject(std::string name, std::string type) : Object(name)
+    FunctionObject(std::string name, std::string type, std::shared_ptr<Scope> parentScope) : Object(name)
     {
-        FunctionScope = std::make_shared<Scope>();
+        FunctionScope = std::make_shared<Scope>(parentScope);
         Type = type;
     }
 

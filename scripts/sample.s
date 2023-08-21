@@ -23,7 +23,7 @@ main:                                   # @main
 	.type	.L.str.0,@object                # @.str.0
 	.section	.rodata.str1.1,"aMS",@progbits,1
 .L.str.0:
-	.asciz	"test"
-	.size	.L.str.0, 5
+	.asciz	"test123\n"
+	.size	.L.str.0, 9
 
 	.section	".note.GNU-stack","",@progbits

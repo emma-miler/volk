@@ -1,8 +1,7 @@
 #pragma once
 
 #include <string>
-#include "../core/token.h"
-#include "../parsing/parser.h"
+#include "../core/program.h"
 
 
 namespace Volk
@@ -11,7 +10,7 @@ namespace Volk
 class VKLLVM
 {
 public:
-    std::string generateOutput(VKParser& parser);
+    std::string generateOutput(Program& program);
 };
 
 }

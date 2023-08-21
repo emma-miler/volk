@@ -7,10 +7,11 @@ namespace Volk
 
 class Type : public Object
 {
+public:
     bool IsReferenceType;
     unsigned int Size;
     std::string LLVMType;
-public:
+
     Type(std::string name, unsigned int size) : Object(name)
     {
         Size = size;

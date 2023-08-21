@@ -25,11 +25,19 @@ enum class ExpressionType
 
 enum class ValueExpressionType
 {
-    Nullary,
+    Immediate,
+    Indirect,
     Unary,
     Binary,
     FunctionCall,
     StringConstant,
+};
+
+enum class OperatorArity
+{
+    Nullary,
+    Unary,
+    Binary,
 };
 
 static std::map<ExpressionType, std::string> ExpressionTypeNames =
@@ -75,10 +83,12 @@ class Expression
 public:
     ExpressionType Type;
 
+
 public:
     Expression(ExpressionType type)
     {
         Type = type;
+
     }
 
 public:
@@ -98,6 +108,11 @@ public:
         return ToString();
     }
 
+    virtual std::vector<Expression*> SubExpressions()
+    {
+        return std::vector<Expression*>{};
+    }
+
 };
 
 /// ==========
@@ -107,12 +122,14 @@ public:
 class ValueExpression : public Expression
 {
 public:
-    ValueExpressionType OperatoryArity;
+    ValueExpressionType ValueType;
+    OperatorArity Arity;
 
 public:
-    ValueExpression(ValueExpressionType arity) : Expression(ExpressionType::Value)
+    ValueExpression(ValueExpressionType valueType,  OperatorArity arity) : Expression(ExpressionType::Value)
     {
-        OperatoryArity = arity;
+        ValueType = valueType;
+        Arity = arity;
     }
 
 public:

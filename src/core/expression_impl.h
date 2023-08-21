@@ -1,6 +1,8 @@
 #pragma once
 #include "expression_base.h"
 
+#include "variable.h"
+
 namespace Volk
 {
 
@@ -10,7 +12,7 @@ public:
     std::string Value;
 
 public:
-    ImmediateValueExpression(std::string value) : ValueExpression(ValueExpressionType::Nullary)
+    ImmediateValueExpression(std::string value) : ValueExpression(ValueExpressionType::Immediate, OperatorArity::Nullary)
     {
         Value = value;
     }
@@ -42,9 +44,10 @@ class IndirectValueExpression : public ValueExpression
 {
 public:
     std::string Value;
+    std::shared_ptr<Variable> Variable;
 
 public:
-    IndirectValueExpression(std::string value) : ValueExpression(ValueExpressionType::Nullary)
+    IndirectValueExpression(std::string value) : ValueExpression(ValueExpressionType::Indirect, OperatorArity::Nullary)
     {
         Value = value;
     }
@@ -68,7 +71,7 @@ public:
         stack.Comment("START INDIRECT VALUE");
         // Assign the value
         // TODO: figure out the type of Value here
-        stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}", variableName, Value));
+        stack.Expressions.push_back(fmt::format("%{} = load {}, ptr %{}", variableName, Variable->Type->IsReferenceType ? "ptr" : "i32", Value));
         stack.Comment("END INDIRECT VALUE\n");
     }
 };
@@ -79,7 +82,7 @@ public:
     std::string Index;
 
 public:
-    StringConstantValueExpression(std::string idx) : ValueExpression(ValueExpressionType::StringConstant)
+    StringConstantValueExpression(std::string idx) : ValueExpression(ValueExpressionType::StringConstant, OperatorArity::Nullary)
     {
         Index = idx;
     }
@@ -113,7 +116,7 @@ public:
     OperatorType Operator;
 
 public:
-    UnaryValueExpression(OperatorType op, std::unique_ptr<Expression> value) : ValueExpression(ValueExpressionType::Unary)
+    UnaryValueExpression(OperatorType op, std::unique_ptr<Expression> value) : ValueExpression(ValueExpressionType::Unary, OperatorArity::Unary)
     {
         Value = std::move(value);
         Operator = op;
@@ -145,6 +148,11 @@ public:
         stack.Expressions.push_back(fmt::format("%{} = {} nsw i32 0, %{}", stack.ActiveVariable.Name, Operator == OperatorType::OperatorMinus ? "sub" : "add", valueVariableName));
         stack.Comment("END UNARY OPERATOR\n");
     }
+
+    std::vector<Expression*> SubExpressions()
+    {
+        return std::vector<Expression*>{ Value.get() };
+    }
 };
 
 class BinaryValueExpression : public ValueExpression
@@ -155,7 +163,7 @@ public:
     OperatorType Operator;
 
 public:
-    BinaryValueExpression(OperatorType op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right) : ValueExpression(ValueExpressionType::Binary)
+    BinaryValueExpression(OperatorType op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right) : ValueExpression(ValueExpressionType::Binary, OperatorArity::Binary)
     {
         Left = std::move(left);
         Right = std::move(right);
@@ -211,6 +219,11 @@ public:
         stack.Expressions.push_back(fmt::format("%{} = {} {}, {}", stack.ActiveVariable.Name, OperatorInstructionLookup[Operator], left.Get(), right.GetOnlyName()));
         stack.Comment("END BINARY OPERATOR\n");
     }
+
+    std::vector<Expression*> SubExpressions()
+    {
+        return std::vector<Expression*>{ Left.get(), Right.get() };
+    }
 };
 
 class FunctionCallValueExpression : public ValueExpression
@@ -220,7 +233,7 @@ public:
     std::vector<std::unique_ptr<ValueExpression>> Arguments;
 
 public:
-    FunctionCallValueExpression(std::string functionName) : ValueExpression(ValueExpressionType::FunctionCall)
+    FunctionCallValueExpression(std::string functionName) : ValueExpression(ValueExpressionType::FunctionCall, OperatorArity::Nullary)
     {
         FunctionName = functionName;
     }
@@ -266,6 +279,17 @@ public:
         stack.Expressions.push_back(ir);
         stack.Comment("END FUNCTION CALL\n");
     }
+
+     std::vector<Expression*> SubExpressions()
+    {
+        std::vector<Expression*> exprs {};
+        for (auto&& arg : Arguments)
+        {
+            exprs.push_back(arg.get());
+        }
+        return exprs;
+    }
+
 };
 
 
@@ -326,7 +350,7 @@ public:
 
     virtual void ToIR(ExpressionStack& stack)
     {
-        if (Value->OperatoryArity == ValueExpressionType::Nullary)
+        if (Value->ValueType == ValueExpressionType::Immediate)
         {
             ImmediateValueExpression value = *static_cast<ImmediateValueExpression*>(Value.get());
             stack.Comment("START ASSIGNMENT");
@@ -341,6 +365,11 @@ public:
             stack.Expressions.push_back(fmt::format("store {}, ptr %{}", value.Get(), Name));
         }
         stack.Comment("END ASSIGNMENT\n");
+    }
+
+    std::vector<Expression*> SubExpressions()
+    {
+        return std::vector<Expression*>{ Value.get() };
     }
 };
 
@@ -384,6 +413,11 @@ public:
             stack.Expressions.push_back(fmt::format("ret i32 %{}", stack.ActiveVariable.Name));
         }
         stack.Comment("END RETURN\n");
+    }
+
+    std::vector<Expression*> SubExpressions()
+    {
+        return std::vector<Expression*>{ Value.get() };
     }
 };
 
