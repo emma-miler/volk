@@ -1,2 +1,3 @@
-string test = "1";
-return 6;
+string t = "test";
+printf(t);
+return 2;

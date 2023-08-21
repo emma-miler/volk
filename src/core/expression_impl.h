@@ -32,7 +32,7 @@ public:
         stack.Comment("START IMMEDIATE VALUE");
         stack.Expressions.push_back(fmt::format("%{} = alloca i32", stack.ActiveVariable.Name));
         // Assign the value
-        stack.Expressions.push_back(fmt::format("store i32 {}, ptr %{}", Value, stack.ActiveVariable.Name));
+        stack.Expressions.push_back(fmt::format("store i32 {}, {}", Value, stack.ActiveVariable.Get()));
         stack.Comment("END IMMEDIATE VALUE\n");
 
     }
@@ -61,10 +61,13 @@ public:
 
     virtual void ToIR(ExpressionStack& stack)
     {
+        // If it is already the most recent value on the stack, we don't need to do anything
+        if (Value == stack.ActiveVariable.Name) return;
         stack.AdvanceActive(0);
         std::string variableName = stack.ActiveVariable.Name;
         stack.Comment("START INDIRECT VALUE");
         // Assign the value
+        // TODO: figure out the type of Value here
         stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}", variableName, Value));
         stack.Comment("END INDIRECT VALUE\n");
     }
@@ -93,11 +96,13 @@ public:
 
     virtual void ToIR(ExpressionStack& stack)
     {
+        // We dont want to actually advance the counter here,
+        // since we're not actually pushing anything new
         stack.AdvanceActive(1);
-        stack.Comment("START STRING CONSTANT VALUE");
-        stack.Expressions.push_back(fmt::format("%{} = alloca ptr", stack.ActiveVariable.Name));
-        stack.Expressions.push_back(fmt::format("store ptr @.str.{}, ptr %{}", Index, stack.ActiveVariable.Name));
-        stack.Comment("END STRING CONSTANT VALUE\n");
+        stack.ActiveVariable.IsConstant = 1;
+        stack.ActiveVariable.Name = fmt::format(".str.{}", Index);
+        stack.NameCounter--;
+        stack.Comment("PUSHED STRING CONSTANT VALUE");
     }
 };
 
@@ -186,14 +191,16 @@ public:
             if (left.IsPointer)
             {
                 stack.AdvanceActive(0);
-                stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}", stack.ActiveVariable.Name, left.Name));
+                stack.Expressions.push_back(fmt::format("%{} = load i32, {}", stack.ActiveVariable.Name, left.Get()));
                 left.Name = stack.ActiveVariable.Name;
+                left.IsPointer = 0;
             }
             if (right.IsPointer)
             {
                 stack.AdvanceActive(0);
-                stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}", stack.ActiveVariable.Name, right.Name));
+                stack.Expressions.push_back(fmt::format("%{} = load i32, {}", stack.ActiveVariable.Name, right.Get()));
                 right.Name = stack.ActiveVariable.Name;
+                right.IsPointer = 0;
             }
             stack.Comment("END BINARY OPERATOR PRELOAD\n");
         }
@@ -201,7 +208,7 @@ public:
         // Perform the operator
         stack.AdvanceActive(0);
         stack.Comment("START BINARY OPERATOR");
-        stack.Expressions.push_back(fmt::format("%{} = {} i32 %{}, %{}", stack.ActiveVariable.Name, OperatorInstructionLookup[Operator], left.Name, right.Name));
+        stack.Expressions.push_back(fmt::format("%{} = {} {}, {}", stack.ActiveVariable.Name, OperatorInstructionLookup[Operator], left.Get(), right.GetOnlyName()));
         stack.Comment("END BINARY OPERATOR\n");
     }
 };
@@ -329,9 +336,9 @@ public:
         {
             stack.Comment("START ASSIGNMENT VALUE");
             Value->ToIR(stack);
-            std::string valueName = stack.ActiveVariable.Name;
+            IRVariableDescriptor value = stack.ActiveVariable;
             stack.Comment("START ASSIGNMENT");
-            stack.Expressions.push_back(fmt::format("store {} %{}, ptr %{}", stack.ActiveVariable.IsPointer ? "ptr" : "i32", valueName, Name));
+            stack.Expressions.push_back(fmt::format("store {}, ptr %{}", value.Get(), Name));
         }
         stack.Comment("END ASSIGNMENT\n");
     }
@@ -367,9 +374,9 @@ public:
         stack.Comment("START RETURN");
         if (stack.ActiveVariable.IsPointer)
         {
-            std::string variableName = stack.ActiveVariable.Name;
+            IRVariableDescriptor variable = stack.ActiveVariable;
             stack.AdvanceActive(0);
-            stack.Expressions.push_back(fmt::format("%{} = load i32, ptr %{}", stack.ActiveVariable.Name, variableName));
+            stack.Expressions.push_back(fmt::format("%{} = load i32, {}", stack.ActiveVariable.Name, variable.Get()));
             stack.Expressions.push_back(fmt::format("ret i32 %{}", stack.ActiveVariable.Name));
         }
         else

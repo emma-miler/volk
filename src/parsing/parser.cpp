@@ -505,6 +505,17 @@ void VKParser::parse()
             Scopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0)));
             return;
         }
+
+        /// ==========
+        /// Function Call
+        /// ==========
+        if (nextType == TokenType::OpenExpressionScope)
+        {
+            Tokens.push_front(std::move(token));
+            Scopes.front()->Expressions.push_back(parseValueExpression(0));
+            return;
+        }
+
     }
     if (token->Type == TokenType::Return)
     {

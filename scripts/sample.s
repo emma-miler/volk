@@ -6,11 +6,15 @@
 main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
-	movq	$.L.str.0, -24(%rsp)
-	leaq	-24(%rsp), %rax
-	movq	%rax, -8(%rsp)
-	movl	$6, -12(%rsp)
-	movl	$6, %eax
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 32
+	movq	$.L.str.0, 16(%rsp)
+	movl	$.L.str.0, %edi
+	callq	printf@PLT
+	movl	$2, 12(%rsp)
+	movl	$2, %eax
+	addq	$24, %rsp
+	.cfi_def_cfa_offset 8
 	retq
 .Lfunc_end0:
 	.size	main, .Lfunc_end0-main
@@ -19,7 +23,7 @@ main:                                   # @main
 	.type	.L.str.0,@object                # @.str.0
 	.section	.rodata.str1.1,"aMS",@progbits,1
 .L.str.0:
-	.asciz	"1"
-	.size	.L.str.0, 2
+	.asciz	"test"
+	.size	.L.str.0, 5
 
 	.section	".note.GNU-stack","",@progbits

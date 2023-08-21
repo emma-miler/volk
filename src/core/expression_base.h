@@ -60,6 +60,7 @@ public:
     {
         ActiveVariable.Name = std::to_string(NameCounter++);
         ActiveVariable.IsPointer = isPointer;
+        ActiveVariable.IsConstant = 0;
     }
 
     void Comment(std::string comment)

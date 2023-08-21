@@ -9,6 +9,7 @@ class VKParser;
 #include <functional>
 #include <deque>
 #include <memory>
+#include <optional>
 
 #include "../core/namespace.h"
 
