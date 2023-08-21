@@ -14,7 +14,7 @@ std::string VKLLVM::generateOutput(Program& program)
     for (auto&& entry : program.StringTable)
     {
         output << fmt::format("@.str.{} = private unnamed_addr constant [{} x i8] c\"{}\", align 1",
-                              i,
+                              i++,
                               entry.length() + 1,
                               string_as_llvm_string(entry) + "\\00") << std::endl;
     }

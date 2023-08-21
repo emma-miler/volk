@@ -1,3 +1,5 @@
 string test = "test123\n";
 printf(test);
+string test2 = "it only bloody works\n";
+printf(test2);
 return 2;
