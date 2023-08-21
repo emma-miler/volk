@@ -39,3 +39,7 @@ build/
 # Editor
 *.kdev4
 *.kate-swp
+
+scripts/*.s
+scripts/*.ll
+scripts/*.out
