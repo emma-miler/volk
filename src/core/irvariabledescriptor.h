@@ -18,7 +18,7 @@ public:
     std::string Get()
     {
         std::string builder = "";
-        builder += IsPointer ? "ptr" : "i32";
+        builder += IsPointer ? "ptr" : "i64";
         builder += " ";
         builder += IsConstant ? "@" : "%";
         builder += Name;

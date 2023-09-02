@@ -1,5 +1,4 @@
 #pragma once
-
 #include <string>
 #include <string_view>
 #include <map>
@@ -76,6 +75,14 @@ public:
     {
         return fmt::format("{}(value='{}')", TokenTypeNames[Type], Value);
     }
+
+    virtual void Indicate(std::vector<std::string>& lines)
+    {
+        Log::PARSER->info("{}", lines[Position.LineIndex]);
+        std::string space = fmt::format("{: >{}}", ' ', Position.LineOffset);
+        std::string tokenIndicator = fmt::format("{:^>{}}", ' ', Position.Length + 1);
+        Log::PARSER->info(space + tokenIndicator);
+    }
 };
 
 class OperatorToken : public Token
@@ -84,9 +91,9 @@ public:
     OperatorType OpType;
 
 public:
-    static OperatorToken Dummy()
+    static std::shared_ptr<OperatorToken> Dummy()
     {
-        return OperatorToken();
+        return std::make_shared<OperatorToken>();
     }
     OperatorToken(std::string_view value, SourcePosition position) : Token(TokenType::Operator, value, position)
     {
@@ -100,7 +107,7 @@ public:
         OpType = optype->second;
         Log::LEXER->trace("Assigning operator token type '{}' for value '{}'", OperatorTypeNames[OpType], value);
     }
-private:
+public:
     OperatorToken() : Token(TokenType::Operator, "", SourcePosition())
     {
         OpType = OperatorType::Null;

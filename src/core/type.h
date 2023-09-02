@@ -24,6 +24,11 @@ public:
         LLVMType = llvmType;
         IsReferenceType = 0;
     }
+
+    virtual std::string ToString()
+    {
+        return Name;
+    }
 };
 
 }

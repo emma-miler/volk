@@ -1,1 +1,1 @@
-bin/volk
+bin/volk $@

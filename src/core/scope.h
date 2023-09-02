@@ -4,6 +4,8 @@
 #include <map>
 #include <memory>
 #include "type.h"
+#include "../log/log.h"
+#include "exceptions.h"
 
 #include "expression_base.h"
 #include "variable.h"
@@ -40,6 +42,21 @@ public:
         auto it = Variables.find(name);
         if (it == Variables.end())
             return ParentScope->FindVariable(name);
+        return it->second;
+    }
+
+    std::shared_ptr<Type> FindType(std::string name)
+    {
+        auto it = Types.find(name);
+        if (it == Types.end())
+        {
+            if (ParentScope == nullptr)
+            {
+                Log::TYPESYS->critical("Unknown type '{}'", name);
+                throw type_error("");
+            }
+            return ParentScope->FindType(name);
+        }
         return it->second;
     }
 

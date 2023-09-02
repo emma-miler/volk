@@ -20,7 +20,7 @@ class VKParser
 {
 public:
     Token lastConsumedToken;
-    Program* Program;
+    Volk::Program* Program;
 
 public:
 
@@ -41,7 +41,7 @@ private:
     int readWhile(std::string_view& data, std::function<bool(char)> predicate);
 
     void popToken();
-    std::unique_ptr<Token> expectToken(TokenType type);
-    std::optional<std::unique_ptr<Token>> softExpectToken(TokenType type);
+    std::shared_ptr<Token> expectToken(TokenType type);
+    std::optional<std::shared_ptr<Token>> softExpectToken(TokenType type);
 };
 }

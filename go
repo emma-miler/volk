@@ -1,2 +1,2 @@
 ./make
-./run
+./run $@

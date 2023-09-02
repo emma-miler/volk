@@ -9,6 +9,8 @@ namespace Volk::Log
 
     extern std::shared_ptr<spdlog::logger> LEXER;
     extern std::shared_ptr<spdlog::logger> PARSER;
+
+    extern std::shared_ptr<spdlog::logger> TYPESYS;
 }
 
 void InitializeLogging();

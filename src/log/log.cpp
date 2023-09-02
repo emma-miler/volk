@@ -11,6 +11,7 @@ namespace Volk::Log
 	std::shared_ptr<spdlog::logger> FRONTEND;
 	std::shared_ptr<spdlog::logger> LEXER;
 	std::shared_ptr<spdlog::logger> PARSER;
+	std::shared_ptr<spdlog::logger> TYPESYS;
 }; // namespace Volk::log
 
 std::shared_ptr<spdlog::logger> createLogger(std::string name, Color color)
@@ -32,4 +33,5 @@ void InitializeLogging()
     Volk::Log::FRONTEND = createLogger("Main", Volk::Colors::Main);
     Volk::Log::LEXER = createLogger("Lexer", Volk::Colors::Lexer);
     Volk::Log::PARSER = createLogger("Parser", Volk::Colors::Parser);
+    Volk::Log::TYPESYS = createLogger("TypeSystem", Volk::Colors::TypeSystem);
 }

@@ -39,7 +39,7 @@ std::string VKLLVM::generateOutput(Program& program)
     ExpressionStack stack;
     stack.NameCounter = 0;
 
-    output << "define dso_local noundef i32 @main() {\n";
+    output << "define dso_local noundef i64 @main() {\n";
     output << "entry:\n";
     for (auto&& expr : program.DefaultScope->Expressions)
     {
@@ -53,7 +53,7 @@ std::string VKLLVM::generateOutput(Program& program)
 
     output << "}\n";
     // Builtin printf
-    output << "declare i32 @printf(ptr noundef, ...) #99\n";
+    output << "declare i64 @printf(ptr noundef, ...) #99\n";
 
     return output.str();
 }

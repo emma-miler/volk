@@ -60,14 +60,14 @@ bool isValidNumberCharacter(char c)
 }
 
 
-int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens, Program& program)
+int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens, Program& program)
 {
     int totalRead = 0;
     int strLen = data.length();
     char c = data[0];
     if (c == '\0')
     {
-        Log::LEXER->debug("End of file!");
+        Log::LEXER->trace("End of file!");
         return -1;
     }
     else if (c == ' ' || c == '\t') {
@@ -90,7 +90,7 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read EOS");
         totalRead++;
-        tokens.push_back(std::make_unique<Token>(TokenType::EndOfStatement, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::EndOfStatement, data.substr(0, totalRead), currentPosition(totalRead)));
     }
 
     /// ==========
@@ -104,9 +104,9 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
         std::string name = std::string(data.substr(0, totalRead));
         auto keywordTokenType = KeywordLookup.find(name);
         if (keywordTokenType == KeywordLookup.end())
-            tokens.push_back(std::make_unique<Token>(TokenType::Name, data.substr(0, totalRead), currentPosition(totalRead)));
+            tokens.push_back(std::make_shared<Token>(TokenType::Name, data.substr(0, totalRead), currentPosition(totalRead)));
         else
-            tokens.push_back(std::make_unique<Token>(keywordTokenType->second, data.substr(0, totalRead), currentPosition(totalRead)));
+            tokens.push_back(std::make_shared<Token>(keywordTokenType->second, data.substr(0, totalRead), currentPosition(totalRead)));
     }
 
     /// ==========
@@ -118,7 +118,7 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
         totalRead++;
         std::string_view toRead = data.substr(1, data.length() - 1);
         totalRead += readUntilNext(toRead, '"') - 1;
-        tokens.push_back(std::make_unique<StringToken>(data.substr(1, totalRead), currentPosition(totalRead), program.StringTable));
+        tokens.push_back(std::make_shared<StringToken>(data.substr(1, totalRead), currentPosition(totalRead), program.StringTable));
 
         totalRead += 2;
     }
@@ -130,13 +130,13 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read ExprScopeOpen");
         totalRead++;
-        tokens.push_back(std::make_unique<Token>(TokenType::OpenExpressionScope, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::OpenExpressionScope, data.substr(0, totalRead), currentPosition(totalRead)));
     }
     else if (c == ')')
     {
         Log::LEXER->trace("Read ExprScopeClose");
         totalRead++;
-        tokens.push_back(std::make_unique<Token>(TokenType::CloseExpressionScope, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::CloseExpressionScope, data.substr(0, totalRead), currentPosition(totalRead)));
     }
 
     /// ==========
@@ -146,13 +146,13 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read ScopeOpen");
         totalRead++;
-        tokens.push_back(std::make_unique<Token>(TokenType::OpenScope, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::OpenScope, data.substr(0, totalRead), currentPosition(totalRead)));
     }
     else if (c == '}')
     {
         Log::LEXER->trace("Read ScopeClose");
         totalRead++;
-        tokens.push_back(std::make_unique<Token>(TokenType::CloseScope, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::CloseScope, data.substr(0, totalRead), currentPosition(totalRead)));
     }
 
     /// ==========
@@ -163,7 +163,7 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
         Log::LEXER->trace("Read number");
         totalRead++;
         totalRead += readWhile(data, isValidNumberCharacter);
-        tokens.push_back(std::make_unique<Token>(TokenType::ImmediateValue, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::ImmediateValue, data.substr(0, totalRead), currentPosition(totalRead)));
     }
 
     /// ==========
@@ -173,7 +173,7 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read Assign");
         totalRead++;
-        tokens.push_back(std::make_unique<Token>(TokenType::Assignment, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::Assignment, data.substr(0, totalRead), currentPosition(totalRead)));
     }
 
     /// ==========
@@ -183,7 +183,7 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read BinaryOperator");
         totalRead++;
-        tokens.push_back(std::make_unique<OperatorToken>(data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<OperatorToken>(data.substr(0, totalRead), currentPosition(totalRead)));
     }
 
     /// ==========
@@ -193,7 +193,7 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read Comma");
         totalRead++;
-        tokens.push_back(std::make_unique<Token>(TokenType::CommaSeperator, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::CommaSeperator, data.substr(0, totalRead), currentPosition(totalRead)));
     }
 
     else
@@ -211,11 +211,10 @@ int readToken(std::string_view data, std::deque<std::unique_ptr<Token>>& tokens,
 
 void LexFile(std::string data, Program& program)
 {
-    std::vector<std::string> lines;
     std::stringstream ss(data);
     std::string temp;
     while (std::getline(ss, temp, '\n')) {
-        lines.push_back(temp);
+        program.Lines.push_back(temp);
     }
     std::string_view content = data;
     while (1)

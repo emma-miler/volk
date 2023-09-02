@@ -18,9 +18,9 @@ void VKParser::popToken()
 }
 
 
-std::unique_ptr<Token> VKParser::expectToken(TokenType expectedType)
+std::shared_ptr<Token> VKParser::expectToken(TokenType expectedType)
 {
-    std::unique_ptr<Token> token = std::move(Program->Tokens.front()); popToken();
+    std::shared_ptr<Token> token = Program->Tokens.front(); popToken();
     if (token->Type != expectedType)
     {
         Log::PARSER->error("{}", Program->Lines[token->Position.LineIndex]);
@@ -36,9 +36,9 @@ std::unique_ptr<Token> VKParser::expectToken(TokenType expectedType)
     return token;
 }
 
-std::optional<std::unique_ptr<Token>> VKParser::softExpectToken(TokenType expectedType)
+std::optional<std::shared_ptr<Token>> VKParser::softExpectToken(TokenType expectedType)
 {
-    std::unique_ptr<Token> token = std::move(Program->Tokens.front()); popToken();
+    std::shared_ptr<Token> token = Program->Tokens.front(); popToken();
     if (token->Type != expectedType)
     {
         return std::nullopt;
@@ -85,26 +85,26 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
         opType = *unaryOperator;
     }
     // I have no clue what's going on here tbh
-    Token token = *static_cast<OperatorToken*>(Program->Tokens.front().get()); popToken();
+    std::shared_ptr<Token> token = Program->Tokens.front(); popToken();
     std::unique_ptr<ValueExpression> expr;
-    if (token.Type == TokenType::ImmediateValue)
+    if (token->Type == TokenType::ImmediateValue)
     {
-        expr = std::make_unique<ImmediateValueExpression>(token.Value);
+        expr = std::make_unique<ImmediateValueExpression>(token);
     }
-    else if (token.Type == TokenType::Name)
+    else if (token->Type == TokenType::Name)
     {
-        expr = std::make_unique<IndirectValueExpression>(token.Value);
+        expr = std::make_unique<IndirectValueExpression>(token);
     }
-    else if (token.Type == TokenType::StringConstant)
+    else if (token->Type == TokenType::StringConstant)
     {
-        expr = std::make_unique<StringConstantValueExpression>(token.Value);
+        expr = std::make_unique<StringConstantValueExpression>(token);
     }
     else
     {
-        Log::PARSER->critical("Unexpected token {} in while parsing ConsumeNullaryOrUnaryValueExpression", token.ToString());
+        Log::PARSER->critical("Unexpected token {} in while parsing ConsumeNullaryOrUnaryValueExpression", token->ToString());
         throw parse_error("");
     }
-    exprType = expr->ValueType;
+    exprType = expr->ValueExpressionType;
 
     if (exprType == ValueExpressionType::StringConstant || exprType == ValueExpressionType::Immediate || exprType == ValueExpressionType::Indirect)
     {
@@ -112,7 +112,7 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     }
     else if (exprType == ValueExpressionType::Unary)
     {
-        return std::make_unique<UnaryValueExpression>(opType, std::move(expr));
+        return std::make_unique<UnaryValueExpression>(opType, std::move(expr), token);
     }
     Log::PARSER->critical(fmt::format("Unknown ValueExpressionType in ConsumeNullaryOrUnaryValueExpression: '{}'", (int)exprType));
     throw parse_error("");
@@ -125,7 +125,7 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
     Log::PARSER->trace("front token = {}", Program->Tokens.front()->ToString());
     std::optional<std::unique_ptr<ValueExpression>> leftHandSide = std::nullopt;
     std::optional<std::unique_ptr<ValueExpression>> rightHandSide = std::nullopt;
-    OperatorToken operatorToken = OperatorToken::Dummy();
+    std::shared_ptr<OperatorToken> operatorToken = OperatorToken::Dummy();
 
     bool isExpectingOperator = false;
 
@@ -145,14 +145,14 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
             // This means we can either find a binary operator, or a function call
             if (Program->Tokens.front()->Type == TokenType::Operator)
             {
-                operatorToken = *static_cast<OperatorToken*>(Program->Tokens.front().get()); popToken();
+                operatorToken = dynamic_pointer_cast<OperatorToken>(Program->Tokens.front()); popToken();
                 isExpectingOperator = false;
                 continue;
             }
             else if (Program->Tokens.front()->Type == TokenType::OpenExpressionScope)
             {
                 std::string funcName = (*static_cast<IndirectValueExpression*>(leftHandSide->get())).Value;
-                std::unique_ptr<FunctionCallValueExpression> func = std::make_unique<FunctionCallValueExpression>(funcName);
+                std::unique_ptr<FunctionCallValueExpression> func = std::make_unique<FunctionCallValueExpression>(funcName, operatorToken);
                 popToken();
                 int i = 0;
                 while (Program->Tokens.front()->Type != TokenType::CloseExpressionScope)
@@ -186,9 +186,9 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
         Log::PARSER->trace("getting right hand");
         rightHandSide = ConsumeNullaryOrUnaryValueExpression(depth);
         leftHandSide = std::make_unique<BinaryValueExpression>(
-                operatorToken.OpType,
+                operatorToken->OpType,
                 std::move(leftHandSide.value()),
-                std::move(rightHandSide.value())
+                std::move(rightHandSide.value()), operatorToken
         );
         isExpectingOperator = true;
 
@@ -208,7 +208,7 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
 
 void VKParser::parse()
 {
-    std::unique_ptr<Token> token = std::move(Program->Tokens.front());
+    std::shared_ptr<Token> token = Program->Tokens.front();
     popToken();
     if (token->Type == TokenType::EndOfStatement)
     {
@@ -238,8 +238,8 @@ void VKParser::parse()
         /// ==========
         if (nextType == TokenType::Name)
         {
-            std::unique_ptr<Token> nameToken = expectToken(TokenType::Name);
-            Program->Scopes.front()->Expressions.push_back(std::make_unique<DeclarationExpression>(token->Value, nameToken->Value));
+            std::shared_ptr<Token> nameToken = expectToken(TokenType::Name);
+            Program->Scopes.front()->Expressions.push_back(std::make_unique<DeclarationExpression>(token->Value, nameToken->Value, token));
             Program->Scopes.front()->Variables[nameToken->Value] = std::make_shared<Variable>(nameToken->Value, Program->FindType(token->Value));
             nextType = Program->Tokens.front()->Type;
             if (nextType != TokenType::Assignment)
@@ -253,8 +253,8 @@ void VKParser::parse()
         /// ==========
         if (nextType == TokenType::Assignment)
         {
-            std::unique_ptr<Token> operatorToken = expectToken(TokenType::Assignment);
-            Program->Scopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0)));
+            std::shared_ptr<Token> operatorToken = expectToken(TokenType::Assignment);
+            Program->Scopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0), token));
             return;
         }
 
@@ -271,7 +271,7 @@ void VKParser::parse()
     }
     if (token->Type == TokenType::Return)
     {
-        Program->Scopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0)));
+        Program->Scopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0), token));
         return;
     }
 
@@ -280,8 +280,8 @@ void VKParser::parse()
     /// ==========
     if (token->Type == TokenType::FunctionPrefix)
     {
-        std::unique_ptr<Token> typeToken = expectToken(TokenType::Name);
-        std::unique_ptr<Token> nameToken = expectToken(TokenType::Name);
+        std::shared_ptr<Token> typeToken = expectToken(TokenType::Name);
+        std::shared_ptr<Token> nameToken = expectToken(TokenType::Name);
         expectToken(TokenType::OpenExpressionScope);
         std::unique_ptr<FunctionObject> functionObject = std::make_unique<FunctionObject>(nameToken->Value, typeToken->Value, Program->ActiveScopes.front());
         while (1)
@@ -291,8 +291,8 @@ void VKParser::parse()
                 Program->Tokens.pop_front();
                 break;
             }
-            std::unique_ptr<Token> paramTypeToken = expectToken(TokenType::Name);
-            std::unique_ptr<Token> paramNameToken = expectToken(TokenType::Name);
+            std::shared_ptr<Token> paramTypeToken = expectToken(TokenType::Name);
+            std::shared_ptr<Token> paramNameToken = expectToken(TokenType::Name);
             functionObject->Parameters.push_back(FunctionParameter{paramNameToken->Value, paramTypeToken->Value});
             if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
             {
@@ -327,20 +327,39 @@ void VKParser::parse()
 
 void VKParser::visitExpression(Expression* expression, Scope* scope)
 {
-    Log::PARSER->error("visiting node");
-    if (expression->Type == ExpressionType::Value)
-    {
-        ValueExpression* valueExpression = (ValueExpression*)expression;
-        if (valueExpression->ValueType == ValueExpressionType::Indirect)
-        {
-            IndirectValueExpression* expr = (IndirectValueExpression*)expression;
-            expr->Variable = scope->FindVariable(expr->Value);
-            Log::PARSER->error("visited node");
-        }
-    }
     for (auto&& expr : expression->SubExpressions())
     {
         visitExpression(expr, scope);
+    }
+    if (expression->Type == ExpressionType::Value)
+    {
+        ValueExpression* valueExpression = (ValueExpression*)expression;
+        if (valueExpression->ValueExpressionType == ValueExpressionType::Indirect)
+        {
+            IndirectValueExpression* expr = (IndirectValueExpression*)expression;
+            expr->Variable = scope->FindVariable(expr->Value);
+            expr->VariableType = expr->Variable->Type;
+        }
+        if (valueExpression->ValueExpressionType == ValueExpressionType::Immediate)
+        {
+            valueExpression->VariableType = scope->FindType("int");
+        }
+        if (valueExpression->ValueExpressionType == ValueExpressionType::StringConstant)
+        {
+            valueExpression->VariableType = scope->FindType("string");
+        }
+        else if (valueExpression->ValueExpressionType == ValueExpressionType::Binary)
+        {
+            BinaryValueExpression* expr = (BinaryValueExpression*)expression;
+            Log::PARSER->trace("Left: {}", expr->Left->VariableType->ToString());
+            Log::PARSER->trace("Right: {}", expr->Right->VariableType->ToString());
+            if (expr->Left->VariableType != expr->Right->VariableType)
+            {
+                Log::TYPESYS->error("Mismatched types '{}' and '{}' for operator '{}'", expr->Left->VariableType->ToString(), expr->Right->VariableType->ToString(), OperatorTypeNames[expr->Operator]);
+                expr->Token->Indicate(Program->Lines);
+                throw type_error("");
+            }
+        }
     }
 }
 

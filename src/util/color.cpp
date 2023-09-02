@@ -4,6 +4,7 @@ namespace Volk::Colors
 	Color Main		(255, 100, 255);
 	Color Lexer		(100, 255, 255);
 	Color Parser	(255, 255, 100);
+	Color TypeSystem(100, 255, 100);
 
 	Color TRAC		(0  , 255, 255);
 	Color DEBG		(0  , 255, 255);

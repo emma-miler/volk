@@ -9,11 +9,10 @@
 
 namespace Volk
 {
-
 class Program
 {
 public:
-    std::deque<std::unique_ptr<Token>> Tokens;
+    std::deque<std::shared_ptr<Token>> Tokens;
     std::vector<std::unique_ptr<Expression>> Expressions;
     std::vector<std::string> Lines;
 

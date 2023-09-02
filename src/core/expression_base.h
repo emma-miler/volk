@@ -8,6 +8,8 @@
 #include "irvariabledescriptor.h"
 #include "../util/options.h"
 #include "operator.h"
+#include "type.h"
+#include "token.h"
 
 namespace Volk
 {
@@ -82,13 +84,14 @@ class Expression
 {
 public:
     ExpressionType Type;
+    std::shared_ptr<Volk::Token> Token;
 
 
 public:
-    Expression(ExpressionType type)
+    Expression(ExpressionType type, std::shared_ptr<Volk::Token> token)
     {
         Type = type;
-
+        Token = token;
     }
 
 public:
@@ -122,13 +125,14 @@ public:
 class ValueExpression : public Expression
 {
 public:
-    ValueExpressionType ValueType;
+    Volk::ValueExpressionType ValueExpressionType;
     OperatorArity Arity;
+    std::shared_ptr<Volk::Type> VariableType;
 
 public:
-    ValueExpression(ValueExpressionType valueType,  OperatorArity arity) : Expression(ExpressionType::Value)
+    ValueExpression(Volk::ValueExpressionType valueType,  OperatorArity arity, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::Value, token)
     {
-        ValueType = valueType;
+        ValueExpressionType = valueType;
         Arity = arity;
     }
 

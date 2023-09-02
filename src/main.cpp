@@ -32,6 +32,10 @@ int main(int argc, char *argv[])
         {
             FF_LLVM_VERBOSE = 0;
         }
+        if (arg == "-ftrace-lexer")
+        {
+            FF_TRACE_LEXER = 1;
+        }
     }
 
     Volk::Log::FRONTEND->info("Feature flag LLVM_VERBOSE: {}", FF_LLVM_VERBOSE);
@@ -51,7 +55,10 @@ int main(int argc, char *argv[])
 
     Volk::Program program;
 
-
+    if (FF_TRACE_LEXER)
+        Volk::Log::LEXER->set_level(spdlog::level::trace);
+    else
+        Volk::Log::LEXER->set_level(spdlog::level::debug);
 
     Volk::LexFile(content, program);
 
@@ -67,6 +74,11 @@ int main(int argc, char *argv[])
     for (auto&& expr : program.DefaultScope->Expressions)
     {
         parser.visitExpression(expr.get(), program.DefaultScope.get());
+
+    }
+
+    for (auto&& expr : program.DefaultScope->Expressions)
+    {
         Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString(""));
     }
 
