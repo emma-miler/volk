@@ -20,12 +20,12 @@ std::string VKLLVM::generateOutput(Program& program)
     }
 
 
-    for (auto&& func : program.RootNamespace->Functions)
+    for (auto&& func : program.DefaultScope->Functions)
     {
         ExpressionStack stack;
-        output << func->ToIR();
+        output << func.second->ToIR();
         output << " #0\n{" << std::endl;
-        for (auto&& expr : func->FunctionScope->Expressions)
+        for (auto&& expr : func.second->FunctionScope->Expressions)
         {
             expr->ToIR(stack);
         }

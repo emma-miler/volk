@@ -4,10 +4,11 @@
 #include "../core/operator.h"
 #include "../core/exceptions.h"
 #include "../util/string.h"
+#include "../core/token/string.h"
+#include "../core/token/operator.h"
 
 #include <spdlog/spdlog.h>
 
-#include <optional>
 
 namespace Volk
 {
@@ -87,17 +88,65 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     // I have no clue what's going on here tbh
     std::shared_ptr<Token> token = Program->Tokens.front(); popToken();
     std::unique_ptr<ValueExpression> expr;
-    if (token->Type == TokenType::ImmediateValue)
+    if (token->Type == TokenType::ImmediateIntValue)
     {
-        expr = std::make_unique<ImmediateValueExpression>(token);
+        expr = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
+        expr->ResolvedType = Program->DefaultScope->FindType("int");
+    }
+    else if (token->Type == TokenType::ImmediateFloatValue)
+    {
+        auto temp = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
+        // Need to truncate it to float first, hence the double cast
+        double tempValue = (double)(float)atof(temp->Value.c_str());
+        temp->Value = fmt::format("{}", *(void**)(&tempValue));
+        expr = std::move(temp);
+        expr->ResolvedType = Program->DefaultScope->FindType("float");
+    }
+    else if (token->Type == TokenType::ImmediateDoubleValue)
+    {
+        expr = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
+        // Need to truncate it to float first, hence the double cast
+        expr->ResolvedType = Program->DefaultScope->FindType("double");
+    }
+    else if (token->Type == TokenType::ImmediateBoolValue)
+    {
+        expr = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
+        expr->ResolvedType = Program->DefaultScope->FindType("bool");
     }
     else if (token->Type == TokenType::Name)
     {
-        expr = std::make_unique<IndirectValueExpression>(token);
+        // Function call
+        if (Program->Tokens.front()->Type == TokenType::OpenExpressionScope)
+        {
+            std::unique_ptr<FunctionCallValueExpression> func = std::make_unique<FunctionCallValueExpression>(token->Value, token);
+            popToken();
+            int i = 0;
+            if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
+            {
+                expectToken(TokenType::CloseExpressionScope);
+            }
+            else
+            {
+                while (Program->Tokens.front()->Type != TokenType::CloseExpressionScope)
+                {
+                    func->Arguments.push_back(ConsumeNullaryOrUnaryValueExpression(depth));
+                    Log::PARSER->trace("func argument {}", i);
+                    i++;
+                    if (!softExpectToken(TokenType::CommaSeperator).has_value())
+                        break;
+                }
+            }
+            expr = std::move(func);
+        }
+        else
+        {
+            expr = std::make_unique<IndirectValueExpression>(token);
+        }
     }
     else if (token->Type == TokenType::StringConstant)
     {
         expr = std::make_unique<StringConstantValueExpression>(token);
+        expr->ResolvedType = Program->DefaultScope->FindType("string");
     }
     else
     {
@@ -106,7 +155,7 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     }
     exprType = expr->ValueExpressionType;
 
-    if (exprType == ValueExpressionType::StringConstant || exprType == ValueExpressionType::Immediate || exprType == ValueExpressionType::Indirect)
+    if (exprType == ValueExpressionType::StringConstant || exprType == ValueExpressionType::Immediate || exprType == ValueExpressionType::Indirect || exprType == ValueExpressionType::FunctionCall)
     {
         return expr;
     }
@@ -149,28 +198,11 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
                 isExpectingOperator = false;
                 continue;
             }
-            else if (Program->Tokens.front()->Type == TokenType::OpenExpressionScope)
-            {
-                std::string funcName = (*static_cast<IndirectValueExpression*>(leftHandSide->get())).Value;
-                std::unique_ptr<FunctionCallValueExpression> func = std::make_unique<FunctionCallValueExpression>(funcName, operatorToken);
-                popToken();
-                int i = 0;
-                while (Program->Tokens.front()->Type != TokenType::CloseExpressionScope)
-                {
-                    func->Arguments.push_back(ConsumeNullaryOrUnaryValueExpression(depth));
-                    Log::PARSER->trace("func argument {}", i);
-                    i++;
-                    if (!softExpectToken(TokenType::CommaSeperator).has_value())
-                        break;
-                }
-                leftHandSide = std::move(func);
-                isExpectingOperator = true;
-                continue;
-            }
 
             Log::PARSER->critical("Found unexpected token while parsing");
-            Log::PARSER->critical("Expected either 'Operator' or 'OpenExpressionScope', instead got '{}'", TokenTypeNames[Program->Tokens.front()->Type]);
+            Log::PARSER->critical("Expected either 'Operator', instead got '{}'", TokenTypeNames[Program->Tokens.front()->Type]);
             Log::PARSER->critical("{}", Program->Tokens.front()->ToString());
+            Program->Tokens.front()->Indicate();
             throw parse_error("");
 
 
@@ -283,7 +315,7 @@ void VKParser::parse()
         std::shared_ptr<Token> typeToken = expectToken(TokenType::Name);
         std::shared_ptr<Token> nameToken = expectToken(TokenType::Name);
         expectToken(TokenType::OpenExpressionScope);
-        std::unique_ptr<FunctionObject> functionObject = std::make_unique<FunctionObject>(nameToken->Value, typeToken->Value, Program->ActiveScopes.front());
+        std::shared_ptr<FunctionObject> functionObject = std::make_shared<FunctionObject>(nameToken->Value, Program->FindType(typeToken->Value), Program->ActiveScopes.front());
         while (1)
         {
             if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
@@ -293,7 +325,7 @@ void VKParser::parse()
             }
             std::shared_ptr<Token> paramTypeToken = expectToken(TokenType::Name);
             std::shared_ptr<Token> paramNameToken = expectToken(TokenType::Name);
-            functionObject->Parameters.push_back(FunctionParameter{paramNameToken->Value, paramTypeToken->Value});
+            functionObject->Parameters.push_back(FunctionParameter{paramNameToken->Value, Program->FindType(paramTypeToken->Value) });
             if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
             {
                 Program->Tokens.pop_front();
@@ -304,7 +336,7 @@ void VKParser::parse()
         Program->Scopes.push_back(functionObject->FunctionScope);
         Program->ActiveScopes.push_front(functionObject->FunctionScope);
 
-        Program->RootNamespace->Functions.push_back(std::move(functionObject));
+        Program->DefaultScope->Functions[functionObject->Name] = functionObject;
 
         expectToken(TokenType::OpenScope);
 
@@ -321,47 +353,4 @@ void VKParser::parse()
         throw parse_error("");
     }
 }
-
-
-
-
-void VKParser::visitExpression(Expression* expression, Scope* scope)
-{
-    for (auto&& expr : expression->SubExpressions())
-    {
-        visitExpression(expr, scope);
-    }
-    if (expression->Type == ExpressionType::Value)
-    {
-        ValueExpression* valueExpression = (ValueExpression*)expression;
-        if (valueExpression->ValueExpressionType == ValueExpressionType::Indirect)
-        {
-            IndirectValueExpression* expr = (IndirectValueExpression*)expression;
-            expr->Variable = scope->FindVariable(expr->Value);
-            expr->VariableType = expr->Variable->Type;
-        }
-        if (valueExpression->ValueExpressionType == ValueExpressionType::Immediate)
-        {
-            valueExpression->VariableType = scope->FindType("int");
-        }
-        if (valueExpression->ValueExpressionType == ValueExpressionType::StringConstant)
-        {
-            valueExpression->VariableType = scope->FindType("string");
-        }
-        else if (valueExpression->ValueExpressionType == ValueExpressionType::Binary)
-        {
-            BinaryValueExpression* expr = (BinaryValueExpression*)expression;
-            Log::PARSER->trace("Left: {}", expr->Left->VariableType->ToString());
-            Log::PARSER->trace("Right: {}", expr->Right->VariableType->ToString());
-            if (expr->Left->VariableType != expr->Right->VariableType)
-            {
-                Log::TYPESYS->error("Mismatched types '{}' and '{}' for operator '{}'", expr->Left->VariableType->ToString(), expr->Right->VariableType->ToString(), OperatorTypeNames[expr->Operator]);
-                expr->Token->Indicate(Program->Lines);
-                throw type_error("");
-            }
-        }
-    }
-}
-
-
 }

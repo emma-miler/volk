@@ -3,13 +3,18 @@
 
 #include <string>
 #include <memory>
-#include "spdlog/spdlog.h"
+
+namespace Volk
+{
+    class Expression;
+}
 
 #include "irvariabledescriptor.h"
 #include "../util/options.h"
 #include "operator.h"
 #include "type.h"
 #include "token.h"
+#include "scope.h"
 
 namespace Volk
 {
@@ -60,7 +65,7 @@ public:
     IRVariableDescriptor ActiveVariable;
 
 public:
-    ExpressionStack() : ActiveVariable("", 0)
+    ExpressionStack() : ActiveVariable("", "", 0)
     {
         NameCounter = 1;
     }
@@ -71,6 +76,10 @@ public:
         ActiveVariable.Name = std::to_string(NameCounter++);
         ActiveVariable.IsPointer = isPointer;
         ActiveVariable.IsConstant = 0;
+        if (isPointer)
+            ActiveVariable.Type = "ptr";
+        else
+            ActiveVariable.Type = "i64";
     }
 
     void Comment(std::string comment)
@@ -116,6 +125,11 @@ public:
         return std::vector<Expression*>{};
     }
 
+    virtual void ResolveNames(Scope* scope)
+    {
+        return;
+    }
+
 };
 
 /// ==========
@@ -127,7 +141,9 @@ class ValueExpression : public Expression
 public:
     Volk::ValueExpressionType ValueExpressionType;
     OperatorArity Arity;
-    std::shared_ptr<Volk::Type> VariableType;
+
+    // After Resolution
+    std::shared_ptr<Volk::VKType> ResolvedType;
 
 public:
     ValueExpression(Volk::ValueExpressionType valueType,  OperatorArity arity, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::Value, token)
@@ -135,19 +151,5 @@ public:
         ValueExpressionType = valueType;
         Arity = arity;
     }
-
-public:
-    virtual std::string ToString()
-    {
-        // TODO: make this automatically cast the this pointer to the correct type
-        // by using OperatorType, and call the ToString of that type instead
-        return fmt::format("Pure virtual call to ValueExpression::ToString()");
-    }
-
-    virtual void ToIR(ExpressionStack& stack)
-    {
-        throw std::runtime_error("Pure ValueExpression cannot be converted directly to LLVM IR");
-    }
 };
-
 }

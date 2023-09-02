@@ -2,17 +2,11 @@
 
 class VKParser;
 
-#include <vector>
+#include "../common.h"
 #include "../core/token.h"
 #include "../core/expression.h"
-#include <string_view>
-#include <functional>
-#include <deque>
-#include <memory>
-#include <optional>
 #include "../core/program.h"
 
-#include "../core/namespace.h"
 
 namespace Volk
 {
@@ -28,7 +22,8 @@ public:
     std::unique_ptr<ValueExpression> parseValueExpression(int depth);
     std::unique_ptr<ValueExpression> ConsumeNullaryOrUnaryValueExpression(int depth);
 
-    void visitExpression(Expression* expression, Scope* scope);
+    void parserPass_NameResolution(Expression* expression, Scope* scope);
+    void parserPass_TypeChecking(Expression* expression, Scope* scope);
 
 public:
     VKParser(Volk::Program* program) : lastConsumedToken(TokenType::EndOfStatement, "", {0,0,0})

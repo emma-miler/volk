@@ -8,9 +8,9 @@ namespace Volk
 class Variable : public Object
 {
 public:
-    std::shared_ptr<Volk::Type> Type;
+    std::shared_ptr<VKType> Type;
 
-    Variable(std::string name, std::shared_ptr<Volk::Type> type) : Object(name)
+    Variable(std::string name, std::shared_ptr<VKType> type) : Object(name)
     {
         this->Type = type;
     }

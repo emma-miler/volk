@@ -2,6 +2,19 @@
 
 namespace Volk
 {
+
+Program::Program()
+{
+    DefaultScope = std::make_shared<Scope>(nullptr);
+    Scopes.push_back(DefaultScope);
+    ActiveScopes.push_front(DefaultScope);
+    DefaultScope->AddBuiltinTypes();
+    auto func_printf = std::make_shared<FunctionObject>("printf", BUILTIN_VOID, DefaultScope);
+    func_printf->Parameters.push_back(FunctionParameter("format_string", BUILTIN_STRING));
+    func_printf->Parameters.push_back(FunctionParameter("args", BUILTIN_VARARGS));
+    DefaultScope->AddVariable(func_printf);
+}
+
 void Program::printCurrentTokens()
 {
     Log::LEXER->debug("Read {} tokens: ", Tokens.size());
@@ -27,14 +40,14 @@ void Program::printStringTable()
 
 void Program::printExpressionTree()
 {
-    Log::PARSER->debug("Read {} expressions: ", Expressions.size());
-    for (auto&& expr : Expressions)
+    Log::PARSER->debug("Read {} expressions: ", DefaultScope->Expressions.size());
+    for (auto&& expr : DefaultScope->Expressions)
     {
         Log::PARSER->debug("{}", expr->ToString());
     }
 }
 
-std::shared_ptr<Type> Program::FindType(std::string typeName)
+std::shared_ptr<VKType> Program::FindType(std::string typeName)
 {
     // TODO: remove this evil temporary hack
     if (typeName == "string") typeName = "raw_ptr";

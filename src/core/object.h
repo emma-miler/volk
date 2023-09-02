@@ -1,10 +1,9 @@
 #pragma once
 
 #include <string>
-#include <memory>
 
-namespace Volk {
-
+namespace Volk
+{
 class Object
 {
 public:
@@ -16,5 +15,4 @@ public:
         Name = name;
     }
 };
-
 }

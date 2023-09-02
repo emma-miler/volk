@@ -4,46 +4,51 @@
 #include <memory>
 #include <string>
 
+namespace Volk
+{
+    class FunctionObject;
+}
+
 #include "object.h"
 #include "scope.h"
+#include "variable.h"
 
 namespace Volk
 {
 
-class FunctionParameter : public Object
+class FunctionParameter : public Variable
 {
 public:
-    std::string Type;
     bool IsOptional;
 
 public:
-    FunctionParameter(std::string name, std::string type) : Object(name)
+    FunctionParameter(std::string name, std::shared_ptr<VKType> type) : Variable(name, type)
     {
         Type = type;
         IsOptional = false;
     }
 };
 
-class FunctionObject : public Object
+class FunctionObject : public Variable
 {
 public:
-    std::string Type;
+    std::shared_ptr<VKType> ReturnType;
     std::vector<FunctionParameter> Parameters;
     std::shared_ptr<Scope> FunctionScope;
 
 public:
-    FunctionObject(std::string name, std::string type, std::shared_ptr<Scope> parentScope) : Object(name)
+    FunctionObject(std::string name, std::shared_ptr<VKType> returnType, std::shared_ptr<Scope> parentScope) : Variable(name, BUILTIN_FUNCTION)
     {
         FunctionScope = std::make_shared<Scope>(parentScope);
-        Type = type;
+        ReturnType = returnType;
     }
 
     std::string ToHumanReadable()
     {
-        std::string value = fmt::format("\nFunction {} {}(\nargs=[", Type, Name);
+        std::string value = fmt::format("\nFunction {} {}(\nargs=[", Type->Name, Name);
         for (auto&& param : Parameters)
         {
-            value += fmt::format("\n\t{} {}, ", param.Type, param.Name);
+            value += fmt::format("\n\t{} {}, ", param.Type->Name, param.Name);
         }
         value = value.substr(0, value.length() - 2);
         value += "\n)";

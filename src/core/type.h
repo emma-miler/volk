@@ -1,24 +1,24 @@
 #pragma once
 
+#include <memory>
 #include "object.h"
 
 namespace Volk
 {
-
-class Type : public Object
+class VKType : public Object
 {
 public:
     bool IsReferenceType;
     unsigned int Size;
     std::string LLVMType;
 
-    Type(std::string name, unsigned int size) : Object(name)
+    VKType(std::string name, unsigned int size) : Object(name)
     {
         Size = size;
         IsReferenceType = 1;
     }
 
-    Type(std::string name, unsigned int size, std::string llvmType) : Object(name)
+    VKType(std::string name, unsigned int size, std::string llvmType) : Object(name)
     {
         Size = size;
         LLVMType = llvmType;
@@ -31,4 +31,12 @@ public:
     }
 };
 
+extern std::shared_ptr<VKType> BUILTIN_INT;
+extern std::shared_ptr<VKType> BUILTIN_FLOAT;
+extern std::shared_ptr<VKType> BUILTIN_DOUBLE;
+extern std::shared_ptr<VKType> BUILTIN_BOOL;
+extern std::shared_ptr<VKType> BUILTIN_STRING;
+extern std::shared_ptr<VKType> BUILTIN_FUNCTION;
+extern std::shared_ptr<VKType> BUILTIN_VOID;
+extern std::shared_ptr<VKType> BUILTIN_VARARGS;
 }

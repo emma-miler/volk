@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
     for (auto&& expr : program.DefaultScope->Expressions)
     {
-        parser.visitExpression(expr.get(), program.DefaultScope.get());
+        parser.parserPass_NameResolution(expr.get(), program.DefaultScope.get());
 
     }
 
@@ -82,11 +82,11 @@ int main(int argc, char *argv[])
         Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString(""));
     }
 
-    for (auto&& func : program.RootNamespace->Functions)
+    for (auto&& func : program.DefaultScope->Functions)
     {
-        Volk::Log::FRONTEND->debug("Function: '{}'", func->Name);
-        Volk::Log::FRONTEND->debug(func->ToHumanReadable());
-        for (auto&& expr : func->FunctionScope->Expressions)
+        Volk::Log::FRONTEND->debug("Function: '{}'", func.first);
+        Volk::Log::FRONTEND->debug(func.second->ToHumanReadable());
+        for (auto&& expr : func.second->FunctionScope->Expressions)
         {
             Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString(""));
         }

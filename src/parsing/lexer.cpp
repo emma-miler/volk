@@ -2,7 +2,9 @@
 
 #include "../core/program.h"
 #include "../core/keyword.h"
-
+#include "../core/token/string.h"
+#include "../core/token/operator.h"
+#include "../core/token/value.h"
 
 namespace Volk
 {
@@ -18,8 +20,7 @@ SourcePosition currentPosition(int length)
     };
 }
 
-
-int readUntilNext(std::string_view& data, char character)
+int readUntilNext(const std::string_view& data, char character)
 {
     int needle = data.find(character);
     if (needle == std::string::npos) {
@@ -29,7 +30,7 @@ int readUntilNext(std::string_view& data, char character)
     return needle;
 }
 
-int readWhile(std::string_view& data, std::function<bool(char)> predicate)
+int readWhile(const std::string_view& data, std::function<bool(char)> predicate)
 {
     int totalRead = 0;
     for (const char& c : data)
@@ -56,7 +57,7 @@ bool isValidNameCharacter(char c)
 
 bool isValidNumberCharacter(char c)
 {
-    return std::isdigit(c) || c == '.';
+    return std::isdigit(c);
 }
 
 
@@ -163,7 +164,32 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
         Log::LEXER->trace("Read number");
         totalRead++;
         totalRead += readWhile(data, isValidNumberCharacter);
-        tokens.push_back(std::make_shared<Token>(TokenType::ImmediateValue, data.substr(0, totalRead), currentPosition(totalRead)));
+        bool isFloat = false;
+        TokenType type = TokenType::ImmediateIntValue;
+        int readFromEnd = 0;
+        if (data[totalRead] == '.')
+        {
+            isFloat = true;
+            totalRead++;
+            totalRead += readWhile(data.substr(totalRead), isValidNumberCharacter);
+            totalRead++;
+            type = TokenType::ImmediateDoubleValue;
+            if (data[totalRead] == 'f' || data[totalRead] == 'd')
+            {
+                readFromEnd = 1;
+                if (data[totalRead] == 'f')
+                {
+                    totalRead++;
+                    type = TokenType::ImmediateFloatValue;
+                }
+                else if (data[totalRead] == 'd')
+                {
+                    totalRead++;
+                    type = TokenType::ImmediateDoubleValue;
+                }
+            }
+        }
+        tokens.push_back(std::make_shared<ValueToken>(data.substr(0, totalRead - readFromEnd), currentPosition(totalRead), type));
     }
 
     /// ==========
