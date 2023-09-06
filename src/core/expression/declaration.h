@@ -24,6 +24,16 @@ public:
         return fmt::format("DeclarationExpression(type='{}', name='{}')", Typename, Name);
     }
 
+    std::string ToHumanReadableString(std::string depthPrefix)
+    {
+        std::string newline = fmt::format("\n{}\t", depthPrefix);
+        std::string out = "DeclarationExpression(";
+        out += newline + fmt::format("type='{}'", Typename);
+        out += newline + fmt::format("value='{}'", Name);
+        out += "\n" + depthPrefix + ")";
+        return  out;
+    }
+
     virtual void ToIR(ExpressionStack& stack)
     {
         stack.Comment("START DECLARATION");

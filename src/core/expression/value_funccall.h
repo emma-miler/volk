@@ -22,7 +22,7 @@ public:
 
     std::string ToString()
     {
-        return fmt::format("FunctionCallValueExpression(\nname='{}')", FunctionName);
+        return fmt::format("FunctionCallValueExpression(name='{}')", FunctionName);
     }
 
     std::string ToHumanReadableString(std::string depthPrefix)
@@ -45,7 +45,7 @@ public:
         bool functionHasVarArgs = false;
         for (auto&& param : ResolvedFunction->Parameters)
         {
-            if (param.Type->Name == "__var_args")
+            if (param->Type->Name == "__var_args")
             {
                 functionHasVarArgs = true;
                 break;
@@ -115,6 +115,37 @@ public:
         }
         ResolvedFunction = std::static_pointer_cast<FunctionObject>(foundVar);
         ResolvedType = ResolvedFunction->ReturnType;
+    }
+
+    std::vector<Expression*> SubExpressions()
+    {
+        std::vector<Expression*> exprs;
+        for (auto&& arg : Arguments)
+        {
+            exprs.push_back(arg.get());
+        }
+        return exprs;
+    }
+
+    virtual void TypeCheck(Scope* scope)
+    {
+        int i = 0;
+        for (auto&& arg : Arguments)
+        {
+            if (ResolvedFunction->Parameters[i]->Type == BUILTIN_VARARGS)
+            {
+                // If we hit a varargs, it doesnt make sense to continue searching, cause we cant guarantee type safety anymore anyway
+                return;
+            }
+            if (arg->ResolvedType != ResolvedFunction->Parameters[i]->Type)
+            {
+                Log::TYPESYS->error("Cannot implicitly convert from '{}' to '{}'", arg->ResolvedType->Name, ResolvedFunction->Parameters[i]->Type->Name);
+                Token->Indicate();
+                throw type_error("");
+            }
+            i++;
+        }
+
     }
 
 };

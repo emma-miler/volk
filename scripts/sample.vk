@@ -1,8 +1,10 @@
-double a = 5.1d;
-float b = 1234.4567f;
-int c = 42;
-printf("test!\n");
-printf("This is a double: %.5f\n", a);
-printf("This is a float: %.5f\n", b);
-printf("This is an int: %d\n", c);
-return 0;
+func float square(float num)
+{
+    return num * num;
+}
+
+
+float a = 5.0;
+printf("test123\n%.5f\n", a);
+printf("abc\n");
+return 1;

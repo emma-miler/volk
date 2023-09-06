@@ -130,6 +130,10 @@ public:
         return;
     }
 
+    virtual void TypeCheck(Scope* scope)
+    {
+        return;
+    }
 };
 
 /// ==========

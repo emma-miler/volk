@@ -8,11 +8,13 @@ class ReturnExpression : public Expression
 {
 public:
     std::unique_ptr<ValueExpression> Value;
+    std::shared_ptr<VKType> ReturnType;
 
 public:
-    ReturnExpression(std::unique_ptr<ValueExpression> value, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::ReturnExpr, token)
+    ReturnExpression(std::unique_ptr<ValueExpression> value, std::shared_ptr<VKType> returnType, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::ReturnExpr, token)
     {
         Value = std::move(value);
+        ReturnType = returnType;
     }
 
   public:
@@ -50,6 +52,17 @@ public:
     {
         return std::vector<Expression*>{ Value.get() };
     }
+
+    virtual void TypeCheck(Scope* scope)
+    {
+        if (Value->ResolvedType != ReturnType)
+        {
+            Log::TYPESYS->error("Cannot implicitly convert from '{}' to '{}'", Value->ResolvedType->Name, ReturnType->Name);
+            Token->Indicate();
+            throw type_error("");
+        }
+    }
+
 };
 
 }

@@ -24,7 +24,7 @@ std::shared_ptr<Token> VKParser::expectToken(TokenType expectedType)
     std::shared_ptr<Token> token = Program->Tokens.front(); popToken();
     if (token->Type != expectedType)
     {
-        Log::PARSER->error("{}", Program->Lines[token->Position.LineIndex]);
+        Log::PARSER->error("{}", Program->Source->Lines[token->Position.LineIndex]);
         std::string space = fmt::format("{: >{}}", ' ', token->Position.LineOffset);
         std::string tokenIndicator = fmt::format("{:^>{}}", ' ', token->Position.Length + 1);
         Log::PARSER->error(space + tokenIndicator);
@@ -200,7 +200,7 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
             }
 
             Log::PARSER->critical("Found unexpected token while parsing");
-            Log::PARSER->critical("Expected either 'Operator', instead got '{}'", TokenTypeNames[Program->Tokens.front()->Type]);
+            Log::PARSER->critical("Expected 'Operator', instead got '{}'", TokenTypeNames[Program->Tokens.front()->Type]);
             Log::PARSER->critical("{}", Program->Tokens.front()->ToString());
             Program->Tokens.front()->Indicate();
             throw parse_error("");
@@ -250,7 +250,7 @@ void VKParser::parse()
     {
         if (Program->ActiveScopes.size() == 1)
         {
-            Log::PARSER->error("{}", Program->Lines[token->Position.LineIndex]);
+            Log::PARSER->error("{}", Program->Source->Lines[token->Position.LineIndex]);
             std::string space = fmt::format("{: >{}}", ' ', token->Position.LineOffset);
             std::string tokenIndicator = fmt::format("{:^>{}}", ' ', token->Position.Length + 1);
             Log::PARSER->error(space + tokenIndicator);
@@ -286,7 +286,7 @@ void VKParser::parse()
         if (nextType == TokenType::Assignment)
         {
             std::shared_ptr<Token> operatorToken = expectToken(TokenType::Assignment);
-            Program->Scopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0), token));
+            Program->Scopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0), operatorToken));
             return;
         }
 
@@ -303,7 +303,7 @@ void VKParser::parse()
     }
     if (token->Type == TokenType::Return)
     {
-        Program->Scopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0), token));
+        Program->Scopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0), Program->Scopes.front()->ReturnType, token));
         return;
     }
 
@@ -315,7 +315,7 @@ void VKParser::parse()
         std::shared_ptr<Token> typeToken = expectToken(TokenType::Name);
         std::shared_ptr<Token> nameToken = expectToken(TokenType::Name);
         expectToken(TokenType::OpenExpressionScope);
-        std::shared_ptr<FunctionObject> functionObject = std::make_shared<FunctionObject>(nameToken->Value, Program->FindType(typeToken->Value), Program->ActiveScopes.front());
+        std::vector<std::shared_ptr<FunctionParameter>> parameters;
         while (1)
         {
             if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
@@ -325,7 +325,7 @@ void VKParser::parse()
             }
             std::shared_ptr<Token> paramTypeToken = expectToken(TokenType::Name);
             std::shared_ptr<Token> paramNameToken = expectToken(TokenType::Name);
-            functionObject->Parameters.push_back(FunctionParameter{paramNameToken->Value, Program->FindType(paramTypeToken->Value) });
+            parameters.push_back(std::make_shared<FunctionParameter>(paramNameToken->Value, Program->FindType(paramTypeToken->Value)));
             if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
             {
                 Program->Tokens.pop_front();
@@ -333,6 +333,8 @@ void VKParser::parse()
             }
             expectToken(TokenType::CommaSeperator);
         }
+        std::shared_ptr<FunctionObject> functionObject = std::make_shared<FunctionObject>(nameToken->Value, Program->FindType(typeToken->Value), parameters, Program->ActiveScopes.front());
+
         Program->Scopes.push_back(functionObject->FunctionScope);
         Program->ActiveScopes.push_front(functionObject->FunctionScope);
 
@@ -347,8 +349,7 @@ void VKParser::parse()
     {
         Log::PARSER->error("Managed to parse the following tokens:");
         Program->printExpressionTree();
-        Log::PARSER->error("{}", Program->Lines[token->Position.LineIndex]);
-        Log::PARSER->error("{: >{}}", '^', token->Position.LineOffset);
+        token->Indicate();
         Log::PARSER->error("Failed to parse token with type '{}'", TokenTypeNames[token->Type]);
         throw parse_error("");
     }

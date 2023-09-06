@@ -23,7 +23,15 @@ public:
 
     std::string ToHumanReadableString(std::string depthPrefix)
     {
-        return fmt::format("IndirectValueExpression(\n{}\tvalue='{}'\n{})", depthPrefix, Value, depthPrefix);
+        std::string newline = fmt::format("\n{}\t", depthPrefix);
+        std::string out = "Indirect(";
+        if (ResolvedType != nullptr)
+        {
+            out += newline + fmt::format("type='{}'", ResolvedType->Name);
+        }
+        out += newline + fmt::format("value='{}'", Value);
+        out += "\n" + depthPrefix + ")";
+        return  out;
     }
 
     virtual void ToIR(ExpressionStack& stack)

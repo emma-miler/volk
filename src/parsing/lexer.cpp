@@ -11,12 +11,13 @@ namespace Volk
 
 int charactersReadThisLine = 0;
 int lineIndex = 0;
-SourcePosition currentPosition(int length)
+SourcePosition currentPosition(int length, Program& program)
 {
     return {
         .LineIndex = lineIndex,
         .LineOffset = charactersReadThisLine,
-        .Length = length
+        .Length = length,
+        .Source = program.Source
     };
 }
 
@@ -91,7 +92,7 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read EOS");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::EndOfStatement, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::EndOfStatement, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -105,9 +106,9 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
         std::string name = std::string(data.substr(0, totalRead));
         auto keywordTokenType = KeywordLookup.find(name);
         if (keywordTokenType == KeywordLookup.end())
-            tokens.push_back(std::make_shared<Token>(TokenType::Name, data.substr(0, totalRead), currentPosition(totalRead)));
+            tokens.push_back(std::make_shared<Token>(TokenType::Name, data.substr(0, totalRead), currentPosition(totalRead, program)));
         else
-            tokens.push_back(std::make_shared<Token>(keywordTokenType->second, data.substr(0, totalRead), currentPosition(totalRead)));
+            tokens.push_back(std::make_shared<Token>(keywordTokenType->second, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -119,7 +120,7 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
         totalRead++;
         std::string_view toRead = data.substr(1, data.length() - 1);
         totalRead += readUntilNext(toRead, '"') - 1;
-        tokens.push_back(std::make_shared<StringToken>(data.substr(1, totalRead), currentPosition(totalRead), program.StringTable));
+        tokens.push_back(std::make_shared<StringToken>(data.substr(1, totalRead), currentPosition(totalRead, program), program.StringTable));
 
         totalRead += 2;
     }
@@ -131,13 +132,13 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read ExprScopeOpen");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::OpenExpressionScope, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::OpenExpressionScope, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
     else if (c == ')')
     {
         Log::LEXER->trace("Read ExprScopeClose");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::CloseExpressionScope, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::CloseExpressionScope, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -147,13 +148,13 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read ScopeOpen");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::OpenScope, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::OpenScope, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
     else if (c == '}')
     {
         Log::LEXER->trace("Read ScopeClose");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::CloseScope, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::CloseScope, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -189,7 +190,7 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
                 }
             }
         }
-        tokens.push_back(std::make_shared<ValueToken>(data.substr(0, totalRead - readFromEnd), currentPosition(totalRead), type));
+        tokens.push_back(std::make_shared<ValueToken>(data.substr(0, totalRead - readFromEnd), currentPosition(totalRead, program), type));
     }
 
     /// ==========
@@ -199,7 +200,7 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read Assign");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::Assignment, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::Assignment, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -209,7 +210,7 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read BinaryOperator");
         totalRead++;
-        tokens.push_back(std::make_shared<OperatorToken>(data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<OperatorToken>(data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -219,13 +220,13 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read Comma");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::CommaSeperator, data.substr(0, totalRead), currentPosition(totalRead)));
+        tokens.push_back(std::make_shared<Token>(TokenType::CommaSeperator, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     else
     {
         program.printCurrentTokens();
-        Log::LEXER->error("{}", program.Lines[lineIndex]);
+        Log::LEXER->error("{}", program.Source->Lines[lineIndex]);
         Log::LEXER->error("{: >{}}", '^', charactersReadThisLine + 1);
         Log::LEXER->error("Failed to parse character '{}' (0x{:0x}) Bailing", c, c);
         exit(1);
@@ -240,7 +241,7 @@ void LexFile(std::string data, Program& program)
     std::stringstream ss(data);
     std::string temp;
     while (std::getline(ss, temp, '\n')) {
-        program.Lines.push_back(temp);
+        program.Source->Lines.push_back(temp);
     }
     std::string_view content = data;
     while (1)

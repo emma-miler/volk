@@ -26,8 +26,17 @@ public:
 
     std::string ToHumanReadableString(std::string depthPrefix)
     {
-        return fmt::format("BinaryValueExpression(\n{}\top={}, \n{}\tleft={}, \n{}\tright={}\n{})",
-                           depthPrefix, OperatorTypeNames[Operator], depthPrefix,  Left->ToHumanReadableString(depthPrefix + "\t"), depthPrefix, Right->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
+        std::string newline = fmt::format("\n{}\t", depthPrefix);
+        std::string out = "BinaryOperatorValueExpression(";
+        if (ResolvedType != nullptr)
+        {
+            out += newline + fmt::format("type='{}'", ResolvedType->Name);
+        }
+        out += newline + fmt::format("op='{}'", OperatorTypeNames[Operator]);
+        out += newline + fmt::format("left='{}'", Left->ToHumanReadableString(depthPrefix + "\t"));
+        out += newline + fmt::format("right='{}'", Right->ToHumanReadableString(depthPrefix + "\t"));
+        out += "\n" + depthPrefix + ")";
+        return  out;
     }
 
     virtual void ToIR(ExpressionStack& stack)
@@ -72,5 +81,18 @@ public:
     {
         return std::vector<Expression*>{ Left.get(), Right.get() };
     }
+
+    virtual void TypeCheck(Scope* scope)
+    {
+        if (Left->ResolvedType != Right->ResolvedType)
+        {
+            Log::TYPESYS->error("No valid operator '{}' between types '{}' and '{}'", OperatorTypeNames[Operator], Left->ResolvedType->Name, Right->ResolvedType->Name);
+            Token->Indicate();
+            throw type_error("");
+        }
+        // TODO: actually do this properly
+        ResolvedType = Left->ResolvedType;
+    }
+
 };
 }

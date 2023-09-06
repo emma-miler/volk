@@ -23,7 +23,15 @@ public:
 
     std::string ToHumanReadableString(std::string depthPrefix)
     {
-        return fmt::format("ImmediateValueExpression(\n{}\tvalue='{}'\n{})", depthPrefix, Value, depthPrefix);
+        std::string newline = fmt::format("\n{}\t", depthPrefix);
+        std::string out = "ImmediateValueExpression(";
+        if (ResolvedType != nullptr)
+        {
+            out += newline + fmt::format("type='{}'", ResolvedType->Name);
+        }
+        out += newline + fmt::format("value='{}'", Value);
+        out += "\n" + depthPrefix + ")";
+        return  out;
     }
 
     virtual void ToIR(ExpressionStack& stack)
@@ -35,7 +43,6 @@ public:
         // Assign the value
         stack.Expressions.push_back(fmt::format("store i64 {}, {}", Value, stack.ActiveVariable.Get()));
         stack.Comment("END IMMEDIATE VALUE\n");
-
     }
 };
 

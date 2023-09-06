@@ -71,12 +71,28 @@ int main(int argc, char *argv[])
     program.printStringTable();
     program.printExpressionTree();
 
+
     for (auto&& expr : program.DefaultScope->Expressions)
     {
         parser.parserPass_NameResolution(expr.get(), program.DefaultScope.get());
-
     }
 
+    Volk::Log::FRONTEND->debug("Name resolution:");
+    for (auto&& expr : program.DefaultScope->Expressions)
+    {
+        Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString(""));
+    }
+
+    for (auto&& expr : program.DefaultScope->Expressions)
+    {
+        parser.parserPass_TypeChecking(expr.get(), program.DefaultScope.get());
+
+    }
+    Volk::Log::FRONTEND->debug("");
+    Volk::Log::FRONTEND->debug("");
+    Volk::Log::FRONTEND->debug("");
+    Volk::Log::FRONTEND->debug("");
+    Volk::Log::FRONTEND->debug("Type checking:");
     for (auto&& expr : program.DefaultScope->Expressions)
     {
         Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString(""));

@@ -11,6 +11,7 @@ namespace Volk
 
 #include "token.h"
 #include "function.h"
+#include "source.h"
 
 namespace Volk
 {
@@ -18,7 +19,7 @@ class Program
 {
 public:
     std::deque<std::shared_ptr<Token>> Tokens;
-    std::vector<std::string> Lines;
+    std::shared_ptr<ProgramSource> Source;
 
     std::shared_ptr<Scope> DefaultScope;
 

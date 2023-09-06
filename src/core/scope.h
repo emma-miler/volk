@@ -23,12 +23,15 @@ public:
     std::map<std::string, std::shared_ptr<Variable>> Variables;
     std::map<std::string, std::shared_ptr<FunctionObject>> Functions;
 
+    std::shared_ptr<VKType> ReturnType;
+
     std::shared_ptr<Scope> ParentScope;
 
 public:
-    Scope(std::shared_ptr<Scope> parentScope)
+    Scope(std::shared_ptr<Scope> parentScope, std::shared_ptr<VKType> returnType)
     {
         ParentScope = parentScope;
+        ReturnType = returnType;
     }
 
     void AddType(std::shared_ptr<VKType> type);

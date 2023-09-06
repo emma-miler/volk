@@ -29,7 +29,16 @@ public:
 
     std::string ToHumanReadableString(std::string depthPrefix)
     {
-         return fmt::format("AssignmentExpression(\n{}\tname='{}', \n{}\tvalue={}\n{})", depthPrefix, Name, depthPrefix, Value->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
+        std::string newline = fmt::format("\n{}\t", depthPrefix);
+        std::string out = "AssignmentExpression(";
+        if (ResolvedVariable != nullptr)
+        {
+            out += newline + fmt::format("type='{}'", ResolvedVariable->Type->Name);
+        }
+        out += newline + fmt::format("name='{}'", Name);
+        out += newline + fmt::format("value='{}'", Value->ToHumanReadableString(depthPrefix + "\t"));
+        out += "\n" + depthPrefix + ")";
+        return  out;
     }
 
     virtual void ToIR(ExpressionStack& stack)
@@ -62,6 +71,16 @@ public:
         if (ResolvedVariable == nullptr)
         {
             Log::TYPESYS->error("Unknown variable '{}'", Name);
+            Token->Indicate();
+            throw type_error("");
+        }
+    }
+
+    virtual void TypeCheck(Scope* scope)
+    {
+        if (ResolvedVariable->Type != Value->ResolvedType)
+        {
+            Log::TYPESYS->error("Cannot implicitly convert from '{}' to '{}'", Value->ResolvedType->Name, ResolvedVariable->Type->Name);
             Token->Indicate();
             throw type_error("");
         }

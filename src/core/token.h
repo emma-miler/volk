@@ -3,7 +3,7 @@
 #include "exceptions.h"
 #include "../util/string.h"
 #include "operator.h"
-
+#include "sourceposition.h"
 
 namespace Volk
 {
@@ -50,13 +50,6 @@ static std::map<TokenType, std::string> TokenTypeNames =
     {TokenType::StringConstant, "StringConstant"},
 };
 
-typedef struct
-{
-    int LineIndex;
-    int LineOffset;
-    int Length;
-    std::string_view SourceLine;
-} SourcePosition;
 
 class Token
 {
@@ -74,22 +67,8 @@ public:
     }
 
 public:
-    virtual std::string ToString()
-    {
-        return fmt::format("{}(value='{}')", TokenTypeNames[Type], Value);
-    }
-
-    virtual void Indicate()
-    {
-        Log::PARSER->info("{}", Position.SourceLine);
-        std::string space = "";
-        if (Position.LineOffset > 1)
-        {
-            space = fmt::format("{: >{}}", ' ', Position.LineOffset - 1);
-        }
-        std::string tokenIndicator = fmt::format("{:^>{}}", ' ', Position.Length + 1);
-        Log::PARSER->info(space + tokenIndicator);
-    }
+    virtual std::string ToString();
+    virtual void Indicate();
 };
 
 

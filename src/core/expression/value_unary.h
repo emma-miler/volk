@@ -47,5 +47,11 @@ public:
     {
         return std::vector<Expression*>{ Value.get() };
     }
+
+    virtual void TypeCheck(Scope* scope)
+    {
+        // TODO: need to check if type supports operation
+        return;
+    }
 };
 }

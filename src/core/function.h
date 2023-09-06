@@ -33,22 +33,18 @@ class FunctionObject : public Variable
 {
 public:
     std::shared_ptr<VKType> ReturnType;
-    std::vector<FunctionParameter> Parameters;
+    std::vector<std::shared_ptr<FunctionParameter>> Parameters;
     std::shared_ptr<Scope> FunctionScope;
 
 public:
-    FunctionObject(std::string name, std::shared_ptr<VKType> returnType, std::shared_ptr<Scope> parentScope) : Variable(name, BUILTIN_FUNCTION)
-    {
-        FunctionScope = std::make_shared<Scope>(parentScope);
-        ReturnType = returnType;
-    }
+    FunctionObject(std::string name, std::shared_ptr<VKType> returnType, std::vector<std::shared_ptr<FunctionParameter>> parameters, std::shared_ptr<Scope> parentScope);
 
     std::string ToHumanReadable()
     {
         std::string value = fmt::format("\nFunction {} {}(\nargs=[", Type->Name, Name);
         for (auto&& param : Parameters)
         {
-            value += fmt::format("\n\t{} {}, ", param.Type->Name, param.Name);
+            value += fmt::format("\n\t{} {}, ", param->Type->Name, param->Name);
         }
         value = value.substr(0, value.length() - 2);
         value += "\n)";
@@ -60,7 +56,7 @@ public:
         std::string value = fmt::format("define dso_local noundef i32 @{}(", Name);
         for (auto&& param : Parameters)
         {
-            value += fmt::format("ptr noundef %{}, ", param.Name);
+            value += fmt::format("ptr noundef %{}, ", param->Name);
         }
         value = value.substr(0, value.length() - 2);
         value += ")";
