@@ -49,4 +49,9 @@ std::shared_ptr<VKType> Scope::FindType(std::string name)
     return it->second;
 }
 
+void Scope::Indicate()
+{
+    Log::TYPESYS->info("Scope: '{}'", ToString());
+}
+
 }

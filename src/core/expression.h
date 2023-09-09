@@ -9,3 +9,4 @@
 #include "expression/value_indirect.h"
 #include "expression/value_string.h"
 #include "expression/value_unary.h"
+#include "expression/funcdecl.h"

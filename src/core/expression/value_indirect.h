@@ -43,6 +43,12 @@ public:
         stack.Comment("START INDIRECT VALUE");
         // Assign the value
         // TODO: figure out the type of Value here
+        if (ResolvedVariable == nullptr)
+        {
+            Log::TYPESYS->error("Unknown variable '{}'", Value);
+            Token->Indicate();
+            throw type_error("");
+        }
         stack.Expressions.push_back(fmt::format("%{} = load {}, ptr %{}", variableName, ResolvedVariable->Type->LLVMType, Value));
         stack.ActiveVariable.Type = ResolvedVariable->Type->LLVMType;
         stack.Comment("END INDIRECT VALUE");
@@ -55,9 +61,17 @@ public:
         {
             Log::TYPESYS->error("Unknown variable '{}'", Value);
             Token->Indicate();
+            scope->Indicate();
             throw type_error("");
         }
         ResolvedType = ResolvedVariable->Type;
+        if (ResolvedVariable->Type == nullptr)
+        {
+            Log::TYPESYS->error("Resolved variable '{}' does not have a type", ResolvedVariable->Name);
+            Token->Indicate();
+            scope->Indicate();
+            throw type_error("");
+        }
     }
 };
 }

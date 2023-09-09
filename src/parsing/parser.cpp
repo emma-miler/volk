@@ -271,8 +271,8 @@ void VKParser::parse()
         if (nextType == TokenType::Name)
         {
             std::shared_ptr<Token> nameToken = expectToken(TokenType::Name);
-            Program->Scopes.front()->Expressions.push_back(std::make_unique<DeclarationExpression>(token->Value, nameToken->Value, token));
-            Program->Scopes.front()->Variables[nameToken->Value] = std::make_shared<Variable>(nameToken->Value, Program->FindType(token->Value));
+            Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<DeclarationExpression>(token->Value, nameToken->Value, token));
+            Program->ActiveScopes.front()->Variables[nameToken->Value] = std::make_shared<Variable>(nameToken->Value, Program->FindType(token->Value));
             nextType = Program->Tokens.front()->Type;
             if (nextType != TokenType::Assignment)
                 return;
@@ -286,7 +286,7 @@ void VKParser::parse()
         if (nextType == TokenType::Assignment)
         {
             std::shared_ptr<Token> operatorToken = expectToken(TokenType::Assignment);
-            Program->Scopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0), operatorToken));
+            Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0), operatorToken));
             return;
         }
 
@@ -296,14 +296,14 @@ void VKParser::parse()
         if (nextType == TokenType::OpenExpressionScope)
         {
             Program->Tokens.push_front(std::move(token));
-            Program->Scopes.front()->Expressions.push_back(parseValueExpression(0));
+            Program->ActiveScopes.front()->Expressions.push_back(parseValueExpression(0));
             return;
         }
 
     }
     if (token->Type == TokenType::Return)
     {
-        Program->Scopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0), Program->Scopes.front()->ReturnType, token));
+        Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0), Program->ActiveScopes.front()->ReturnType, token));
         return;
     }
 
@@ -335,10 +335,14 @@ void VKParser::parse()
         }
         std::shared_ptr<FunctionObject> functionObject = std::make_shared<FunctionObject>(nameToken->Value, Program->FindType(typeToken->Value), parameters, Program->ActiveScopes.front());
 
+        Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<FunctionDeclarationExpression>(functionObject, nameToken));
+
         Program->Scopes.push_back(functionObject->FunctionScope);
         Program->ActiveScopes.push_front(functionObject->FunctionScope);
+        Log::PARSER->debug("Adding scope '{}', scope count: {}", nameToken->Value, Program->ActiveScopes.size());
 
         Program->DefaultScope->Functions[functionObject->Name] = functionObject;
+        Program->DefaultScope->Variables[functionObject->Name] = functionObject;
 
         expectToken(TokenType::OpenScope);
 

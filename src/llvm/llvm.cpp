@@ -19,28 +19,22 @@ std::string VKLLVM::generateOutput(Program& program)
                               string_as_llvm_string(entry) + "\\00") << std::endl;
     }
 
+    ExpressionStack funcStack;
+    funcStack.NameCounter = 0;
 
     for (auto&& func : program.DefaultScope->Functions)
     {
-        ExpressionStack stack;
-        output << func.second->ToIR();
-        output << " #0\n{" << std::endl;
-        for (auto&& expr : func.second->FunctionScope->Expressions)
-        {
-            expr->ToIR(stack);
-        }
-        for (std::string& line : stack.Expressions)
-        {
-            output << "\t" << line << std::endl;
-        }
-        output << "}" << std::endl;;
+        func.second->ToIR(funcStack);
     }
-
-    ExpressionStack stack;
-    stack.NameCounter = 0;
+    for (auto&& line : funcStack.Expressions)
+    {
+        output << line << std::endl;
+    }
 
     output << "define dso_local noundef i64 @main() {\n";
     output << "entry:\n";
+    ExpressionStack stack;
+    stack.NameCounter = 0;
     for (auto&& expr : program.DefaultScope->Expressions)
     {
         expr->ToIR(stack);

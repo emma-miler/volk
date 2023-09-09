@@ -12,6 +12,7 @@ namespace Volk
 #include "object.h"
 #include "scope.h"
 #include "variable.h"
+#include "expression_base.h"
 
 namespace Volk
 {
@@ -51,17 +52,7 @@ public:
         return value;
     }
 
-    std::string ToIR()
-    {
-        std::string value = fmt::format("define dso_local noundef i32 @{}(", Name);
-        for (auto&& param : Parameters)
-        {
-            value += fmt::format("ptr noundef %{}, ", param->Name);
-        }
-        value = value.substr(0, value.length() - 2);
-        value += ")";
-        return value;
-    }
+    void ToIR(ExpressionStack& stack);
 };
 
 }

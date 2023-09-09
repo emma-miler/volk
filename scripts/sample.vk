@@ -4,7 +4,7 @@ func float square(float num)
 }
 
 
-float a = 5.0;
-printf("test123\n%.5f\n", a);
+float a = 2.5f;
+printf("value: %.5f\n", square(a));
 printf("abc\n");
 return 1;

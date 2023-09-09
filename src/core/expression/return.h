@@ -13,6 +13,7 @@ public:
 public:
     ReturnExpression(std::unique_ptr<ValueExpression> value, std::shared_ptr<VKType> returnType, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::ReturnExpr, token)
     {
+        // TODO: check if return type matches return type of function
         Value = std::move(value);
         ReturnType = returnType;
     }
@@ -38,12 +39,12 @@ public:
         {
             IRVariableDescriptor variable = stack.ActiveVariable;
             stack.AdvanceActive(0);
-            stack.Expressions.push_back(fmt::format("%{} = load i64, {}", stack.ActiveVariable.Name, variable.Get()));
-            stack.Expressions.push_back(fmt::format("ret i64 %{}", stack.ActiveVariable.Name));
+            stack.Expressions.push_back(fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, ReturnType->LLVMType, variable.Get()));
+            stack.Expressions.push_back(fmt::format("ret {} %{}",ReturnType->LLVMType, stack.ActiveVariable.Name));
         }
         else
         {
-            stack.Expressions.push_back(fmt::format("ret i64 %{}", stack.ActiveVariable.Name));
+            stack.Expressions.push_back(fmt::format("ret {} %{}", ReturnType->LLVMType, stack.ActiveVariable.Name));
         }
         stack.Comment("END RETURN\n");
     }

@@ -6,14 +6,14 @@ namespace Volk
 Program::Program()
 {
     Source = std::make_shared<ProgramSource>();
-    DefaultScope = std::make_shared<Scope>(nullptr, BUILTIN_INT);
+    DefaultScope = std::make_shared<Scope>("__root_scope", nullptr, BUILTIN_INT);
     Scopes.push_back(DefaultScope);
     ActiveScopes.push_front(DefaultScope);
     DefaultScope->AddBuiltinTypes();
     std::vector<std::shared_ptr<FunctionParameter>> printf_params;
     printf_params.push_back(std::make_shared<FunctionParameter>("format_string", BUILTIN_STRING));
     printf_params.push_back(std::make_shared<FunctionParameter>("args", BUILTIN_VARARGS));
-    auto func_printf = std::make_shared<FunctionObject>("printf", BUILTIN_VOID, printf_params, DefaultScope);
+    auto func_printf = std::make_shared<FunctionObject>("printf", BUILTIN_INT, printf_params, DefaultScope);
     DefaultScope->AddVariable(func_printf);
 }
 

@@ -15,7 +15,7 @@ namespace Volk
 
 namespace Volk
 {
-class Scope
+class Scope : public Object
 {
 public:
     std::vector<std::unique_ptr<Expression>> Expressions;
@@ -28,7 +28,7 @@ public:
     std::shared_ptr<Scope> ParentScope;
 
 public:
-    Scope(std::shared_ptr<Scope> parentScope, std::shared_ptr<VKType> returnType)
+    Scope(std::string name, std::shared_ptr<Scope> parentScope, std::shared_ptr<VKType> returnType) : Object(name)
     {
         ParentScope = parentScope;
         ReturnType = returnType;
@@ -41,5 +41,7 @@ public:
     std::shared_ptr<VKType> FindType(std::string name);
 
     void AddBuiltinTypes();
+
+    void Indicate();
 };
 }

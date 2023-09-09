@@ -72,9 +72,9 @@ int main(int argc, char *argv[])
     program.printExpressionTree();
 
 
-    for (auto&& expr : program.DefaultScope->Expressions)
+    for (auto&& scope : program.Scopes)
     {
-        parser.parserPass_NameResolution(expr.get(), program.DefaultScope.get());
+        parser.parserPass_NameResolution(scope.get());
     }
 
     Volk::Log::FRONTEND->debug("Name resolution:");
@@ -83,9 +83,9 @@ int main(int argc, char *argv[])
         Volk::Log::FRONTEND->debug("\n" + expr->ToHumanReadableString(""));
     }
 
-    for (auto&& expr : program.DefaultScope->Expressions)
+    for (auto&& scope : program.Scopes)
     {
-        parser.parserPass_TypeChecking(expr.get(), program.DefaultScope.get());
+        parser.parserPass_TypeChecking(scope.get());
 
     }
     Volk::Log::FRONTEND->debug("");

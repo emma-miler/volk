@@ -62,9 +62,9 @@ public:
                 std::string load = fmt::format("%{} = load i64, {}", stack.ActiveVariable.Name, variable.Get());
                 stack.Expressions.push_back(load);
             }
-            Log::TYPESYS->debug("Has varargs: {}", functionHasVarArgs);
-            Log::TYPESYS->debug("Param type: {}", arg->ResolvedType ->Name);
-            Log::TYPESYS->debug("Equal: {}", arg->ResolvedType == BUILTIN_FLOAT);
+            Log::TYPESYS->trace("Has varargs: {}", functionHasVarArgs);
+            Log::TYPESYS->trace("Param type: {}", arg->ResolvedType ->Name);
+            Log::TYPESYS->trace("Equal: {}", arg->ResolvedType == BUILTIN_FLOAT);
             // This is needed because of the float promotion rule
             if (functionHasVarArgs && arg->ResolvedType == BUILTIN_FLOAT)
             {
@@ -74,12 +74,20 @@ public:
                 stack.Expressions.push_back(load);
                 stack.ActiveVariable.Type = "double";
             }
+            else
+            {
+                stack.ActiveVariable.Type = arg->ResolvedType->LLVMType;
+            }
+            if (arg->ResolvedType->Name == "string")
+            {
+                stack.ActiveVariable.Type =  "ptr";
+            }
             argumentNames.push_back(stack.ActiveVariable);
         }
         stack.Comment("END FUNCTION CALL ARGUMENTS");
         stack.Comment("START FUNCTION CALL");
         stack.AdvanceActive(0);
-        std::string ir = fmt::format("%{} = call noundef i64 @{}(", stack.ActiveVariable.Name, FunctionName);
+        std::string ir = fmt::format("%{} = call noundef {} @{}(", stack.ActiveVariable.Name, ResolvedFunction->ReturnType->LLVMType, FunctionName);
         if (argumentNames.size() > 0)
         {
             for (auto&& arg : argumentNames)
@@ -104,6 +112,10 @@ public:
         if (foundVar == nullptr)
         {
             Log::TYPESYS->error("Unknown function '{}'", FunctionName);
+            for (auto&& func : scope->Functions)
+            {
+                Log::TYPESYS->trace("func: '{}'", func.second->ToString());
+            }
             Token->Indicate();
             throw type_error("");
         }

@@ -1,6 +1,6 @@
 #pragma once
 
-class VKParser;
+#include <optional>
 
 #include "../common.h"
 #include "../core/token.h"
@@ -22,8 +22,8 @@ public:
     std::unique_ptr<ValueExpression> parseValueExpression(int depth);
     std::unique_ptr<ValueExpression> ConsumeNullaryOrUnaryValueExpression(int depth);
 
-    void parserPass_NameResolution(Expression* expression, Scope* scope);
-    void parserPass_TypeChecking(Expression* expression, Scope* scope);
+    void parserPass_NameResolution(Scope* scope);
+    void parserPass_TypeChecking(Scope* scope);
 
 public:
     VKParser(Volk::Program* program) : lastConsumedToken(TokenType::EndOfStatement, "", {0,0,0})
@@ -34,6 +34,9 @@ public:
 private:
     int readUntilNext(std::string_view& data, char character);
     int readWhile(std::string_view& data, std::function<bool(char)> predicate);
+
+    void parserPass_NameResolution(Expression* expression, Scope* scope);
+    void parserPass_TypeChecking(Expression* expression, Scope* scope);
 
     void popToken();
     std::shared_ptr<Token> expectToken(TokenType type);

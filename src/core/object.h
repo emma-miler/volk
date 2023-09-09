@@ -14,5 +14,10 @@ public:
     {
         Name = name;
     }
+
+    virtual std::string ToString()
+    {
+        return Name;
+    }
 };
 }

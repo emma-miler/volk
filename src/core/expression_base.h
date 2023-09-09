@@ -7,6 +7,7 @@
 namespace Volk
 {
     class Expression;
+    class ExpressionStack;
 }
 
 #include "irvariabledescriptor.h"
@@ -22,6 +23,7 @@ namespace Volk
 enum class ExpressionType
 {
     Declaration,
+    FunctionDeclaration,
     Assignment,
     Call,
     Value,
@@ -50,6 +52,7 @@ enum class OperatorArity
 static std::map<ExpressionType, std::string> ExpressionTypeNames =
 {
     {ExpressionType::Declaration, "Declaration"},
+    {ExpressionType::FunctionDeclaration, "FunctionDeclaration"},
     {ExpressionType::Assignment, "Assignment"},
     {ExpressionType::Call, "Call"},
     {ExpressionType::Value, "Value"},

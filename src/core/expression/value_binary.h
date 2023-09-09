@@ -73,7 +73,7 @@ public:
         // Perform the operator
         stack.AdvanceActive(0);
         stack.Comment("START BINARY OPERATOR");
-        stack.Expressions.push_back(fmt::format("%{} = {} {}, {}", stack.ActiveVariable.Name, OperatorInstructionLookup[Operator], left.Get(), right.GetOnlyName()));
+        stack.Expressions.push_back(fmt::format("%{} = {}{} {}, {}", stack.ActiveVariable.Name, Left->ResolvedType == BUILTIN_FLOAT || Left->ResolvedType == BUILTIN_DOUBLE ? "f" : "", OperatorInstructionLookup[Operator], left.Get(), right.GetOnlyName()));
         stack.Comment("END BINARY OPERATOR\n");
     }
 
