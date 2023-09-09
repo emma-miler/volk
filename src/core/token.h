@@ -69,6 +69,8 @@ public:
 public:
     virtual std::string ToString();
     virtual void Indicate();
+
+    virtual ~Token();
 };
 
 

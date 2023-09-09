@@ -14,6 +14,7 @@ public:
     {
         Name = name;
     }
+    virtual ~Object();
 
     virtual std::string ToString()
     {

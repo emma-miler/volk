@@ -29,6 +29,8 @@ public:
     {
         return Name;
     }
+
+    virtual ~VKType();
 };
 
 extern std::shared_ptr<VKType> BUILTIN_INT;

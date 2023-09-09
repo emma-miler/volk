@@ -106,6 +106,8 @@ public:
         Token = token;
     }
 
+    virtual ~Expression();
+
 public:
     virtual std::string ToString()
     {
