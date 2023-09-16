@@ -43,3 +43,5 @@ build/
 scripts/*.s
 scripts/*.ll
 scripts/*.out
+
+.cache

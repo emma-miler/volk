@@ -7,6 +7,9 @@
 #include "../core/token/string.h"
 #include "../core/token/operator.h"
 
+#include <memory>
+#include <optional>
+
 #include <spdlog/spdlog.h>
 
 
@@ -61,7 +64,7 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     if (Program->Tokens.front()->Type == TokenType::OpenExpressionScope)
     {
         expectToken(TokenType::OpenExpressionScope);
-        auto temp = parseValueExpression(depth + 1);
+        auto temp = parseValueExpression(depth + 1, TokenType::CloseExpressionScope);
         expectToken(TokenType::CloseExpressionScope);
         return temp;
     }
@@ -129,7 +132,7 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
             {
                 while (Program->Tokens.front()->Type != TokenType::CloseExpressionScope)
                 {
-                    func->Arguments.push_back(ConsumeNullaryOrUnaryValueExpression(depth));
+                    func->Arguments.push_back(parseValueExpression(depth + 1, TokenType::CommaSeperator));
                     Log::PARSER->trace("func argument {}", i);
                     i++;
                     if (!softExpectToken(TokenType::CommaSeperator).has_value())
@@ -168,7 +171,7 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
 
 }
 
-std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
+std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth, TokenType endMarker)
 {
     Log::PARSER->trace("parseValueExpression depth = {}", depth);
     Log::PARSER->trace("front token = {}", Program->Tokens.front()->ToString());
@@ -177,14 +180,18 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
     std::shared_ptr<OperatorToken> operatorToken = OperatorToken::Dummy();
 
     bool isExpectingOperator = false;
-
+	int i = -1;
     while (Program->Tokens.size() != 0)
     {
+		i++;
+		Log::PARSER->trace("Loop index        : {}", i);
+		Log::PARSER->trace("Excepting operator: {}", isExpectingOperator ? "true" : "false");
         // If we are the top level of a nested expression, we look for an EndOfStatement token
         // Otherwise, we look for a CloseExpressionScope token, since we must first close all
         // the open ExpressionScopes, aka every '(' must have a matching ')'
         if ((depth == 0 && Program->Tokens.front()->Type == TokenType::EndOfStatement) ||
-            (depth > 0 && Program->Tokens.front()->Type == TokenType::CloseExpressionScope))
+            (depth > 0 && Program->Tokens.front()->Type == TokenType::CloseExpressionScope) ||
+			(Program->Tokens.front()->Type == endMarker))
         {
             break;
         }
@@ -204,19 +211,21 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth)
             Log::PARSER->critical("{}", Program->Tokens.front()->ToString());
             Program->Tokens.front()->Indicate();
             throw parse_error("");
-
-
         }
         Log::PARSER->trace("getting value expression");
         if (!leftHandSide.has_value())
         {
             Log::PARSER->trace("getting left hand");
             leftHandSide = ConsumeNullaryOrUnaryValueExpression(depth);
+			Log::PARSER->trace("Got left-hand expression: ");
+			Log::PARSER->trace("\n{}", leftHandSide->get()->ToHumanReadableString(""));
             isExpectingOperator = true;
             continue;
         }
         Log::PARSER->trace("getting right hand");
         rightHandSide = ConsumeNullaryOrUnaryValueExpression(depth);
+		Log::PARSER->trace("Got right-hand expression: ");
+		Log::PARSER->trace("\n{}", rightHandSide->get()->ToHumanReadableString(""));
         leftHandSide = std::make_unique<BinaryValueExpression>(
                 operatorToken->OpType,
                 std::move(leftHandSide.value()),
@@ -286,7 +295,7 @@ void VKParser::parse()
         if (nextType == TokenType::Assignment)
         {
             std::shared_ptr<Token> operatorToken = expectToken(TokenType::Assignment);
-            Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0), operatorToken));
+            Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0, TokenType::EndOfStatement), operatorToken));
             return;
         }
 
@@ -296,14 +305,14 @@ void VKParser::parse()
         if (nextType == TokenType::OpenExpressionScope)
         {
             Program->Tokens.push_front(std::move(token));
-            Program->ActiveScopes.front()->Expressions.push_back(parseValueExpression(0));
+            Program->ActiveScopes.front()->Expressions.push_back(parseValueExpression(0, TokenType::CloseExpressionScope));
             return;
         }
 
     }
     if (token->Type == TokenType::Return)
     {
-        Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0), Program->ActiveScopes.front()->ReturnType, token));
+        Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0, TokenType::EndOfStatement), Program->ActiveScopes.front()->ReturnType, token));
         return;
     }
 

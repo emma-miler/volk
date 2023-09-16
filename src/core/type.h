@@ -30,7 +30,7 @@ public:
         return Name;
     }
 
-    virtual ~VKType();
+    virtual ~VKType() = default;
 };
 
 extern std::shared_ptr<VKType> BUILTIN_INT;

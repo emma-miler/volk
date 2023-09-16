@@ -3,8 +3,13 @@ func float square(float num)
     return num * num;
 }
 
+int test = 5 - 1;
+
+func int fib(int lvl)
+{
+    return fib(lvl - 1);
+}
 
 float a = 2.5f;
 printf("value: %.5f\n", square(a));
-printf("abc\n");
 return 1;

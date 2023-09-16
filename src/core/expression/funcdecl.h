@@ -19,26 +19,13 @@ public:
         return fmt::format("FunctionDeclarationExpression(name='{}')", Function->ToString());
     }
 
-    std::string ToHumanReadableString(std::string depthPrefix)
-    {
-        std::string newline = fmt::format("\n{}\t", depthPrefix);
-        std::string out = "FunctionDeclarationExpression(";
-        out += newline + fmt::format("value='{}'", Function->ToString());
-        out += "\n" + depthPrefix + ")";
-        return  out;
-    }
+    std::string ToHumanReadableString(std::string depthPrefix);
 
-    virtual void ToIR(ExpressionStack& stack)
+    void ToIR(ExpressionStack& stack)
     {
         stack.Comment("FUNCTION DECLARATION");
     }
 
-    virtual void ResolveNames(Scope* scope)
-    {
-        for (auto&& expr : Function->FunctionScope->Expressions)
-        {
-            expr->ResolveNames(Function->FunctionScope.get());
-        }
-    }
+    void ResolveNames(Scope* scope);
 };
 }

@@ -19,7 +19,7 @@ public:
 public:
 
     void parse();
-    std::unique_ptr<ValueExpression> parseValueExpression(int depth);
+    std::unique_ptr<ValueExpression> parseValueExpression(int depth, TokenType endMarker);
     std::unique_ptr<ValueExpression> ConsumeNullaryOrUnaryValueExpression(int depth);
 
     void parserPass_NameResolution(Scope* scope);

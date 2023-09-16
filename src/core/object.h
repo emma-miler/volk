@@ -14,7 +14,7 @@ public:
     {
         Name = name;
     }
-    virtual ~Object();
+    virtual ~Object() = default;
 
     virtual std::string ToString()
     {

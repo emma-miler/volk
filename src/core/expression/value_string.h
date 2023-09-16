@@ -19,20 +19,7 @@ public:
         return fmt::format("StringConstantValueExpression(index='{}')", Index);
     }
 
-    std::string ToHumanReadableString(std::string depthPrefix)
-    {
-        return fmt::format("StringConstantValueExpression(index={})", Index);
-    }
-
-    virtual void ToIR(ExpressionStack& stack)
-    {
-        // We dont want to actually advance the counter here,
-        // since we're not actually pushing anything new
-        stack.AdvanceActive(1);
-        stack.ActiveVariable.IsConstant = 1;
-        stack.ActiveVariable.Name = fmt::format(".str.{}", Index);
-        stack.NameCounter--;
-        stack.Comment("PUSHED STRING CONSTANT VALUE");
-    }
+    std::string ToHumanReadableString(std::string depthPrefix);
+    void ToIR(ExpressionStack& stack);
 };
 }
