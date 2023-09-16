@@ -21,6 +21,12 @@ public:
             case TokenType::ImmediateBoolValue: ValueType = BUILTIN_BOOL; break;
             default: throw parse_error("Unknown token type");
         }
+		if (tokenType == TokenType::ImmediateBoolValue)
+		{
+			if (value == "true") Value = "1";
+			else if (value == "false") Value = "0";
+			else throw parse_error("Invalid boolean literal");
+		}
     }
 };
 }

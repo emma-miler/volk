@@ -15,7 +15,9 @@ const std::array<std::string, 2> Keywords =
 static std::map<std::string, TokenType> KeywordLookup =
 {
     {"return", TokenType::Return},
-    {"func", TokenType::FunctionPrefix}
+    {"func", TokenType::FunctionPrefix},
+	{"true", TokenType::ImmediateBoolValue},
+    {"false", TokenType::ImmediateBoolValue},
 };
 
 }

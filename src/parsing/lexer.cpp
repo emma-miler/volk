@@ -118,7 +118,12 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
         if (keywordTokenType == KeywordLookup.end())
             tokens.push_back(std::make_shared<Token>(TokenType::Name, data.substr(0, totalRead), currentPosition(totalRead, program)));
         else
-            tokens.push_back(std::make_shared<Token>(keywordTokenType->second, data.substr(0, totalRead), currentPosition(totalRead, program)));
+		{
+			if (keywordTokenType->second == TokenType::ImmediateBoolValue)
+				tokens.push_back(std::make_shared<ValueToken>(data.substr(0, totalRead), currentPosition(totalRead, program), keywordTokenType->second));
+			else
+				tokens.push_back(std::make_shared<Token>(keywordTokenType->second, data.substr(0, totalRead), currentPosition(totalRead, program)));
+		}
     }
 
     /// ==========
