@@ -271,6 +271,11 @@ void VKParser::parse()
         Program->ActiveScopes.pop_front();
         return;
     }
+	if (token->Type == TokenType::Comment)
+	{
+		Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<CommentExpression>(token));
+		return;
+	}
     if (token->Type == TokenType::Name)
     {
         TokenType nextType = Program->Tokens.front()->Type;

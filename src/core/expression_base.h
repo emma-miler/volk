@@ -22,6 +22,7 @@ namespace Volk
 
 enum class ExpressionType
 {
+	Comment,
     Declaration,
     FunctionDeclaration,
     Assignment,
@@ -40,6 +41,7 @@ enum class ValueExpressionType
     Binary,
     FunctionCall,
     StringConstant,
+	ValueCast,
 };
 
 enum class OperatorArity
@@ -51,6 +53,7 @@ enum class OperatorArity
 
 static std::map<ExpressionType, std::string> ExpressionTypeNames =
 {
+	{ExpressionType::Comment, "Comment"},
     {ExpressionType::Declaration, "Declaration"},
     {ExpressionType::FunctionDeclaration, "FunctionDeclaration"},
     {ExpressionType::Assignment, "Assignment"},

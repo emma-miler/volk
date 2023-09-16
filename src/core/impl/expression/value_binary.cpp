@@ -1,4 +1,5 @@
 #include "../../expression/value_binary.h"
+#include "../../valuecast_rules.h"
 
 namespace Volk
 {

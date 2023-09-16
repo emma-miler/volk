@@ -1,4 +1,6 @@
 #include "../../expression/assignment.h"
+#include "../../expression/value_valuecast.h"
+#include "../../valuecast_rules.h"
 
 namespace Volk
 {
@@ -54,9 +56,17 @@ void AssignmentExpression::TypeCheck(Scope* scope)
 {
     if (ResolvedVariable->Type != Value->ResolvedType)
     {
-        Log::TYPESYS->error("Cannot implicitly convert from '{}' to '{}'", Value->ResolvedType->Name, ResolvedVariable->Type->Name);
-        Token->Indicate();
-        throw type_error("");
+		auto rule = GetSidecastForTypes(Value->ResolvedType, ResolvedVariable->Type);
+		if (rule == nullptr)
+		{
+			Log::TYPESYS->error("Cannot implicitly convert from '{}' to '{}'", Value->ResolvedType->Name, ResolvedVariable->Type->Name);
+			Token->Indicate();
+			throw type_error("");
+		}
+		else
+		{
+			Value = std::make_unique<ValueCastExpression>(std::move(Value), ResolvedVariable->Type, rule);
+		}
     }
 }
 }

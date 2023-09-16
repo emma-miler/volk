@@ -84,6 +84,16 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
         lineIndex++;
         totalRead++;
     }
+	
+	/// ==========
+    /// Comment
+    /// ==========
+    else if (c == '#')
+    {
+		totalRead += readUntilNext(data, '\n');
+        totalRead++;
+        tokens.push_back(std::make_shared<Token>(TokenType::Comment, data.substr(1, totalRead - 2), currentPosition(totalRead, program)));
+    }
 
     /// ==========
     /// End of Statement

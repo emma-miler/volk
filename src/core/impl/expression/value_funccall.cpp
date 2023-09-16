@@ -37,7 +37,7 @@ void FunctionCallValueExpression::ToIR(ExpressionStack& stack)
         {
             IRVariableDescriptor variable = stack.ActiveVariable;
             stack.AdvanceActive(0);
-            std::string load = fmt::format("%{} = load i64, {}", stack.ActiveVariable.Name, variable.Get());
+            std::string load = fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, arg->ResolvedType->LLVMType, variable.Get());
             stack.Expressions.push_back(load);
         }
         Log::TYPESYS->trace("Has varargs: {}", functionHasVarArgs);

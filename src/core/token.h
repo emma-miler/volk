@@ -12,6 +12,7 @@ enum class TokenType
 {
     Dummy,
     Name,
+	Comment,
     ImmediateIntValue,
     ImmediateFloatValue,
     ImmediateDoubleValue,
@@ -33,6 +34,7 @@ static std::map<TokenType, std::string> TokenTypeNames =
 {
     {TokenType::Dummy, "DUMMY_INTERNAL"},
     {TokenType::Name, "Name"},
+	{TokenType::Comment, "Comment"},
     {TokenType::ImmediateIntValue, "ImmediateIntValue"},
     {TokenType::ImmediateFloatValue, "ImmediateFloatValue"},
     {TokenType::ImmediateDoubleValue, "ImmediateDoubleValue"},

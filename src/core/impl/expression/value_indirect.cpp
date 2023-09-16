@@ -5,7 +5,7 @@ namespace Volk
 std::string IndirectValueExpression::ToHumanReadableString(std::string depthPrefix)
 {
     std::string newline = fmt::format("\n{}\t", depthPrefix);
-    std::string out = "Indirect(";
+    std::string out = "IndirectValueExpression(";
     if (ResolvedType != nullptr)
     {
         out += newline + fmt::format("type='{}'", ResolvedType->Name);
