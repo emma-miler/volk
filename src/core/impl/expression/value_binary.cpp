@@ -1,4 +1,5 @@
 #include "../../expression/value_binary.h"
+#include "../../expression/value_valuecast.h"
 #include "../../valuecast_rules.h"
 
 namespace Volk
@@ -51,9 +52,10 @@ void BinaryValueExpression::ToIR(ExpressionStack& stack)
 
     // Perform the operator
     stack.AdvanceActive(0);
+	stack.ActiveVariable.Type = Left->ResolvedType->LLVMType;
     stack.Comment("START BINARY OPERATOR");
     stack.Expressions.push_back(fmt::format("%{} = {}{} {} {}, {}", 	stack.ActiveVariable.Name, 
-																	Left->ResolvedType == BUILTIN_FLOAT || Left->ResolvedType == BUILTIN_DOUBLE ? "f" : "",
+																	Left->ResolvedType == BUILTIN_FLOAT || Left->ResolvedType == BUILTIN_DOUBLE ? "f" : Operator == OperatorType::OperatorDivide ? "s" : "",
 																	OperatorInstructionLookup[Operator],
 																	Left->ResolvedType->LLVMType,
 																	left.GetOnlyName(),
@@ -68,7 +70,51 @@ std::vector<Expression*> BinaryValueExpression::SubExpressions()
 
 void BinaryValueExpression::TypeCheck(Scope* scope)
 {
-    if (Left->ResolvedType != Right->ResolvedType)
+    
+	if (Operator == OperatorType::OperatorDivide)
+	{
+		if (Left->ResolvedType == BUILTIN_INT)
+		{
+			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_INT, BUILTIN_DOUBLE));
+		}
+		if (Right->ResolvedType == BUILTIN_INT)
+		{
+			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_INT, BUILTIN_DOUBLE));
+		}
+	}
+	// This mess basically makes it so that you can e.g multiple a float by a double,
+	// or an int by a float
+	// Its a bit ugly, but i dont really know a more "elegant" way of doing it
+	if (Left->ResolvedType != Right->ResolvedType)
+	{
+		if (Left->ResolvedType == BUILTIN_FLOAT && Right->ResolvedType == BUILTIN_INT)
+		{
+			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_FLOAT, GetSidecastForTypes(BUILTIN_INT, BUILTIN_FLOAT));
+		}
+		else if (Left->ResolvedType == BUILTIN_DOUBLE && Right->ResolvedType == BUILTIN_INT)
+		{
+			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_INT, BUILTIN_DOUBLE));
+		}
+		
+		else if (Left->ResolvedType == BUILTIN_INT && Right->ResolvedType == BUILTIN_FLOAT)
+		{
+			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_FLOAT, GetSidecastForTypes(BUILTIN_INT, BUILTIN_FLOAT));
+		}
+		else if (Left->ResolvedType == BUILTIN_INT && Right->ResolvedType == BUILTIN_DOUBLE)
+		{
+			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_INT, BUILTIN_DOUBLE));
+		}
+		
+		else if (Left->ResolvedType == BUILTIN_FLOAT && Right->ResolvedType == BUILTIN_DOUBLE)
+		{
+			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_FLOAT, BUILTIN_DOUBLE));
+		}
+		else if (Left->ResolvedType == BUILTIN_DOUBLE && Right->ResolvedType == BUILTIN_FLOAT)
+		{
+			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_FLOAT, BUILTIN_DOUBLE));
+		}
+	}
+	if (Left->ResolvedType != Right->ResolvedType)
     {
         Log::TYPESYS->error("No valid operator '{}' between types '{}' and '{}'", OperatorTypeNames[Operator], Left->ResolvedType->Name, Right->ResolvedType->Name);
         Token->Indicate();

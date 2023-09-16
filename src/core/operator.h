@@ -47,7 +47,7 @@ static std::map<OperatorType, std::string> OperatorInstructionLookup =
     {OperatorType::OperatorPlus, "add"},
     {OperatorType::OperatorMinus, "sub"},
     {OperatorType::OperatorMultiply, "mul"},
-    {OperatorType::OperatorDivide, "sdiv"},
+    {OperatorType::OperatorDivide, "div"},
 };
 
 }
