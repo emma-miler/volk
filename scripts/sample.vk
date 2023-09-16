@@ -1,5 +1,4 @@
-int a = 1 + 3*5;
-int b = 1 + (3*5);
-printf("a: %d\n", a);
-printf("b: %d\n", b);
-return 1;
+float a = 2+3*4-1;
+printf("%.5f\n", a);
+int b = a;
+return b;

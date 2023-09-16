@@ -53,8 +53,8 @@ std::optional<std::shared_ptr<Token>> VKParser::softExpectToken(TokenType expect
 
 std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(int depth)
 {
-    ValueExpressionType exprType = ValueExpressionType::Unary;
     OperatorType opType = OperatorType::Null;
+	bool isUnaryExpression = false;
 
     /// ==========
     /// Nested expression
@@ -74,22 +74,21 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     /// ==========
     if (Program->Tokens.front()->Type == TokenType::Operator)
     {
-        OperatorToken operatorToken = *static_cast<OperatorToken*>(Program->Tokens.front().get()); popToken();
+        OperatorToken operatorToken = *static_cast<OperatorToken*>(Program->Tokens.front().get()); 
+		popToken();
         // Check if operator is unary
         auto unaryOperator = std::find(UnaryOperators.begin(), UnaryOperators.end(), operatorToken.OpType);
-        Log::PARSER->trace("{}", (void*)unaryOperator);
-        Log::PARSER->trace("{}", (void*)UnaryOperators.end());
-        Log::PARSER->trace("{}", operatorToken.ToString());
+        Log::PARSER->trace("UNARY: {}", operatorToken.ToString());
         if (unaryOperator == UnaryOperators.end())
         {
             Log::PARSER->critical("Found non-unary operator '{}' at start of value expression", operatorToken.ToString());
             throw parse_error("");
         }
-        exprType = ValueExpressionType::Unary;
         opType = *unaryOperator;
+		isUnaryExpression = true;
     }
-    // I have no clue what's going on here tbh
-    std::shared_ptr<Token> token = Program->Tokens.front(); popToken();
+    std::shared_ptr<Token> token = Program->Tokens.front(); 
+	popToken();
     std::unique_ptr<ValueExpression> expr;
     if (token->Type == TokenType::ImmediateIntValue)
     {
@@ -99,22 +98,20 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     else if (token->Type == TokenType::ImmediateFloatValue)
     {
         auto temp = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
-        // Need to truncate it to float first, hence the double cast
         double tempValue = (double)(float)atof(temp->Value.c_str());
         temp->Value = fmt::format("{}", *(void**)(&tempValue));
         expr = std::move(temp);
-        expr->ResolvedType = Program->DefaultScope->FindType("float");
+        expr->ResolvedType = BUILTIN_FLOAT;
     }
     else if (token->Type == TokenType::ImmediateDoubleValue)
     {
         expr = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
-        // Need to truncate it to float first, hence the double cast
-        expr->ResolvedType = Program->DefaultScope->FindType("double");
+        expr->ResolvedType = BUILTIN_DOUBLE;
     }
     else if (token->Type == TokenType::ImmediateBoolValue)
     {
         expr = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
-        expr->ResolvedType = Program->DefaultScope->FindType("bool");
+        expr->ResolvedType = BUILTIN_BOOL;
     }
     else if (token->Type == TokenType::Name)
     {
@@ -156,36 +153,33 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
         Log::PARSER->critical("Unexpected token {} in while parsing ConsumeNullaryOrUnaryValueExpression", token->ToString());
         throw parse_error("");
     }
-    exprType = expr->ValueExpressionType;
 
-    if (exprType == ValueExpressionType::StringConstant || exprType == ValueExpressionType::Immediate || exprType == ValueExpressionType::Indirect || exprType == ValueExpressionType::FunctionCall)
+    if (!isUnaryExpression)
     {
         return expr;
     }
-    else if (exprType == ValueExpressionType::Unary)
-    {
+    else    
+	{
         return std::make_unique<UnaryValueExpression>(opType, std::move(expr), token);
     }
-    Log::PARSER->critical(fmt::format("Unknown ValueExpressionType in ConsumeNullaryOrUnaryValueExpression: '{}'", (int)exprType));
-    throw parse_error("");
-
 }
 
 std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth, TokenType endMarker)
 {
     Log::PARSER->trace("parseValueExpression depth = {}", depth);
-    Log::PARSER->trace("front token = {}", Program->Tokens.front()->ToString());
-    std::optional<std::unique_ptr<ValueExpression>> leftHandSide = std::nullopt;
-    std::optional<std::unique_ptr<ValueExpression>> rightHandSide = std::nullopt;
     std::shared_ptr<OperatorToken> operatorToken = OperatorToken::Dummy();
+	std::deque<std::unique_ptr<ValueExpression>> expressions;
+	std::deque<std::shared_ptr<OperatorToken>> operators;
 
-    bool isExpectingOperator = false;
+	bool lastTokenWasOperator = true;
+
 	int i = -1;
+	// We use the shunting-yard algorithm to do operator precedence
     while (Program->Tokens.size() != 0)
     {
 		i++;
 		Log::PARSER->trace("Loop index        : {}", i);
-		Log::PARSER->trace("Excepting operator: {}", isExpectingOperator ? "true" : "false");
+		Log::PARSER->trace("front token = {}", Program->Tokens.front()->ToString());
         // If we are the top level of a nested expression, we look for an EndOfStatement token
         // Otherwise, we look for a CloseExpressionScope token, since we must first close all
         // the open ExpressionScopes, aka every '(' must have a matching ')'
@@ -195,56 +189,63 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
         {
             break;
         }
-        if (isExpectingOperator)
-        {
-            // We have already parsed the left-hand side of a possibly multivalued expression
-            // This means we can either find a binary operator, or a function call
-            if (Program->Tokens.front()->Type == TokenType::Operator)
-            {
-                operatorToken = dynamic_pointer_cast<OperatorToken>(Program->Tokens.front()); popToken();
-                isExpectingOperator = false;
-                continue;
-            }
-
-            Log::PARSER->critical("Found unexpected token while parsing");
-            Log::PARSER->critical("Expected 'Operator', instead got '{}'", TokenTypeNames[Program->Tokens.front()->Type]);
-            Log::PARSER->critical("{}", Program->Tokens.front()->ToString());
-            Program->Tokens.front()->Indicate();
-            throw parse_error("");
-        }
-        Log::PARSER->trace("getting value expression");
-        if (!leftHandSide.has_value())
-        {
-            Log::PARSER->trace("getting left hand");
-            leftHandSide = ConsumeNullaryOrUnaryValueExpression(depth);
-			Log::PARSER->trace("Got left-hand expression: ");
-			Log::PARSER->trace("\n{}", leftHandSide->get()->ToHumanReadableString(""));
-            isExpectingOperator = true;
-            continue;
-        }
-        Log::PARSER->trace("getting right hand");
-        rightHandSide = ConsumeNullaryOrUnaryValueExpression(depth);
-		Log::PARSER->trace("Got right-hand expression: ");
-		Log::PARSER->trace("\n{}", rightHandSide->get()->ToHumanReadableString(""));
-        leftHandSide = std::make_unique<BinaryValueExpression>(
-                operatorToken->OpType,
-                std::move(leftHandSide.value()),
-                std::move(rightHandSide.value()), operatorToken
-        );
-        isExpectingOperator = true;
-
-        Log::PARSER->trace("got value expression");
-        Log::PARSER->trace("{}", leftHandSide.value()->ToString());
-    }
-    if (leftHandSide.has_value())
-    {
-        return std::move(leftHandSide.value());
-    }
-    else
-    {
-        Log::PARSER->critical("Unexpected EndOfExpression hit while parsing");
-        throw parse_error("");
-    }
+		
+		
+		// If lats token was already an operator, it's likely that this operator token is a unary one
+		// If it isnt, we error on that somewhere else
+        if (Program->Tokens.front()->Type == TokenType::Operator && !lastTokenWasOperator)
+		{
+			lastTokenWasOperator = true;
+			operatorToken = dynamic_pointer_cast<OperatorToken>(Program->Tokens.front()); popToken();
+			// Not enough items to compute this value yet
+			if (expressions.size() < 2)
+				operators.push_back(operatorToken);
+			// Or if we have higher precedence
+			else if (operatorToken->OpType > operators.back()->OpType)
+				operators.push_back(operatorToken);
+			// Otherwise, calculate
+			else
+			{
+				while (!operators.empty())
+				{
+					std::shared_ptr<OperatorToken> op = operators.back();
+					operators.pop_back();
+					std::unique_ptr<ValueExpression> right = std::move(expressions.back());
+					expressions.pop_back();
+					std::unique_ptr<ValueExpression> left = std::move(expressions.back());
+					expressions.pop_back();
+					expressions.push_back(std::make_unique<BinaryValueExpression>(op->OpType, std::move(left), std::move(right), op));
+				}
+				operators.push_back(operatorToken);
+			}
+			continue;
+		}
+		else
+		{
+			expressions.push_back(ConsumeNullaryOrUnaryValueExpression(depth));
+			Log::PARSER->error(expressions.back()->ToHumanReadableString(""));
+			lastTokenWasOperator = false;
+		}
+		
+		
+	}
+	while (!operators.empty())
+	{
+		std::shared_ptr<OperatorToken> op = operators.back();
+		operators.pop_back();
+		if (expressions.size() < 2)
+		{
+			Log::PARSER->error("Expected value for binary operator '{}', instead got nothing", OperatorTypeNames[op->OpType]);
+			op->Indicate();
+			throw parse_error("");
+		}
+		std::unique_ptr<ValueExpression> right = std::move(expressions.back());
+		expressions.pop_back();
+		std::unique_ptr<ValueExpression> left = std::move(expressions.back());
+		expressions.pop_back();
+		expressions.push_back(std::make_unique<BinaryValueExpression>(op->OpType, std::move(left), std::move(right), op));
+	}
+	return std::move(expressions.front());
 }
 
 void VKParser::parse()

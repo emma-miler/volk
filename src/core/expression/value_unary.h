@@ -6,14 +6,15 @@ namespace Volk
 class UnaryValueExpression : public ValueExpression
 {
 public:
-    std::unique_ptr<Expression> Value;
+    std::unique_ptr<ValueExpression> Value;
     OperatorType Operator;
 
 public:
-    UnaryValueExpression(OperatorType op, std::unique_ptr<Expression> value, std::shared_ptr<Volk::Token> token) : ValueExpression(ValueExpressionType::Unary, OperatorArity::Unary, token)
+    UnaryValueExpression(OperatorType op, std::unique_ptr<ValueExpression> value, std::shared_ptr<Volk::Token> token) : ValueExpression(ValueExpressionType::Unary, OperatorArity::Unary, token)
     {
         Value = std::move(value);
         Operator = op;
+		ResolvedType = Value->ResolvedType;
     }
 
     std::string ToString()

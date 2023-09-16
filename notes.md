@@ -1,5 +1,5 @@
 0. fix operator checking (cant do bool/bool)
-1. operator precedence
+~~1. operator precedence~~
 2. phi nodes
 other:
 include c# style initializer-list syntax for constructors AND function calls

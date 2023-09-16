@@ -70,7 +70,6 @@ std::vector<Expression*> BinaryValueExpression::SubExpressions()
 
 void BinaryValueExpression::TypeCheck(Scope* scope)
 {
-    
 	if (Operator == OperatorType::OperatorDivide)
 	{
 		if (Left->ResolvedType == BUILTIN_INT)
@@ -116,6 +115,8 @@ void BinaryValueExpression::TypeCheck(Scope* scope)
 	}
 	if (Left->ResolvedType != Right->ResolvedType)
     {
+		Log::TYPESYS->error("{}", *(void**)&Left->ResolvedType);
+		Log::TYPESYS->error("{}", *(void**)&Right->ResolvedType);
         Log::TYPESYS->error("No valid operator '{}' between types '{}' and '{}'", OperatorTypeNames[Operator], Left->ResolvedType->Name, Right->ResolvedType->Name);
         Token->Indicate();
         throw type_error("");
