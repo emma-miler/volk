@@ -20,9 +20,9 @@ void ImmediateValueExpression::ToIR(ExpressionStack& stack)
     stack.AdvanceActive(1);
     // Allocate the variable
     stack.Comment("START IMMEDIATE VALUE");
-    stack.Expressions.push_back(fmt::format("%{} = alloca {}", stack.ActiveVariable.Name, ResolvedType->LLVMType));
+    stack.Operation(fmt::format("%{} = alloca {}", stack.ActiveVariable.Name, ResolvedType->LLVMType));
     // Assign the value
-    stack.Expressions.push_back(fmt::format("store {} {}, {}", ResolvedType->LLVMType, Value, stack.ActiveVariable.Get()));
+    stack.Operation(fmt::format("store {} {}, {}", ResolvedType->LLVMType, Value, stack.ActiveVariable.Get()));
     stack.Comment("END IMMEDIATE VALUE\n");
 }
 }

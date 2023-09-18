@@ -38,18 +38,18 @@ void FunctionCallValueExpression::ToIR(ExpressionStack& stack)
             IRVariableDescriptor variable = stack.ActiveVariable;
             stack.AdvanceActive(0);
             std::string load = fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, arg->ResolvedType->LLVMType, variable.Get());
-            stack.Expressions.push_back(load);
+            stack.Operation(load);
         }
-        Log::TYPESYS->trace("Has varargs: {}", functionHasVarArgs);
-        Log::TYPESYS->trace("Param type: {}", arg->ResolvedType ->Name);
-        Log::TYPESYS->trace("Equal: {}", arg->ResolvedType == BUILTIN_FLOAT);
+        Log::OUTPUT->trace("Has varargs: {}", functionHasVarArgs);
+        Log::OUTPUT->trace("Param type: {}", arg->ResolvedType ->Name);
+        Log::OUTPUT->trace("Equal: {}", arg->ResolvedType == BUILTIN_FLOAT);
         // This is needed because of the float promotion rule
         if (functionHasVarArgs && arg->ResolvedType == BUILTIN_FLOAT)
         {
             IRVariableDescriptor variable = stack.ActiveVariable;
             stack.AdvanceActive(0);
             std::string load = fmt::format("%{} = fpext float %{} to double", stack.ActiveVariable.Name, variable.Name);
-            stack.Expressions.push_back(load);
+            stack.Operation(load);
             stack.ActiveVariable.Type = "double";
         }
         else
@@ -75,7 +75,7 @@ void FunctionCallValueExpression::ToIR(ExpressionStack& stack)
         ir = ir.substr(0, ir.length() - 2);
     }
     ir += ")";
-    stack.Expressions.push_back(ir);
+    stack.Operation(ir);
     stack.Comment("END FUNCTION CALL\n");
 }
 

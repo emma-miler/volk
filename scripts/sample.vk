@@ -1,4 +1,7 @@
-float a = 2+3*4-1;
-printf("%.5f\n", a);
-int b = a;
-return b;
+bool test = true;
+printf("test\n");
+if (test)
+{
+    printf("condition was true\n");
+}
+return 0;

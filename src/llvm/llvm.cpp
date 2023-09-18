@@ -42,7 +42,7 @@ std::string VKLLVM::generateOutput(Program& program)
 
     for (std::string& line : stack.Expressions)
     {
-        output << "\t" << line << std::endl;
+        output << line << std::endl;
     }
 
     output << "}\n";

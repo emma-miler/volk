@@ -24,7 +24,7 @@ void AssignmentExpression::ToIR(ExpressionStack& stack)
     {
         ImmediateValueExpression* value = static_cast<ImmediateValueExpression*>(Value.get());
         stack.Comment("START ASSIGNMENT");
-        stack.Expressions.push_back(fmt::format("store {} {}, ptr %{}", value->ResolvedType->LLVMType, value->Value, Name));
+        stack.Operation(fmt::format("store {} {}, ptr %{}", value->ResolvedType->LLVMType, value->Value, Name));
     }
     else
     {
@@ -32,7 +32,7 @@ void AssignmentExpression::ToIR(ExpressionStack& stack)
         Value->ToIR(stack);
         IRVariableDescriptor value = stack.ActiveVariable;
         stack.Comment("START ASSIGNMENT");
-        stack.Expressions.push_back(fmt::format("store {}, ptr %{}", value.Get(), Name));
+        stack.Operation(fmt::format("store {}, ptr %{}", value.Get(), Name));
     }
     stack.Comment("END ASSIGNMENT\n");
 }

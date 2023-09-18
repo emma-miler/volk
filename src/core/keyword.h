@@ -18,6 +18,7 @@ static std::map<std::string, TokenType> KeywordLookup =
     {"func", TokenType::FunctionPrefix},
 	{"true", TokenType::ImmediateBoolValue},
     {"false", TokenType::ImmediateBoolValue},
+    {"if", TokenType::IfStatement},
 };
 
 }

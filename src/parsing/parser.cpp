@@ -51,7 +51,7 @@ std::optional<std::shared_ptr<Token>> VKParser::softExpectToken(TokenType expect
 }
 
 
-std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(int depth)
+std::shared_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(int depth)
 {
     OperatorType opType = OperatorType::Null;
 	bool isUnaryExpression = false;
@@ -89,15 +89,15 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     }
     std::shared_ptr<Token> token = Program->Tokens.front(); 
 	popToken();
-    std::unique_ptr<ValueExpression> expr;
+    std::shared_ptr<ValueExpression> expr;
     if (token->Type == TokenType::ImmediateIntValue)
     {
-        expr = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
+        expr = std::make_shared<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
         expr->ResolvedType = Program->DefaultScope->FindType("int");
     }
     else if (token->Type == TokenType::ImmediateFloatValue)
     {
-        auto temp = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
+        auto temp = std::make_shared<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
         double tempValue = (double)(float)atof(temp->Value.c_str());
         temp->Value = fmt::format("{}", *(void**)(&tempValue));
         expr = std::move(temp);
@@ -105,12 +105,12 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     }
     else if (token->Type == TokenType::ImmediateDoubleValue)
     {
-        expr = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
+        expr = std::make_shared<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
         expr->ResolvedType = BUILTIN_DOUBLE;
     }
     else if (token->Type == TokenType::ImmediateBoolValue)
     {
-        expr = std::make_unique<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
+        expr = std::make_shared<ImmediateValueExpression>(std::static_pointer_cast<ValueToken>(token));
         expr->ResolvedType = BUILTIN_BOOL;
     }
     else if (token->Type == TokenType::Name)
@@ -118,7 +118,7 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
         // Function call
         if (Program->Tokens.front()->Type == TokenType::OpenExpressionScope)
         {
-            std::unique_ptr<FunctionCallValueExpression> func = std::make_unique<FunctionCallValueExpression>(token->Value, token);
+            std::shared_ptr<FunctionCallValueExpression> func = std::make_shared<FunctionCallValueExpression>(token->Value, token);
             popToken();
             int i = 0;
             if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
@@ -136,7 +136,7 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
                         break;
                 }
             }
-            expr = std::move(func);
+            expr = func;
         }
         else
         {
@@ -164,11 +164,11 @@ std::unique_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     }
 }
 
-std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth, TokenType endMarker)
+std::shared_ptr<ValueExpression> VKParser::parseValueExpression(int depth, TokenType endMarker)
 {
     Log::PARSER->trace("parseValueExpression depth = {}", depth);
     std::shared_ptr<OperatorToken> operatorToken = OperatorToken::Dummy();
-	std::deque<std::unique_ptr<ValueExpression>> expressions;
+	std::deque<std::shared_ptr<ValueExpression>> expressions;
 	std::deque<std::shared_ptr<OperatorToken>> operators;
 
 	bool lastTokenWasOperator = true;
@@ -210,9 +210,9 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
 				{
 					std::shared_ptr<OperatorToken> op = operators.back();
 					operators.pop_back();
-					std::unique_ptr<ValueExpression> right = std::move(expressions.back());
+					std::shared_ptr<ValueExpression> right = expressions.back();
 					expressions.pop_back();
-					std::unique_ptr<ValueExpression> left = std::move(expressions.back());
+					std::shared_ptr<ValueExpression> left = expressions.back();
 					expressions.pop_back();
 					expressions.push_back(std::make_unique<BinaryValueExpression>(op->OpType, std::move(left), std::move(right), op));
 				}
@@ -239,11 +239,11 @@ std::unique_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
 			op->Indicate();
 			throw parse_error("");
 		}
-		std::unique_ptr<ValueExpression> right = std::move(expressions.back());
+		std::shared_ptr<ValueExpression> right = expressions.back();
 		expressions.pop_back();
-		std::unique_ptr<ValueExpression> left = std::move(expressions.back());
+		std::shared_ptr<ValueExpression> left = expressions.back();
 		expressions.pop_back();
-		expressions.push_back(std::make_unique<BinaryValueExpression>(op->OpType, std::move(left), std::move(right), op));
+		expressions.push_back(std::make_shared<BinaryValueExpression>(op->OpType, left, right, op));
 	}
 	return std::move(expressions.front());
 }
@@ -350,7 +350,7 @@ void VKParser::parse()
         }
         std::shared_ptr<FunctionObject> functionObject = std::make_shared<FunctionObject>(nameToken->Value, Program->FindType(typeToken->Value), parameters, Program->ActiveScopes.front());
 
-        Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<FunctionDeclarationExpression>(functionObject, nameToken));
+        Program->ActiveScopes.front()->Expressions.push_back(std::make_shared<FunctionDeclarationExpression>(functionObject, nameToken));
 
         Program->Scopes.push_back(functionObject->FunctionScope);
         Program->ActiveScopes.push_front(functionObject->FunctionScope);
@@ -361,6 +361,18 @@ void VKParser::parse()
 
         expectToken(TokenType::OpenScope);
 
+        return;
+    }
+    if (token->Type == TokenType::IfStatement)
+    {
+        expectToken(TokenType::OpenExpressionScope);
+        std::shared_ptr<ValueExpression> condition = parseValueExpression(1, TokenType::CloseExpressionScope);
+        expectToken(TokenType::CloseExpressionScope);
+        expectToken(TokenType::OpenScope);
+        std::shared_ptr<IfStatementExpression> expression = std::make_shared<IfStatementExpression>(condition, Program->ActiveScopes.front(), token);
+        std::shared_ptr<Scope> scope = expression->InnerScope;
+        Program->ActiveScopes.front()->Expressions.push_back(expression);
+        Program->ActiveScopes.push_front(scope);
         return;
     }
 

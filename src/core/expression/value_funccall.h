@@ -9,7 +9,7 @@ class FunctionCallValueExpression : public ValueExpression
 {
 public:
     std::string FunctionName;
-    std::vector<std::unique_ptr<ValueExpression>> Arguments;
+    std::vector<std::shared_ptr<ValueExpression>> Arguments;
 
 
     std::shared_ptr<FunctionObject> ResolvedFunction;

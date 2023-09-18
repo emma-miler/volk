@@ -11,15 +11,15 @@ class AssignmentExpression : public Expression
 {
 public:
     std::string Name;
-    std::unique_ptr<ValueExpression> Value;
+    std::shared_ptr<ValueExpression> Value;
 
     std::shared_ptr<Variable> ResolvedVariable;
 
 public:
-    AssignmentExpression(std::string name, std::unique_ptr<ValueExpression> value, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::Assignment, token)
+    AssignmentExpression(std::string name, std::shared_ptr<ValueExpression> value, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::Assignment, token)
     {
         Name = name;
-        Value = std::move(value);
+        Value = value;
     }
 public:
     std::string ToString()

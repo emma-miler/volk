@@ -18,12 +18,12 @@ void ReturnExpression::ToIR(ExpressionStack& stack)
     {
         IRVariableDescriptor variable = stack.ActiveVariable;
         stack.AdvanceActive(0);
-        stack.Expressions.push_back(fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, ReturnType->LLVMType, variable.Get()));
-        stack.Expressions.push_back(fmt::format("ret {} %{}",ReturnType->LLVMType, stack.ActiveVariable.Name));
+        stack.Operation(fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, ReturnType->LLVMType, variable.Get()));
+        stack.Operation(fmt::format("ret {} %{}",ReturnType->LLVMType, stack.ActiveVariable.Name));
     }
     else
     {
-        stack.Expressions.push_back(fmt::format("ret {} %{}", ReturnType->LLVMType, stack.ActiveVariable.Name));
+        stack.Operation(fmt::format("ret {} %{}", ReturnType->LLVMType, stack.ActiveVariable.Name));
     }
     stack.Comment("END RETURN\n");
 }

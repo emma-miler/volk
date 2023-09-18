@@ -24,12 +24,12 @@ void FunctionObject::ToIR(ExpressionStack& stack)
     }
     definitionString = definitionString.substr(0, definitionString.length() - 2);
     definitionString += ") #0\n{";
-    stack.Expressions.push_back(definitionString);
+    stack.Operation(definitionString);
     ExpressionStack innerStack;
     for (auto&& param : Parameters)
     {
-        innerStack.Expressions.push_back(fmt::format("%{} = alloca {}, align 4", param->Name, param->Type->LLVMType));
-        innerStack.Expressions.push_back(fmt::format("store {} %param.{}, ptr %{}, align 4", param->Type->LLVMType, param->Name, param->Name));
+        innerStack.Operation(fmt::format("%{} = alloca {}, align 4", param->Name, param->Type->LLVMType));
+        innerStack.Operation(fmt::format("store {} %param.{}, ptr %{}, align 4", param->Type->LLVMType, param->Name, param->Name));
     }
     for (auto&& expr : FunctionScope->Expressions)
     {
@@ -37,9 +37,9 @@ void FunctionObject::ToIR(ExpressionStack& stack)
     }
     for (std::string& line : innerStack.Expressions)
     {
-        stack.Expressions.push_back("\t" + line);
+        stack.Operation("\t" + line);
     }
-    stack.Expressions.push_back("}");
+    stack.Operation("}");
 
     for (auto&& subFunc : FunctionScope->Functions)
     {

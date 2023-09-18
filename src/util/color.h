@@ -109,6 +109,7 @@ namespace Volk::Colors
 	extern Color Lexer;
 	extern Color Parser;
 	extern Color TypeSystem;
+	extern Color Output;
 
 	extern Color TRAC;
 	extern Color DEBG;

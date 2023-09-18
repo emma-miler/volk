@@ -30,6 +30,7 @@ enum class ExpressionType
     Value,
     BinaryOperator,
     ReturnExpr,
+    IfStatement,
 };
 
 
@@ -91,7 +92,17 @@ public:
     void Comment(std::string comment)
     {
         if (!FF_LLVM_VERBOSE) return;
-        Expressions.push_back("; " + comment);
+        Expressions.push_back("\t; " + comment);
+    }
+
+    void Operation(std::string operation)
+    {
+        Expressions.push_back("\t" + operation);
+    }
+
+    void Label(std::string label)
+    {
+        Expressions.push_back(label);
     }
 };
 

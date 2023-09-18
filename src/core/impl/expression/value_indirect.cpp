@@ -30,7 +30,7 @@ void IndirectValueExpression::ToIR(ExpressionStack& stack)
         Token->Indicate();
         throw type_error("");
     }
-    stack.Expressions.push_back(fmt::format("%{} = load {}, ptr %{}", variableName, ResolvedVariable->Type->LLVMType, Value));
+    stack.Operation(fmt::format("%{} = load {}, ptr %{}", variableName, ResolvedVariable->Type->LLVMType, Value));
     stack.ActiveVariable.Type = ResolvedVariable->Type->LLVMType;
     stack.Comment("END INDIRECT VALUE");
 }

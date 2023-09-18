@@ -6,13 +6,13 @@ namespace Volk
 class ValueCastExpression : public ValueExpression
 {
 public:
-    std::unique_ptr<ValueExpression> Value;
+    std::shared_ptr<ValueExpression> Value;
 	std::function<void(ExpressionStack&)> CastFunc;
 
 public:
-    ValueCastExpression(std::unique_ptr<ValueExpression> expression, std::shared_ptr<VKType> targetType, std::function<void(ExpressionStack&)> func) : ValueExpression(ValueExpressionType::ValueCast, OperatorArity::Unary, expression->Token)
+    ValueCastExpression(std::shared_ptr<ValueExpression> expression, std::shared_ptr<VKType> targetType, std::function<void(ExpressionStack&)> func) : ValueExpression(ValueExpressionType::ValueCast, OperatorArity::Unary, expression->Token)
     {
-        Value = std::move(expression);
+        Value = expression;
 		ResolvedType = targetType;
 		CastFunc = func;
     }

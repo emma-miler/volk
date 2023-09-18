@@ -16,11 +16,11 @@ void UnaryValueExpression::ToIR(ExpressionStack& stack)
     if (stack.ActiveVariable.IsPointer)
     {
         stack.AdvanceActive(0);
-        stack.Expressions.push_back(fmt::format("%{} = load i64, ptr %{}", stack.ActiveVariable.Name, valueVariableName));
+        stack.Operation(fmt::format("%{} = load i64, ptr %{}", stack.ActiveVariable.Name, valueVariableName));
         valueVariableName = stack.ActiveVariable.Name;
     }
     stack.AdvanceActive(0);
-    stack.Expressions.push_back(fmt::format("%{} = {} nsw i64 0, %{}", stack.ActiveVariable.Name, Operator == OperatorType::OperatorMinus ? "sub" : "add", valueVariableName));
+    stack.Operation(fmt::format("%{} = {} nsw i64 0, %{}", stack.ActiveVariable.Name, Operator == OperatorType::OperatorMinus ? "sub" : "add", valueVariableName));
     stack.Comment("END UNARY OPERATOR\n");
 }
 

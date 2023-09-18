@@ -15,7 +15,7 @@ std::string DeclarationExpression::ToHumanReadableString(std::string depthPrefix
 void DeclarationExpression::ToIR(ExpressionStack& stack)
 {
     stack.Comment("START DECLARATION");
-    stack.Expressions.push_back(fmt::format("%{} = alloca {}", Name, ResolvedType->LLVMType));
+    stack.Operation(fmt::format("%{} = alloca {}", Name, ResolvedType->LLVMType));
     stack.Comment("END DECLARATION\n");
 }
 

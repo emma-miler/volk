@@ -18,7 +18,7 @@ namespace Volk
 class Scope : public Object
 {
 public:
-    std::vector<std::unique_ptr<Expression>> Expressions;
+    std::vector<std::shared_ptr<Expression>> Expressions;
     std::map<std::string, std::shared_ptr<VKType>> Types;
     std::map<std::string, std::shared_ptr<Variable>> Variables;
     std::map<std::string, std::shared_ptr<FunctionObject>> Functions;

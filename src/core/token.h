@@ -28,6 +28,7 @@ enum class TokenType
     CloseScope,
     CommaSeperator,
     StringConstant,
+    IfStatement,
 };
 
 static std::map<TokenType, std::string> TokenTypeNames =
@@ -50,6 +51,7 @@ static std::map<TokenType, std::string> TokenTypeNames =
     {TokenType::CloseScope, "CloseScope"},
     {TokenType::CommaSeperator, "CommaSeperator"},
     {TokenType::StringConstant, "StringConstant"},
+    {TokenType::IfStatement, "IfStatement"},
 };
 
 

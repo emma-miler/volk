@@ -36,14 +36,14 @@ void BinaryValueExpression::ToIR(ExpressionStack& stack)
         if (left.IsPointer)
         {
             stack.AdvanceActive(0);
-            stack.Expressions.push_back(fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, Left->ResolvedType->LLVMType, left.Get()));
+            stack.Operation(fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, Left->ResolvedType->LLVMType, left.Get()));
             left.Name = stack.ActiveVariable.Name;
             left.IsPointer = 0;
         }
         if (right.IsPointer)
         {
             stack.AdvanceActive(0);
-            stack.Expressions.push_back(fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, Left->ResolvedType->LLVMType, right.Get()));
+            stack.Operation(fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, Left->ResolvedType->LLVMType, right.Get()));
             right.Name = stack.ActiveVariable.Name;
             right.IsPointer = 0;
         }
@@ -54,7 +54,7 @@ void BinaryValueExpression::ToIR(ExpressionStack& stack)
     stack.AdvanceActive(0);
 	stack.ActiveVariable.Type = Left->ResolvedType->LLVMType;
     stack.Comment("START BINARY OPERATOR");
-    stack.Expressions.push_back(fmt::format("%{} = {}{} {} {}, {}", 	stack.ActiveVariable.Name, 
+    stack.Operation(fmt::format("%{} = {}{} {} {}, {}", 	stack.ActiveVariable.Name,
 																	Left->ResolvedType == BUILTIN_FLOAT || Left->ResolvedType == BUILTIN_DOUBLE ? "f" : Operator == OperatorType::OperatorDivide ? "s" : "",
 																	OperatorInstructionLookup[Operator],
 																	Left->ResolvedType->LLVMType,
