@@ -24,7 +24,7 @@ void FunctionObject::ToIR(ExpressionStack& stack)
     }
     definitionString = definitionString.substr(0, definitionString.length() - 2);
     definitionString += ") #0\n{";
-    stack.Operation(definitionString);
+    stack.Label(definitionString);
     ExpressionStack innerStack;
     for (auto&& param : Parameters)
     {
@@ -37,9 +37,9 @@ void FunctionObject::ToIR(ExpressionStack& stack)
     }
     for (std::string& line : innerStack.Expressions)
     {
-        stack.Operation("\t" + line);
+        stack.Label(line);
     }
-    stack.Operation("}");
+    stack.Label("}");
 
     for (auto&& subFunc : FunctionScope->Functions)
     {

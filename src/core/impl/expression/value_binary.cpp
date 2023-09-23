@@ -6,16 +6,15 @@ namespace Volk
 {
 std::string BinaryValueExpression::ToHumanReadableString(std::string depthPrefix)
 {
-    std::string newline = fmt::format("\n{}\t", depthPrefix);
-    std::string out = "BinaryOperatorValueExpression(";
+    std::string newline = fmt::format("\n{}{}", depthPrefix, INDENT);
+    std::string out = "BinaryOperatorValueExpression";
     if (ResolvedType != nullptr)
     {
-        out += newline + fmt::format("type='{}'", ResolvedType->Name);
+        out += newline + fmt::format("type={}", ResolvedType->Name);
     }
-    out += newline + fmt::format("op='{}'", OperatorTypeNames[Operator]);
-    out += newline + fmt::format("left='{}'", Left->ToHumanReadableString(depthPrefix + "\t"));
-    out += newline + fmt::format("right='{}'", Right->ToHumanReadableString(depthPrefix + "\t"));
-    out += "\n" + depthPrefix + ")";
+    out += newline + fmt::format("op={}", OperatorTypeNames[Operator]);
+    out += newline + fmt::format("left={}", Left->ToHumanReadableString(depthPrefix + INDENT));
+    out += newline + fmt::format("right={}", Right->ToHumanReadableString(depthPrefix + INDENT));
     return  out;
 }
 
@@ -54,12 +53,19 @@ void BinaryValueExpression::ToIR(ExpressionStack& stack)
     stack.AdvanceActive(0);
 	stack.ActiveVariable.Type = Left->ResolvedType->LLVMType;
     stack.Comment("START BINARY OPERATOR");
-    stack.Operation(fmt::format("%{} = {}{} {} {}, {}", 	stack.ActiveVariable.Name,
-																	Left->ResolvedType == BUILTIN_FLOAT || Left->ResolvedType == BUILTIN_DOUBLE ? "f" : Operator == OperatorType::OperatorDivide ? "s" : "",
-																	OperatorInstructionLookup[Operator],
-																	Left->ResolvedType->LLVMType,
-																	left.GetOnlyName(),
-																	right.GetOnlyName()));
+    if (IsComparator)
+    {
+        CompareFunction(stack, Operator, left, right);
+    }
+    else
+    {
+        stack.Operation(fmt::format("%{} = {}{} {} {}, {}", stack.ActiveVariable.Name,
+                                                            Left->ResolvedType == BUILTIN_FLOAT || Left->ResolvedType == BUILTIN_DOUBLE ? "f" : Operator == OperatorType::OperatorDivide ? "s" : "",
+                                                            OperatorInstructionLookup[Operator],
+                                                            Left->ResolvedType->LLVMType,
+                                                            left.GetOnlyName(),
+                                                            right.GetOnlyName()));
+    }
     stack.Comment("END BINARY OPERATOR\n");
 }
 
@@ -123,5 +129,16 @@ void BinaryValueExpression::TypeCheck(Scope* scope)
     }
     // TODO: actually do this properly
     ResolvedType = Left->ResolvedType;
+    if (IsComparator)
+    {
+        ResolvedType = BUILTIN_BOOL;
+        CompareFunction = GetComparisonFunction(Left->ResolvedType);
+        if (CompareFunction == nullptr)
+        {
+            Log::TYPESYS->error("No comparison function for type '{}', between types '{}' and '{}'", Left->ResolvedType->Name, Left->ResolvedType->Name, Right->ResolvedType->Name);
+            Token->Indicate();
+            throw type_error("");
+        }
+    }
 }
 }

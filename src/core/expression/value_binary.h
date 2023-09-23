@@ -1,5 +1,6 @@
 #pragma once
 #include "../expression_base.h"
+#include "../token/operator.h"
 
 namespace Volk
 {
@@ -9,13 +10,16 @@ public:
     std::shared_ptr<ValueExpression> Left;
     std::shared_ptr<ValueExpression> Right;
     OperatorType Operator;
+    bool IsComparator;
+    ComparisonFunction CompareFunction;
 
 public:
-    BinaryValueExpression(OperatorType op, std::shared_ptr<ValueExpression> left, std::shared_ptr<ValueExpression> right, std::shared_ptr<Volk::Token> token) : ValueExpression(ValueExpressionType::Binary, OperatorArity::Binary, token)
+    BinaryValueExpression(OperatorType op, std::shared_ptr<ValueExpression> left, std::shared_ptr<ValueExpression> right, std::shared_ptr<OperatorToken> token) : ValueExpression(ValueExpressionType::Binary, OperatorArity::Binary, token)
     {
         Left = left;
         Right = right;
         Operator = op;
+        IsComparator = token->IsComparator;
     }
 
     std::string ToString()

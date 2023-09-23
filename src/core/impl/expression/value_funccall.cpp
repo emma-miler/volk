@@ -5,15 +5,15 @@ namespace Volk
 
 std::string FunctionCallValueExpression::ToHumanReadableString(std::string depthPrefix)
 {
-    std::string res = fmt::format("FunctionCallValueExpression(\n{}\tname='{}'\n{}\targs=[", depthPrefix, FunctionName, depthPrefix);
-
+    std::string newline = fmt::format("\n{}{}", depthPrefix, INDENT);
+    std::string out = fmt::format("FunctionCallValueExpression");
+    out += newline + fmt::format("name={}", FunctionName);
+    out += newline + "args=";
     for (auto&& arg : Arguments)
     {
-        res += fmt::format("\n{}\t\t{},", depthPrefix, arg->ToHumanReadableString(depthPrefix + "\t\t"));
+        out += newline + INDENT + arg->ToHumanReadableString(depthPrefix + INDENT + INDENT);
     }
-
-    res += fmt::format("\n{}\t]\n{})", depthPrefix, depthPrefix);
-    return res;
+    return out;
 }
 
 void FunctionCallValueExpression::ToIR(ExpressionStack& stack)

@@ -4,11 +4,10 @@ namespace Volk
 {
 std::string DeclarationExpression::ToHumanReadableString(std::string depthPrefix)
 {
-    std::string newline = fmt::format("\n{}\t", depthPrefix);
-    std::string out = "DeclarationExpression(";
-    out += newline + fmt::format("type='{}'", Typename);
-    out += newline + fmt::format("value='{}'", Name);
-    out += "\n" + depthPrefix + ")";
+    std::string newline = fmt::format("\n{}{}", depthPrefix, INDENT);
+    std::string out = "DeclarationExpression";
+    out += newline + fmt::format("type={}", Typename);
+    out += newline + fmt::format("value={}", Name);
     return  out;
 }
 

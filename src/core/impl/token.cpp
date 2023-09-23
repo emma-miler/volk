@@ -17,5 +17,7 @@ void Token::Indicate()
     }
     std::string tokenIndicator = fmt::format("{:^>{}}", ' ', Position.Length + 1);
     Log::PARSER->info(space + tokenIndicator);
+    // +1 because source lines are counted from 1
+    Log::PARSER->info("Line: {}, Offset {}", Position.LineIndex + 1, Position.LineOffset);
 }
 }

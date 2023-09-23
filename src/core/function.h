@@ -13,6 +13,7 @@ namespace Volk
 #include "scope.h"
 #include "variable.h"
 #include "expression_base.h"
+#include "../util/options.h"
 
 namespace Volk
 {
@@ -42,13 +43,12 @@ public:
 
     std::string ToHumanReadable()
     {
-        std::string value = fmt::format("\nFunction {} {}(\nargs=[", Type->Name, Name);
+        std::string value = fmt::format("\nfunction {} {}(\nargs=", ReturnType->Name, Name);
         for (auto&& param : Parameters)
         {
-            value += fmt::format("\n\t{} {}, ", param->Type->Name, param->Name);
+            value += fmt::format("\n{}{} {}, ", INDENT, param->Type->Name, param->Name);
         }
         value = value.substr(0, value.length() - 2);
-        value += "\n)";
         return value;
     }
 

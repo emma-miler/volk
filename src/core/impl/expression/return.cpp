@@ -5,7 +5,10 @@ namespace Volk
 
 std::string ReturnExpression::ToHumanReadableString(std::string depthPrefix)
 {
-        return fmt::format("ReturnExpression(\n{}\tvalue={}\n{})", depthPrefix, Value->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
+    std::string newline = fmt::format("\n{}{}", depthPrefix, INDENT);
+    std::string out = "ReturnExpression";
+    out += newline + fmt::format("value={}", Value->ToHumanReadableString(depthPrefix + INDENT));
+    return out;
 }
 
 void ReturnExpression::ToIR(ExpressionStack& stack)

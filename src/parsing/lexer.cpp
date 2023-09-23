@@ -145,15 +145,15 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     /// ==========
     else if (c == '(')
     {
-        Log::LEXER->trace("Read ExprScopeOpen");
+        Log::LEXER->trace("Read OpenParenthesis");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::OpenExpressionScope, data.substr(0, totalRead), currentPosition(totalRead, program)));
+        tokens.push_back(std::make_shared<Token>(TokenType::OpenParenthesis, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
     else if (c == ')')
     {
-        Log::LEXER->trace("Read ExprScopeClose");
+        Log::LEXER->trace("Read CloseParenthesis");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::CloseExpressionScope, data.substr(0, totalRead), currentPosition(totalRead, program)));
+        tokens.push_back(std::make_shared<Token>(TokenType::CloseParenthesis, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -161,15 +161,38 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     /// ==========
     else if (c == '{')
     {
-        Log::LEXER->trace("Read ScopeOpen");
+        Log::LEXER->trace("Read OpenCurlyBrace");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::OpenScope, data.substr(0, totalRead), currentPosition(totalRead, program)));
+        tokens.push_back(std::make_shared<Token>(TokenType::OpenCurlyBrace, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
     else if (c == '}')
     {
-        Log::LEXER->trace("Read ScopeClose");
+        Log::LEXER->trace("Read CloseCurlyBrace");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::CloseScope, data.substr(0, totalRead), currentPosition(totalRead, program)));
+        tokens.push_back(std::make_shared<Token>(TokenType::CloseCurlyBrace, data.substr(0, totalRead), currentPosition(totalRead, program)));
+    }
+
+    /// ==========
+    /// Scope
+    /// ==========
+    else if (c == '<')
+    {
+        Log::LEXER->trace("Read OpenAngledBrace");
+        totalRead++;
+        tokens.push_back(std::make_shared<Token>(TokenType::OpenAngleBrace, data.substr(0, totalRead), currentPosition(totalRead, program)));
+    }
+    else if (c == '>')
+    {
+        Log::LEXER->trace("Read CloseAngledBrace");
+        totalRead++;
+        tokens.push_back(std::make_shared<Token>(TokenType::CloseAngleBrace, data.substr(0, totalRead), currentPosition(totalRead, program)));
+    }
+
+    else if (c == '!')
+    {
+        Log::LEXER->trace("Read ExclamationMark");
+        totalRead++;
+        tokens.push_back(std::make_shared<Token>(TokenType::ExclamationMark, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -215,7 +238,7 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read Assign");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::Assignment, data.substr(0, totalRead), currentPosition(totalRead, program)));
+        tokens.push_back(std::make_shared<Token>(TokenType::EqualSign, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -242,7 +265,7 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     {
         program.printCurrentTokens();
         Log::LEXER->error("{}", program.Source->Lines[lineIndex]);
-        Log::LEXER->error("{: >{}}", '^', charactersReadThisLine + 1);
+        Log::LEXER->error("{: >{}}", '^', charactersReadThisLine);
         Log::LEXER->error("Failed to parse character '{}' (0x{:0x}) Bailing", c, c);
         exit(1);
     }

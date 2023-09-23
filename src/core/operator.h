@@ -3,6 +3,11 @@
 #include <string>
 #include <map>
 #include <array>
+#include <functional>
+
+#include "irvariabledescriptor.h"
+#include "expression_base.h"
+#include "type.h"
 
 namespace Volk
 {
@@ -13,7 +18,13 @@ enum class OperatorType
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
-    OperatorDivide
+    OperatorDivide,
+    OperatorEq,
+    OperatorNeq,
+    OperatorGt,
+    OperatorGte,
+    OperatorLt,
+    OperatorLte
 };
 
 constexpr std::array<Volk::OperatorType, 2> UnaryOperators =
@@ -30,6 +41,12 @@ static std::map<OperatorType, std::string> OperatorTypeNames =
     {OperatorType::OperatorMinus, "OperatorMinus"},
     {OperatorType::OperatorMultiply, "OperatorMultiply"},
     {OperatorType::OperatorDivide, "OperatorDivide"},
+    {OperatorType::OperatorEq, "OperatorEQ"},
+    {OperatorType::OperatorNeq, "OperatorNEQ"},
+    {OperatorType::OperatorGt, "OperatorGT"},
+    {OperatorType::OperatorGte, "OperatorGTE"},
+    {OperatorType::OperatorLt, "OperatorLT"},
+    {OperatorType::OperatorLte, "OperatorLTE"},
 };
 
 static std::map<std::string, OperatorType> OperatorTypeLookup =
@@ -48,6 +65,16 @@ static std::map<OperatorType, std::string> OperatorInstructionLookup =
     {OperatorType::OperatorMinus, "sub"},
     {OperatorType::OperatorMultiply, "mul"},
     {OperatorType::OperatorDivide, "div"},
+    {OperatorType::OperatorEq, "eq"},
+    {OperatorType::OperatorNeq, "neq"},
+    {OperatorType::OperatorGt, "gt"},
+    {OperatorType::OperatorGte, "ge"},
+    {OperatorType::OperatorLt, "lt"},
+    {OperatorType::OperatorLte, "le"},
+
 };
+
+typedef std::function<void(ExpressionStack&, OperatorType, IRVariableDescriptor, IRVariableDescriptor)> ComparisonFunction;
+ComparisonFunction GetComparisonFunction(std::shared_ptr<VKType> type);
 
 }

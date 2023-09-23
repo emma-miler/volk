@@ -4,14 +4,13 @@ namespace Volk
 {
 std::string ImmediateValueExpression::ToHumanReadableString(std::string depthPrefix)
 {
-    std::string newline = fmt::format("\n{}\t", depthPrefix);
-    std::string out = "ImmediateValueExpression(";
+    std::string newline = fmt::format("\n{}{}", depthPrefix, INDENT);
+    std::string out = "ImmediateValueExpression";
     if (ResolvedType != nullptr)
     {
-        out += newline + fmt::format("type='{}'", ResolvedType->Name);
+        out += newline + fmt::format("type={}", ResolvedType->Name);
     }
-    out += newline + fmt::format("value='{}'", Value);
-    out += "\n" + depthPrefix + ")";
+    out += newline + fmt::format("value={}", Value);
     return  out;
 }
 

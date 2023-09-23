@@ -6,6 +6,7 @@
 #include "../util/string.h"
 #include "../core/token/string.h"
 #include "../core/token/operator.h"
+#include "../core/exceptions.h"
 
 #include <memory>
 #include <optional>
@@ -61,11 +62,11 @@ std::shared_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     /// ==========
     // TODO: need to check for function here
     // Maybe need to add a context variable to this function's arguments
-    if (Program->Tokens.front()->Type == TokenType::OpenExpressionScope)
+    if (Program->Tokens.front()->Type == TokenType::OpenParenthesis)
     {
-        expectToken(TokenType::OpenExpressionScope);
-        auto temp = parseValueExpression(depth + 1, TokenType::CloseExpressionScope);
-        expectToken(TokenType::CloseExpressionScope);
+        expectToken(TokenType::OpenParenthesis);
+        auto temp = parseValueExpression(depth + 1, TokenType::CloseParenthesis);
+        expectToken(TokenType::CloseParenthesis);
         return temp;
     }
 
@@ -87,6 +88,7 @@ std::shared_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
         opType = *unaryOperator;
 		isUnaryExpression = true;
     }
+
     std::shared_ptr<Token> token = Program->Tokens.front(); 
 	popToken();
     std::shared_ptr<ValueExpression> expr;
@@ -116,18 +118,18 @@ std::shared_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     else if (token->Type == TokenType::Name)
     {
         // Function call
-        if (Program->Tokens.front()->Type == TokenType::OpenExpressionScope)
+        if (Program->Tokens.front()->Type == TokenType::OpenParenthesis)
         {
             std::shared_ptr<FunctionCallValueExpression> func = std::make_shared<FunctionCallValueExpression>(token->Value, token);
             popToken();
             int i = 0;
-            if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
+            if (Program->Tokens.front()->Type == TokenType::CloseParenthesis)
             {
-                expectToken(TokenType::CloseExpressionScope);
+                expectToken(TokenType::CloseParenthesis);
             }
             else
             {
-                while (Program->Tokens.front()->Type != TokenType::CloseExpressionScope)
+                while (Program->Tokens.front()->Type != TokenType::CloseParenthesis)
                 {
                     func->Arguments.push_back(parseValueExpression(depth + 1, TokenType::CommaSeperator));
                     Log::PARSER->trace("func argument {}", i);
@@ -151,6 +153,7 @@ std::shared_ptr<ValueExpression> VKParser::ConsumeNullaryOrUnaryValueExpression(
     else
     {
         Log::PARSER->critical("Unexpected token {} in while parsing ConsumeNullaryOrUnaryValueExpression", token->ToString());
+        token->Indicate();
         throw parse_error("");
     }
 
@@ -184,16 +187,18 @@ std::shared_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
         // Otherwise, we look for a CloseExpressionScope token, since we must first close all
         // the open ExpressionScopes, aka every '(' must have a matching ')'
         if ((depth == 0 && Program->Tokens.front()->Type == TokenType::EndOfStatement) ||
-            (depth > 0 && Program->Tokens.front()->Type == TokenType::CloseExpressionScope) ||
+            (depth > 0 && Program->Tokens.front()->Type == TokenType::CloseParenthesis) ||
 			(Program->Tokens.front()->Type == endMarker))
         {
             break;
         }
+
+        TokenType frontType = Program->Tokens.front()->Type;
 		
 		
-		// If lats token was already an operator, it's likely that this operator token is a unary one
+		// If last token was already an operator, it's likely that this operator token is a unary one
 		// If it isnt, we error on that somewhere else
-        if (Program->Tokens.front()->Type == TokenType::Operator && !lastTokenWasOperator)
+        if (frontType == TokenType::Operator && !lastTokenWasOperator)
 		{
 			lastTokenWasOperator = true;
 			operatorToken = dynamic_pointer_cast<OperatorToken>(Program->Tokens.front()); popToken();
@@ -220,6 +225,80 @@ std::shared_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
 			}
 			continue;
 		}
+		else if (frontType == TokenType::EqualSign ||
+                 frontType == TokenType::CloseAngleBrace ||
+                 frontType == TokenType::OpenAngleBrace ||
+                 frontType == TokenType::ExclamationMark)
+        {
+            lastTokenWasOperator = true;
+            std::shared_ptr<OperatorToken> opToken = std::make_shared<OperatorToken>("+", Program->Tokens.front()->Position); popToken();
+            opToken->IsComparator = true;
+            if (frontType == TokenType::EqualSign)
+            {
+                std::shared_ptr<Token> frontToken = Program->Tokens.front();
+                if (Program->Tokens.front()->Type != TokenType::EqualSign)
+                {
+                    Log::PARSER->error("Cannot assign a value to a variable within a value expression");
+                    Log::PARSER->error("Did you mean to write `==` instead of `=`?");
+                    frontToken->Indicate();
+                    throw parse_error("");
+                }
+                else
+                {
+                    Program->Tokens.pop_front();
+                    opToken->OpType = OperatorType::OperatorEq;
+                    opToken->Position.Length++;
+                }
+            }
+            else if (frontType == TokenType::ExclamationMark)
+            {
+                std::shared_ptr<Token> frontToken = Program->Tokens.front();
+                if (Program->Tokens.front()->Type != TokenType::EqualSign)
+                {
+                    Log::PARSER->error("Cannot use postfix `!` on a value");
+                    Log::PARSER->error("Did you mean to write `!=` instead of `!`?");
+                    frontToken->Indicate();
+                    throw parse_error("");
+                }
+                else
+                {
+                    Program->Tokens.pop_front();
+                    opToken->OpType = OperatorType::OperatorNeq;
+                    opToken->Position.Length++;
+                }
+            }
+            else if (frontType == TokenType::CloseAngleBrace)
+            {
+                if (Program->Tokens.front()->Type == TokenType::EqualSign)
+                {
+                    Program->Tokens.pop_front();
+                    opToken->OpType = OperatorType::OperatorGte;
+                    opToken->Position.Length++;
+                }
+                else
+                {
+                    opToken->OpType = OperatorType::OperatorGt;
+                }
+            }
+            else if (frontType == TokenType::OpenAngleBrace)
+            {
+                if (Program->Tokens.front()->Type == TokenType::EqualSign)
+                {
+                    Program->Tokens.pop_front();
+                    opToken->OpType = OperatorType::OperatorLte;
+                    opToken->Position.Length++;
+                }
+                else
+                {
+                    opToken->OpType = OperatorType::OperatorLt;
+                }
+            }
+
+            // Comparator operators have the highest precedence
+            // So we always just push
+            operators.push_back(opToken);
+            continue;
+        }
 		else
 		{
 			expressions.push_back(ConsumeNullaryOrUnaryValueExpression(depth));
@@ -256,7 +335,7 @@ void VKParser::parse()
     {
         return;
     }
-    if (token->Type == TokenType::CloseScope)
+    if (token->Type == TokenType::CloseCurlyBrace)
     {
         if (Program->ActiveScopes.size() == 1)
         {
@@ -289,7 +368,7 @@ void VKParser::parse()
             Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<DeclarationExpression>(token->Value, nameToken->Value, token));
             Program->ActiveScopes.front()->Variables[nameToken->Value] = std::make_shared<Variable>(nameToken->Value, Program->FindType(token->Value));
             nextType = Program->Tokens.front()->Type;
-            if (nextType != TokenType::Assignment)
+            if (nextType != TokenType::EqualSign)
                 return;
             // Set up for following assignment expression
             token = std::move(nameToken);
@@ -298,9 +377,9 @@ void VKParser::parse()
         /// ==========
         /// Assignment
         /// ==========
-        if (nextType == TokenType::Assignment)
+        if (nextType == TokenType::EqualSign)
         {
-            std::shared_ptr<Token> operatorToken = expectToken(TokenType::Assignment);
+            std::shared_ptr<Token> operatorToken = expectToken(TokenType::EqualSign);
             Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0, TokenType::EndOfStatement), operatorToken));
             return;
         }
@@ -308,10 +387,10 @@ void VKParser::parse()
         /// ==========
         /// Function Call
         /// ==========
-        if (nextType == TokenType::OpenExpressionScope)
+        if (nextType == TokenType::OpenParenthesis)
         {
             Program->Tokens.push_front(std::move(token));
-            Program->ActiveScopes.front()->Expressions.push_back(parseValueExpression(0, TokenType::CloseExpressionScope));
+            Program->ActiveScopes.front()->Expressions.push_back(parseValueExpression(0, TokenType::CloseParenthesis));
             return;
         }
 
@@ -329,11 +408,11 @@ void VKParser::parse()
     {
         std::shared_ptr<Token> typeToken = expectToken(TokenType::Name);
         std::shared_ptr<Token> nameToken = expectToken(TokenType::Name);
-        expectToken(TokenType::OpenExpressionScope);
+        expectToken(TokenType::OpenParenthesis);
         std::vector<std::shared_ptr<FunctionParameter>> parameters;
         while (1)
         {
-            if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
+            if (Program->Tokens.front()->Type == TokenType::CloseParenthesis)
             {
                 Program->Tokens.pop_front();
                 break;
@@ -341,7 +420,7 @@ void VKParser::parse()
             std::shared_ptr<Token> paramTypeToken = expectToken(TokenType::Name);
             std::shared_ptr<Token> paramNameToken = expectToken(TokenType::Name);
             parameters.push_back(std::make_shared<FunctionParameter>(paramNameToken->Value, Program->FindType(paramTypeToken->Value)));
-            if (Program->Tokens.front()->Type == TokenType::CloseExpressionScope)
+            if (Program->Tokens.front()->Type == TokenType::CloseParenthesis)
             {
                 Program->Tokens.pop_front();
                 break;
@@ -359,19 +438,40 @@ void VKParser::parse()
         Program->DefaultScope->Functions[functionObject->Name] = functionObject;
         Program->DefaultScope->Variables[functionObject->Name] = functionObject;
 
-        expectToken(TokenType::OpenScope);
+        expectToken(TokenType::OpenCurlyBrace);
 
         return;
     }
     if (token->Type == TokenType::IfStatement)
     {
-        expectToken(TokenType::OpenExpressionScope);
-        std::shared_ptr<ValueExpression> condition = parseValueExpression(1, TokenType::CloseExpressionScope);
-        expectToken(TokenType::CloseExpressionScope);
-        expectToken(TokenType::OpenScope);
+        expectToken(TokenType::OpenParenthesis);
+        std::shared_ptr<ValueExpression> condition = parseValueExpression(1, TokenType::CloseParenthesis);
+        expectToken(TokenType::CloseParenthesis);
+        expectToken(TokenType::OpenCurlyBrace);
         std::shared_ptr<IfStatementExpression> expression = std::make_shared<IfStatementExpression>(condition, Program->ActiveScopes.front(), token);
-        std::shared_ptr<Scope> scope = expression->InnerScope;
+        std::shared_ptr<Scope> scope = expression->ScopeIfTrue;
         Program->ActiveScopes.front()->Expressions.push_back(expression);
+        Program->ActiveScopes.push_front(scope);
+        return;
+    }
+    if (token->Type == TokenType::ElseStatement)
+    {
+        if (Program->ActiveScopes.front()->Expressions.back()->Type != ExpressionType::IfStatement)
+        {
+            Log::PARSER->error("Cannot start an else-statement without a preceding if-statement");
+            token->Indicate();
+            throw parse_error("");
+        }
+        std::shared_ptr<IfStatementExpression> expr = dynamic_pointer_cast<IfStatementExpression>(Program->ActiveScopes.front()->Expressions.back());
+        if (expr->HasElseClauseDefined)
+        {
+            Log::PARSER->error("Preceding if-statement already has an else clause defined");
+            token->Indicate();
+            throw parse_error("");
+        }
+        expr->HasElseClauseDefined = true;
+        expectToken(TokenType::OpenCurlyBrace);
+        std::shared_ptr<Scope> scope = expr->ScopeIfFalse;
         Program->ActiveScopes.push_front(scope);
         return;
     }

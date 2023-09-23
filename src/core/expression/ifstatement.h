@@ -8,14 +8,17 @@ class IfStatementExpression : public Expression
 {
 public:
     std::shared_ptr<ValueExpression> Condition;
-    std::shared_ptr<Scope> InnerScope;
+    std::shared_ptr<Scope> ScopeIfTrue;
+    std::shared_ptr<Scope> ScopeIfFalse;
+    bool HasElseClauseDefined;
 
 public:
     IfStatementExpression(std::shared_ptr<ValueExpression> condition, std::shared_ptr<Scope> parentScope, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::IfStatement, token)
     {
         // TODO: check if return type matches return type of function
         Condition = condition;
-        InnerScope = std::make_shared<Scope>("test", parentScope, BUILTIN_VOID);
+        ScopeIfTrue = std::make_shared<Scope>("__impl_if_true", parentScope, parentScope->ReturnType);
+        ScopeIfFalse = std::make_shared<Scope>("__impl_if_false", parentScope, parentScope->ReturnType);
     }
 
   public:

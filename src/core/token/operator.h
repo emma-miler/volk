@@ -8,6 +8,7 @@ class OperatorToken : public Token
 {
 public:
     OperatorType OpType;
+    bool IsComparator;
 
 public:
     static std::shared_ptr<OperatorToken> Dummy()

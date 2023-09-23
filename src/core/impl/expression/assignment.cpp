@@ -6,15 +6,14 @@ namespace Volk
 {
 std::string AssignmentExpression::ToHumanReadableString(std::string depthPrefix)
 {
-    std::string newline = fmt::format("\n{}\t", depthPrefix);
-    std::string out = "AssignmentExpression(";
+    std::string newline = fmt::format("\n{}{}", depthPrefix, INDENT);
+    std::string out = "AssignmentExpression";
     if (ResolvedVariable != nullptr)
     {
-        out += newline + fmt::format("type='{}'", ResolvedVariable->Type->Name);
+        out += newline + fmt::format("type={}", ResolvedVariable->Type->Name);
     }
-    out += newline + fmt::format("name='{}'", Name);
-    out += newline + fmt::format("value='{}'", Value->ToHumanReadableString(depthPrefix + "\t"));
-    out += "\n" + depthPrefix + ")";
+    out += newline + fmt::format("name={}", Name);
+    out += newline + fmt::format("value={}", Value->ToHumanReadableString(depthPrefix + INDENT));
     return  out;
 }
 

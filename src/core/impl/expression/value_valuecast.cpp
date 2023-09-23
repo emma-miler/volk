@@ -4,14 +4,13 @@ namespace Volk
 {
 std::string ValueCastExpression::ToHumanReadableString(std::string depthPrefix)
 {
-	std::string newline = fmt::format("\n{}\t", depthPrefix);
-    std::string out = "ValueCastExpression(";
+	std::string newline = fmt::format("\n{}{}", depthPrefix, INDENT);
+    std::string out = "ValueCastExpression";
     if (ResolvedType != nullptr)
     {
-        out += newline + fmt::format("type='{}'", ResolvedType->Name);
+        out += newline + fmt::format("type={}", ResolvedType->Name);
     }
-    out += newline + fmt::format("value={}", Value->ToHumanReadableString(depthPrefix + "\t"));
-    out += "\n" + depthPrefix + ")";
+    out += newline + fmt::format("value={}", Value->ToHumanReadableString(depthPrefix + INDENT));
     return  out;
 }
 

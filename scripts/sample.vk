@@ -1,7 +1,13 @@
-bool test = true;
-printf("test\n");
-if (test)
+function int factorial(int level)
 {
-    printf("condition was true\n");
+    if (level == 1)
+    {
+        return 1;
+    }
+    else
+    {
+        return level * factorial(level - 1);
+    }
 }
+printf("%d\n", factorial(16));
 return 0;

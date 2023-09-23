@@ -1,4 +1,10 @@
 #pragma once
+
+namespace Volk
+{
+    class Token;
+}
+
 #include "../common.h"
 #include "exceptions.h"
 #include "../util/string.h"
@@ -17,18 +23,22 @@ enum class TokenType
     ImmediateFloatValue,
     ImmediateDoubleValue,
     ImmediateBoolValue,
-    Assignment,
+    EqualSign,
     Operator,
     Return,
     EndOfStatement,
-    OpenExpressionScope,
-    CloseExpressionScope,
+    OpenParenthesis,
+    CloseParenthesis,
+    OpenAngleBrace,
+    CloseAngleBrace,
     FunctionPrefix,
-    OpenScope,
-    CloseScope,
+    OpenCurlyBrace,
+    CloseCurlyBrace,
     CommaSeperator,
     StringConstant,
     IfStatement,
+    ElseStatement,
+    ExclamationMark,
 };
 
 static std::map<TokenType, std::string> TokenTypeNames =
@@ -40,18 +50,22 @@ static std::map<TokenType, std::string> TokenTypeNames =
     {TokenType::ImmediateFloatValue, "ImmediateFloatValue"},
     {TokenType::ImmediateDoubleValue, "ImmediateDoubleValue"},
     {TokenType::ImmediateBoolValue, "ImmediateBoolValue"},
-    {TokenType::Assignment, "Assignment"},
+    {TokenType::EqualSign, "EqualSign"},
     {TokenType::Operator, "Operator"},
     {TokenType::Return, "Return"},
     {TokenType::EndOfStatement, "EndOfStatement"},
-    {TokenType::OpenExpressionScope, "OpenExpressionScope"},
-    {TokenType::CloseExpressionScope, "CloseExpressionScope"},
+    {TokenType::OpenParenthesis, "OpenParenthesis"},
+    {TokenType::CloseParenthesis, "CloseParenthesis"},
+    {TokenType::OpenAngleBrace, "OpenAngledBrace"},
+    {TokenType::CloseAngleBrace, "CloseAngledBrace"},
     {TokenType::FunctionPrefix, "FunctionPrefix"},
-    {TokenType::OpenScope, "OpenScope"},
-    {TokenType::CloseScope, "CloseScope"},
+    {TokenType::OpenCurlyBrace, "OpenCurlyBrace"},
+    {TokenType::CloseCurlyBrace, "CloseCurlyBrace"},
     {TokenType::CommaSeperator, "CommaSeperator"},
     {TokenType::StringConstant, "StringConstant"},
     {TokenType::IfStatement, "IfStatement"},
+    {TokenType::ElseStatement, "ElseStatement"},
+    {TokenType::ExclamationMark, "ExclamationMark"},
 };
 
 

@@ -4,7 +4,11 @@ namespace Volk
 {
 std::string UnaryValueExpression::ToHumanReadableString(std::string depthPrefix)
 {
-        return fmt::format("UnaryValueExpression(\n{}\top={}, \n{}\tvalue={}\n{})", depthPrefix, OperatorTypeNames[Operator], depthPrefix, Value->ToHumanReadableString(depthPrefix + "\t"), depthPrefix);
+    std::string newline = fmt::format("\n{}{}", depthPrefix, INDENT);
+    std::string out = "UnaryValueExpression";
+    out += newline + fmt::format("op={}", OperatorTypeNames[Operator]);
+    out += newline + fmt::format("value={}", Value->ToHumanReadableString(depthPrefix + INDENT));
+    return out;
 }
 
 void UnaryValueExpression::ToIR(ExpressionStack& stack)
