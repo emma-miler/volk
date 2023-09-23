@@ -1,6 +1,8 @@
 0. fix operator checking (cant do bool/bool)
 ~~1. operator precedence~~
-2. phi nodes
+~~2. phi nodes~~
+while loops
+for loops
 other:
 include c# style initializer-list syntax for constructors AND function calls
 functions should be first class citizens, but this will need to be implemented later
