@@ -1,4 +1,4 @@
-#include "../../expression/ifstatement.h"
+#include "../../expression/if.h"
 
 namespace Volk
 {
@@ -8,16 +8,16 @@ std::string IfStatementExpression::ToHumanReadableString(std::string depthPrefix
     std::string newline = fmt::format("\n{}{}", depthPrefix, INDENT);
     std::string out = "IfStatementExpression";
     out += newline + fmt::format("condition={}", Condition->ToHumanReadableString(depthPrefix + INDENT + INDENT));
-    out += newline + fmt::format("if_true={}", Condition->ToHumanReadableString(depthPrefix + INDENT));
+    out += newline + "if_true=";
     for (auto&& statement : ScopeIfTrue->Expressions)
     {
-        out += newline + fmt::format("{}{},", depthPrefix, statement->ToHumanReadableString(depthPrefix + INDENT + INDENT));
+        out += newline + fmt::format("{}{},", depthPrefix + INDENT, statement->ToHumanReadableString(depthPrefix + INDENT + INDENT));
     }
     out = out.substr(0, out.size() - 1);
-    out += newline + fmt::format("if_false={}", Condition->ToHumanReadableString(depthPrefix + INDENT));
+    out += newline + "if_false={}";
     for (auto&& statement : ScopeIfFalse->Expressions)
     {
-        out += newline + fmt::format("{}{},", depthPrefix, statement->ToHumanReadableString(depthPrefix + INDENT + INDENT));
+        out += newline + fmt::format("{}{},", depthPrefix + INDENT, statement->ToHumanReadableString(depthPrefix + INDENT + INDENT));
     }
     out = out.substr(0, out.size() - 1);
     return  out;
@@ -33,33 +33,33 @@ void IfStatementExpression::ToIR(ExpressionStack& stack)
     if (stack.ActiveVariable.IsPointer)
     {
         stack.AdvanceActive(0);
-        stack.Operation(fmt::format("%{} = load i8, {}", stack.ActiveVariable.Name, conditionVar.Get()));
+        stack.Operation("%{} = load i1, {}", stack.ActiveVariable.Name, conditionVar.Get());
         conditionVar = stack.ActiveVariable;
     }
     if (stack.ActiveVariable.Type != "i1")
     {
         stack.AdvanceActive(0);
-        stack.Operation(fmt::format("{} = trunc {} to i1", stack.ActiveVariable.GetOnlyName(), conditionVar.Get()));
+        stack.Operation("{} = trunc {} to i1", stack.ActiveVariable.GetOnlyName(), conditionVar.Get());
     }
     std::string branchSuffix = stack.ActiveVariable.Name;
-    stack.Operation(fmt::format("br i1 {}, label %if{}.then, label %if{}.else", stack.ActiveVariable.GetOnlyName(), branchSuffix, branchSuffix));
-    stack.Label(fmt::format("if{}.then:", branchSuffix));
+    stack.Operation("br i1 {}, label %if{}.then, label %if{}.else", stack.ActiveVariable.GetOnlyName(), branchSuffix, branchSuffix);
+    stack.Label("if{}.then:", branchSuffix);
 
     for (auto&& statement : ScopeIfTrue->Expressions)
     {
         statement->ToIR(stack);
     }
-    stack.Operation(fmt::format("br label %if{}.end", branchSuffix));
+    stack.Operation("br label %if{}.end", branchSuffix);
     stack.AdvanceActive(0);
-    stack.Label(fmt::format("if{}.else:", branchSuffix));
+    stack.Label("if{}.else:", branchSuffix);
 
     for (auto&& statement : ScopeIfFalse->Expressions)
     {
         statement->ToIR(stack);
     }
-    stack.Operation(fmt::format("br label %if{}.end", branchSuffix));
+    stack.Operation("br label %if{}.end", branchSuffix);
 
-    stack.Label(fmt::format("if{}.end:", branchSuffix));
+    stack.Label("if{}.end:", branchSuffix);
     if (HasElseClauseDefined)
     {
         stack.Operation("unreachable");
@@ -67,22 +67,44 @@ void IfStatementExpression::ToIR(ExpressionStack& stack)
     stack.Comment("END RETURN\n");
 }
 
-std::vector<Expression*> IfStatementExpression::SubExpressions()
+std::vector<std::shared_ptr<Expression>> IfStatementExpression::SubExpressions()
 {
-    std::vector<Expression*> exprs = { Condition.get() };
+    std::vector<std::shared_ptr<Expression>> exprs = { Condition };
     for (auto&& expr : ScopeIfTrue->Expressions)
     {
-        exprs.push_back(expr.get());
+        exprs.push_back(expr);
     }
     for (auto&& expr : ScopeIfFalse->Expressions)
     {
-        exprs.push_back(expr.get());
+        exprs.push_back(expr);
     }
     return exprs;
 }
 
+void IfStatementExpression::ResolveNames(Scope* scope)
+{
+    Condition->ResolveNames(scope);
+    for (auto&& expr : ScopeIfTrue->Expressions)
+    {
+        expr->ResolveNames(scope);
+    }
+    for (auto&& expr : ScopeIfFalse->Expressions)
+    {
+        expr->ResolveNames(scope);
+    }
+}
+
 void IfStatementExpression::TypeCheck(Scope* scope)
 {
+    Condition->TypeCheck(scope);
+    for (auto&& expr : ScopeIfTrue->Expressions)
+    {
+        expr->TypeCheck(scope);
+    }
+    for (auto&& expr : ScopeIfFalse->Expressions)
+    {
+        expr->TypeCheck(scope);
+    }
     // TODO: check if return type of inner scopes matches func
     if (Condition->ResolvedType != BUILTIN_BOOL)
     {

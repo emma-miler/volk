@@ -35,14 +35,14 @@ void BinaryValueExpression::ToIR(ExpressionStack& stack)
         if (left.IsPointer)
         {
             stack.AdvanceActive(0);
-            stack.Operation(fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, Left->ResolvedType->LLVMType, left.Get()));
+            stack.Operation("%{} = load {}, {}", stack.ActiveVariable.Name, Left->ResolvedType->LLVMType, left.Get());
             left.Name = stack.ActiveVariable.Name;
             left.IsPointer = 0;
         }
         if (right.IsPointer)
         {
             stack.AdvanceActive(0);
-            stack.Operation(fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, Left->ResolvedType->LLVMType, right.Get()));
+            stack.Operation("%{} = load {}, {}", stack.ActiveVariable.Name, Left->ResolvedType->LLVMType, right.Get());
             right.Name = stack.ActiveVariable.Name;
             right.IsPointer = 0;
         }
@@ -59,23 +59,32 @@ void BinaryValueExpression::ToIR(ExpressionStack& stack)
     }
     else
     {
-        stack.Operation(fmt::format("%{} = {}{} {} {}, {}", stack.ActiveVariable.Name,
+        stack.Operation("%{} = {}{} {} {}, {}", stack.ActiveVariable.Name,
                                                             Left->ResolvedType == BUILTIN_FLOAT || Left->ResolvedType == BUILTIN_DOUBLE ? "f" : Operator == OperatorType::OperatorDivide ? "s" : "",
                                                             OperatorInstructionLookup[Operator],
                                                             Left->ResolvedType->LLVMType,
                                                             left.GetOnlyName(),
-                                                            right.GetOnlyName()));
+                                                            right.GetOnlyName());
     }
     stack.Comment("END BINARY OPERATOR\n");
 }
 
-std::vector<Expression*> BinaryValueExpression::SubExpressions()
+std::vector<std::shared_ptr<Expression>> BinaryValueExpression::SubExpressions()
 {
-    return std::vector<Expression*>{ Left.get(), Right.get() };
+    return std::vector<std::shared_ptr<Expression>>{ Left, Right };
+}
+
+void BinaryValueExpression::ResolveNames(Scope* scope)
+{
+    Left->ResolveNames(scope);
+    Right->ResolveNames(scope);
 }
 
 void BinaryValueExpression::TypeCheck(Scope* scope)
 {
+    Left->TypeCheck(scope);
+    Right->TypeCheck(scope);
+
 	if (Operator == OperatorType::OperatorDivide)
 	{
 		if (Left->ResolvedType == BUILTIN_INT)

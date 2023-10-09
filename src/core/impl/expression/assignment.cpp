@@ -23,7 +23,7 @@ void AssignmentExpression::ToIR(ExpressionStack& stack)
     {
         ImmediateValueExpression* value = static_cast<ImmediateValueExpression*>(Value.get());
         stack.Comment("START ASSIGNMENT");
-        stack.Operation(fmt::format("store {} {}, ptr %{}", value->ResolvedType->LLVMType, value->Value, Name));
+        stack.Operation("store {} {}, ptr %{}", value->ResolvedType->LLVMType, value->Value, Name);
     }
     else
     {
@@ -31,14 +31,14 @@ void AssignmentExpression::ToIR(ExpressionStack& stack)
         Value->ToIR(stack);
         IRVariableDescriptor value = stack.ActiveVariable;
         stack.Comment("START ASSIGNMENT");
-        stack.Operation(fmt::format("store {}, ptr %{}", value.Get(), Name));
+        stack.Operation("store {}, ptr %{}", value.Get(), Name);
     }
     stack.Comment("END ASSIGNMENT\n");
 }
 
-std::vector<Expression*> AssignmentExpression::SubExpressions()
+std::vector<std::shared_ptr<Expression>> AssignmentExpression::SubExpressions()
 {
-    return std::vector<Expression*>{ Value.get() };
+    return std::vector<std::shared_ptr<Expression>>{ Value };
 }
 
 void AssignmentExpression::ResolveNames(Scope* scope)
@@ -50,9 +50,11 @@ void AssignmentExpression::ResolveNames(Scope* scope)
         Token->Indicate();
         throw type_error("");
     }
+    Value->ResolveNames(scope);
 }
 void AssignmentExpression::TypeCheck(Scope* scope)
 {
+    Value->TypeCheck(scope);
     if (ResolvedVariable->Type != Value->ResolvedType)
     {
 		auto rule = Value->ResolvedType->ImplicitConverters.find(ResolvedVariable->Type);

@@ -29,7 +29,7 @@ public:
     virtual void ToIR(ExpressionStack& stack);
     void ResolveNames(Scope* scope);
 
-    std::vector<Expression*> SubExpressions();
+    std::vector<std::shared_ptr<Expression>> SubExpressions();
 
     void TypeCheck(Scope* scope);
 

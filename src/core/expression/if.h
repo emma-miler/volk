@@ -13,7 +13,7 @@ public:
     bool HasElseClauseDefined;
 
 public:
-    IfStatementExpression(std::shared_ptr<ValueExpression> condition, std::shared_ptr<Scope> parentScope, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::IfStatement, token)
+    IfStatementExpression(std::shared_ptr<ValueExpression> condition, std::shared_ptr<Scope> parentScope, std::shared_ptr<Volk::Token> token) : Expression(ExpressionType::If, token)
     {
         // TODO: check if return type matches return type of function
         Condition = condition;
@@ -30,8 +30,8 @@ public:
     std::string ToHumanReadableString(std::string depthPrefix);
     virtual void ToIR(ExpressionStack& stack);
 
-    std::vector<Expression*> SubExpressions();
-
+    std::vector<std::shared_ptr<Expression>> SubExpressions();
+    void ResolveNames(Scope* scope);
     virtual void TypeCheck(Scope* scope);
 };
 

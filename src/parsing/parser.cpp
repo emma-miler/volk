@@ -327,11 +327,11 @@ std::shared_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
 	return std::move(expressions.front());
 }
 
-void VKParser::parse()
+void VKParser::parse(TokenType endOfStatementToken)
 {
     std::shared_ptr<Token> token = Program->Tokens.front();
     popToken();
-    if (token->Type == TokenType::EndOfStatement)
+    if (token->Type == endOfStatementToken)
     {
         return;
     }
@@ -380,7 +380,7 @@ void VKParser::parse()
         if (nextType == TokenType::EqualSign)
         {
             std::shared_ptr<Token> operatorToken = expectToken(TokenType::EqualSign);
-            Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0, TokenType::EndOfStatement), operatorToken));
+            Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<AssignmentExpression>(token->Value, parseValueExpression(0, endOfStatementToken), operatorToken));
             return;
         }
 
@@ -397,8 +397,18 @@ void VKParser::parse()
     }
     if (token->Type == TokenType::Return)
     {
-        Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0, TokenType::EndOfStatement), Program->ActiveScopes.front()->ReturnType, token));
-        return;
+        if (Program->Tokens.front()->Type == TokenType::EndOfStatement)
+        {
+            popToken();
+            Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(nullptr, Program->ActiveScopes.front()->ReturnType, token));
+            return;
+        }
+        else
+        {
+            Program->ActiveScopes.front()->Expressions.push_back(std::make_unique<ReturnExpression>(parseValueExpression(0, TokenType::EndOfStatement), Program->ActiveScopes.front()->ReturnType, token));
+            return;
+        }
+
     }
 
     /// ==========
@@ -456,7 +466,7 @@ void VKParser::parse()
     }
     if (token->Type == TokenType::ElseStatement)
     {
-        if (Program->ActiveScopes.front()->Expressions.back()->Type != ExpressionType::IfStatement)
+        if (Program->ActiveScopes.front()->Expressions.back()->Type != ExpressionType::If)
         {
             Log::PARSER->error("Cannot start an else-statement without a preceding if-statement");
             token->Indicate();
@@ -473,6 +483,40 @@ void VKParser::parse()
         expectToken(TokenType::OpenCurlyBrace);
         std::shared_ptr<Scope> scope = expr->ScopeIfFalse;
         Program->ActiveScopes.push_front(scope);
+        return;
+    }
+    if (token->Type == TokenType::ForStatement)
+    {
+        std::shared_ptr<Scope> parentScope = Program->ActiveScopes.front();
+        expectToken(TokenType::OpenParenthesis);
+
+        std::shared_ptr<Scope> innerScope = std::make_shared<Scope>("__impl_for", parentScope, parentScope->ReturnType);
+
+        // Initializer
+        std::shared_ptr<Token> typeToken = expectToken(TokenType::Name);
+        std::shared_ptr<Token> nameToken = expectToken(TokenType::Name);
+        expectToken(TokenType::EqualSign);
+        std::shared_ptr<ValueExpression> initialValue = parseValueExpression(0, TokenType::EndOfStatement);
+        expectToken(TokenType::EndOfStatement);
+        innerScope->Variables[nameToken->Value] = std::make_shared<Variable>(nameToken->Value, Program->FindType(typeToken->Value));
+        std::shared_ptr<AssignmentExpression> initializer = std::make_shared<AssignmentExpression>(nameToken->Value, initialValue, nameToken);
+        Program->ActiveScopes.push_front(innerScope);
+
+        // Conditional
+        std::shared_ptr<ValueExpression> conditional = parseValueExpression(0, TokenType::EndOfStatement);
+        expectToken(TokenType::EndOfStatement);
+
+        // Increment
+        parse(TokenType::CloseParenthesis);
+        expectToken(TokenType::CloseParenthesis);
+        std::shared_ptr<Expression> increment = Program->ActiveScopes.front()->Expressions.back();
+        Program->ActiveScopes.front()->Expressions.pop_back();
+
+
+        expectToken(TokenType::OpenCurlyBrace);
+
+        std::shared_ptr<ForExpression> expression = std::make_shared<ForExpression>(initializer, conditional, increment, innerScope, token);
+        parentScope->Expressions.push_back(expression);
         return;
     }
 

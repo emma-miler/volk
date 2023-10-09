@@ -39,6 +39,8 @@ enum class TokenType
     IfStatement,
     ElseStatement,
     ExclamationMark,
+    QuestionMark,
+    ForStatement,
 };
 
 static std::map<TokenType, std::string> TokenTypeNames =
@@ -66,6 +68,8 @@ static std::map<TokenType, std::string> TokenTypeNames =
     {TokenType::IfStatement, "IfStatement"},
     {TokenType::ElseStatement, "ElseStatement"},
     {TokenType::ExclamationMark, "ExclamationMark"},
+    {TokenType::QuestionMark, "QuestionMark"},
+    {TokenType::ForStatement, "ForStatement"},
 };
 
 

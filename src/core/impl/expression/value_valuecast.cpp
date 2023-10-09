@@ -22,8 +22,14 @@ void ValueCastExpression::ToIR(ExpressionStack& stack)
 	stack.Comment("END VALUE CAST\n");
 }
 
-std::vector<Expression*> ValueCastExpression::SubExpressions()
+void ValueCastExpression::ResolveNames(Scope* scope)
 {
-    return std::vector<Expression*>{ Value.get() };
+    Value->ResolveNames(scope);
+}
+
+
+std::vector<std::shared_ptr<Expression>> ValueCastExpression::SubExpressions()
+{
+    return std::vector<std::shared_ptr<Expression>>{ Value };
 }
 }

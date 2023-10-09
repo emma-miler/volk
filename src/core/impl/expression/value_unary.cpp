@@ -20,21 +20,28 @@ void UnaryValueExpression::ToIR(ExpressionStack& stack)
     if (stack.ActiveVariable.IsPointer)
     {
         stack.AdvanceActive(0);
-        stack.Operation(fmt::format("%{} = load i64, ptr %{}", stack.ActiveVariable.Name, valueVariableName));
+        stack.Operation("%{} = load i64, ptr %{}", stack.ActiveVariable.Name, valueVariableName);
         valueVariableName = stack.ActiveVariable.Name;
     }
     stack.AdvanceActive(0);
-    stack.Operation(fmt::format("%{} = {} nsw i64 0, %{}", stack.ActiveVariable.Name, Operator == OperatorType::OperatorMinus ? "sub" : "add", valueVariableName));
+    stack.Operation("%{} = {} nsw i64 0, %{}", stack.ActiveVariable.Name, Operator == OperatorType::OperatorMinus ? "sub" : "add", valueVariableName);
     stack.Comment("END UNARY OPERATOR\n");
 }
 
-std::vector<Expression*> UnaryValueExpression::SubExpressions()
+std::vector<std::shared_ptr<Expression>> UnaryValueExpression::SubExpressions()
 {
-    return std::vector<Expression*>{ Value.get() };
+    return std::vector<std::shared_ptr<Expression>>{ Value };
+}
+
+
+void UnaryValueExpression::ResolveNames(Scope* scope)
+{
+    Value->ResolveNames(scope);
 }
 
 void UnaryValueExpression::TypeCheck(Scope* scope)
 {
+    Value->TypeCheck(scope);
     // TODO: need to check if type supports operation
     return;
 }

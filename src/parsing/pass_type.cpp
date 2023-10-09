@@ -10,18 +10,14 @@ void VKParser::parserPass_TypeChecking(Scope* scope)
     {
         parserPass_TypeChecking(func.second->FunctionScope.get());
     }
-    for (auto&& subexpr : scope->Expressions)
+    for (auto&& expr : scope->Expressions)
     {
-        parserPass_TypeChecking(subexpr.get(), scope);
+        parserPass_TypeChecking(expr, scope);
     }
 }
 
-void VKParser::parserPass_TypeChecking(Expression* expression, Scope* scope)
+void VKParser::parserPass_TypeChecking(std::shared_ptr<Expression> expression, Scope* scope)
 {
-    for (auto&& subexpr : expression->SubExpressions())
-    {
-        parserPass_TypeChecking(subexpr, scope);
-    }
     expression->TypeCheck(scope);
 }
 }

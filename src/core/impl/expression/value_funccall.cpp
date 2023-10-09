@@ -37,8 +37,7 @@ void FunctionCallValueExpression::ToIR(ExpressionStack& stack)
         {
             IRVariableDescriptor variable = stack.ActiveVariable;
             stack.AdvanceActive(0);
-            std::string load = fmt::format("%{} = load {}, {}", stack.ActiveVariable.Name, arg->ResolvedType->LLVMType, variable.Get());
-            stack.Operation(load);
+            stack.Operation("%{} = load {}, {}", stack.ActiveVariable.Name, arg->ResolvedType->LLVMType, variable.Get());
         }
         Log::OUTPUT->trace("Has varargs: {}", functionHasVarArgs);
         Log::OUTPUT->trace("Param type: {}", arg->ResolvedType ->Name);
@@ -48,8 +47,7 @@ void FunctionCallValueExpression::ToIR(ExpressionStack& stack)
         {
             IRVariableDescriptor variable = stack.ActiveVariable;
             stack.AdvanceActive(0);
-            std::string load = fmt::format("%{} = fpext float %{} to double", stack.ActiveVariable.Name, variable.Name);
-            stack.Operation(load);
+            stack.Operation("%{} = fpext float %{} to double", stack.ActiveVariable.Name, variable.Name);
             stack.ActiveVariable.Type = "double";
         }
         else
@@ -64,8 +62,16 @@ void FunctionCallValueExpression::ToIR(ExpressionStack& stack)
     }
     stack.Comment("END FUNCTION CALL ARGUMENTS");
     stack.Comment("START FUNCTION CALL");
-    stack.AdvanceActive(0);
-    std::string ir = fmt::format("%{} = call noundef {} @{}(", stack.ActiveVariable.Name, ResolvedFunction->ReturnType->LLVMType, FunctionName);
+    std::string ir = "";
+    if (ResolvedFunction->ReturnType == BUILTIN_VOID)
+    {
+        ir = fmt::format("call {} @{}(", ResolvedFunction->ReturnType->LLVMType, FunctionName);
+    }
+    else
+    {
+        stack.AdvanceActive(0);
+        ir = fmt::format("%{} = call noundef {} @{}(", stack.ActiveVariable.Name, ResolvedFunction->ReturnType->LLVMType, FunctionName);
+    }
     if (argumentNames.size() > 0)
     {
         for (auto&& arg : argumentNames)
@@ -107,12 +113,12 @@ void FunctionCallValueExpression::ResolveNames(Scope* scope)
     ResolvedType = ResolvedFunction->ReturnType;
 }
 
-std::vector<Expression*> FunctionCallValueExpression::SubExpressions()
+std::vector<std::shared_ptr<Expression>> FunctionCallValueExpression::SubExpressions()
 {
-    std::vector<Expression*> exprs;
+    std::vector<std::shared_ptr<Expression>> exprs;
     for (auto&& arg : Arguments)
     {
-        exprs.push_back(arg.get());
+        exprs.push_back(arg);
     }
     return exprs;
 }
@@ -127,6 +133,7 @@ void FunctionCallValueExpression::TypeCheck(Scope* scope)
             // If we hit a varargs, it doesnt make sense to continue searching, cause we cant guarantee type safety anymore anyway
             return;
         }
+        arg->TypeCheck(scope);
         if (arg->ResolvedType != ResolvedFunction->Parameters[i]->Type)
         {
             Log::TYPESYS->error("Cannot implicitly convert from '{}' to '{}'", arg->ResolvedType->Name, ResolvedFunction->Parameters[i]->Type->Name);

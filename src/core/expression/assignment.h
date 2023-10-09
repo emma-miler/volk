@@ -30,7 +30,7 @@ public:
     std::string ToHumanReadableString(std::string depthPrefix);
 
     void ToIR(ExpressionStack& stack);
-    std::vector<Expression*> SubExpressions();
+    std::vector<std::shared_ptr<Expression>> SubExpressions();
     void ResolveNames(Scope* scope);
 
     void TypeCheck(Scope* scope);

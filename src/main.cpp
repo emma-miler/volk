@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
     while (program.Tokens.size() > 0)
     {
-        parser.parse();
+        parser.parse(Volk::TokenType::EndOfStatement);
     }
     program.printStringTable();
     program.printExpressionTree();

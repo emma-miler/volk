@@ -24,5 +24,6 @@ public:
     std::string ToHumanReadableString(std::string depthPrefix);
     void ToIR(ExpressionStack& stack);
     void ResolveNames(Scope* scope);
+    void TypeCheck(Scope* scope);
 };
 }

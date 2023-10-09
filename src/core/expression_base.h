@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include <exception>
 
 namespace Volk
 {
@@ -28,7 +29,8 @@ enum class ExpressionType
     Value,
     BinaryOperator,
     ReturnExpr,
-    IfStatement,
+    If,
+    For,
 };
 
 
@@ -87,21 +89,39 @@ public:
             ActiveVariable.Type = "i64";
     }
 
+    template <typename ...T>
+    void Comment(fmt::format_string<T...> format, T&&... args)
+    {
+        if (!FF_LLVM_VERBOSE) return;
+        Expressions.push_back("\t; " + fmt::vformat(format, fmt::make_format_args(args...)));
+    }
     void Comment(std::string comment)
     {
         if (!FF_LLVM_VERBOSE) return;
         Expressions.push_back("\t; " + comment);
     }
 
+    template <typename ...T>
+    void Operation(fmt::format_string<T...> format, T&&... args)
+    {
+        Expressions.push_back("\t" + fmt::vformat(format, fmt::make_format_args(args...)));
+    }
     void Operation(std::string operation)
     {
         Expressions.push_back("\t" + operation);
+    }
+
+    template <typename ...T>
+    void Label(fmt::format_string<T...> format, T&&... args)
+    {
+        Expressions.push_back(fmt::vformat(format, fmt::make_format_args(args...)));
     }
 
     void Label(std::string label)
     {
         Expressions.push_back(label);
     }
+
 };
 
 class Expression
@@ -121,36 +141,21 @@ public:
     virtual ~Expression() = default;
 
 public:
-    virtual std::string ToString()
-    {
-        throw std::runtime_error("Pure virtual call to Expression::ToString()");
-    }
-
-    // Output is the variable name
-    virtual void ToIR(ExpressionStack& stack)
-    {
-        throw std::runtime_error("Pure virtual call to Expression::ToIR()");
-    }
+    virtual std::string ToString() { Log::FRONTEND->critical("Pure virtual call to Expression::ToString"); throw std::runtime_error(""); }
+    virtual void ToIR(ExpressionStack& stack) { Log::FRONTEND->critical("Pure virtual call to Expression::ToIR"); throw std::runtime_error(""); }
 
     virtual std::string ToHumanReadableString(std::string depthPrefix)
     {
         return ToString();
     }
 
-    virtual std::vector<Expression*> SubExpressions()
+    virtual std::vector<std::shared_ptr<Expression>> SubExpressions()
     {
-        return std::vector<Expression*>{};
+        return std::vector<std::shared_ptr<Expression>>{};
     }
 
-    virtual void ResolveNames(Scope* scope)
-    {
-        return;
-    }
-
-    virtual void TypeCheck(Scope* scope)
-    {
-        return;
-    }
+    virtual void ResolveNames(Scope* scope) {};
+    virtual void TypeCheck(Scope* scope) {};
 };
 
 /// ==========

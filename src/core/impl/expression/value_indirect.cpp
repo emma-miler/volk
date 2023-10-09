@@ -29,7 +29,7 @@ void IndirectValueExpression::ToIR(ExpressionStack& stack)
         Token->Indicate();
         throw type_error("");
     }
-    stack.Operation(fmt::format("%{} = load {}, ptr %{}", variableName, ResolvedVariable->Type->LLVMType, Value));
+    stack.Operation("%{} = load {}, ptr %{}", variableName, ResolvedVariable->Type->LLVMType, Value);
     stack.ActiveVariable.Type = ResolvedVariable->Type->LLVMType;
     stack.Comment("END INDIRECT VALUE");
 }
@@ -45,7 +45,7 @@ void IndirectValueExpression::ResolveNames(Scope* scope)
         throw type_error("");
     }
     ResolvedType = ResolvedVariable->Type;
-    if (ResolvedVariable->Type == nullptr)
+    if (ResolvedType == nullptr)
     {
         Log::TYPESYS->error("Resolved variable '{}' does not have a type", ResolvedVariable->Name);
         Token->Indicate();
@@ -53,4 +53,9 @@ void IndirectValueExpression::ResolveNames(Scope* scope)
         throw type_error("");
     }
 }
+
+void Volk::IndirectValueExpression::TypeCheck(Volk::Scope* scope)
+{
+}
+
 }

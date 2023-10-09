@@ -24,7 +24,8 @@ public:
 
     std::string ToHumanReadableString(std::string depthPrefix);
     void ToIR(ExpressionStack& stack);
-    std::vector<Expression*> SubExpressions();
-    virtual void TypeCheck(Scope* scope);
+    std::vector<std::shared_ptr<Expression>> SubExpressions();
+    void TypeCheck(Scope* scope);
+    void ResolveNames(Scope* scope);
 };
 }

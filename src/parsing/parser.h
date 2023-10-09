@@ -18,7 +18,7 @@ public:
 
 public:
 
-    void parse();
+    void parse(TokenType endOfStatementToken);
     std::shared_ptr<ValueExpression> parseValueExpression(int depth, TokenType endMarker);
     std::shared_ptr<ValueExpression> ConsumeNullaryOrUnaryValueExpression(int depth);
 
@@ -35,8 +35,8 @@ private:
     int readUntilNext(std::string_view& data, char character);
     int readWhile(std::string_view& data, std::function<bool(char)> predicate);
 
-    void parserPass_NameResolution(Expression* expression, Scope* scope);
-    void parserPass_TypeChecking(Expression* expression, Scope* scope);
+    void parserPass_NameResolution(std::shared_ptr<Expression> expression, Scope* scope);
+    void parserPass_TypeChecking(std::shared_ptr<Expression> expression, Scope* scope);
 
     void popToken();
     std::shared_ptr<Token> expectToken(TokenType type);

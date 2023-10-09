@@ -28,19 +28,20 @@ std::string FunctionObject::ToHumanReadable()
 
 void FunctionObject::ToIR(ExpressionStack& stack)
 {
-    std::string definitionString = fmt::format("define dso_local noundef {} @{}(", ReturnType->LLVMType, Name);
+    std::string definitionString = fmt::format("define dso_local {} {} @{}(", ReturnType == BUILTIN_VOID ? "" : "noundef", ReturnType->LLVMType, Name);
     for (auto&& param : Parameters)
     {
         definitionString += fmt::format("{} noundef %param.{}, ", param->Type->LLVMType, param->Name);
     }
-    definitionString = definitionString.substr(0, definitionString.length() - 2);
+    if (Parameters.size() > 0)
+        definitionString = definitionString.substr(0, definitionString.length() - 2);
     definitionString += ") #0\n{";
     stack.Label(definitionString);
     ExpressionStack innerStack;
     for (auto&& param : Parameters)
     {
-        innerStack.Operation(fmt::format("%{} = alloca {}, align 4", param->Name, param->Type->LLVMType));
-        innerStack.Operation(fmt::format("store {} %param.{}, ptr %{}, align 4", param->Type->LLVMType, param->Name, param->Name));
+        innerStack.Operation("%{} = alloca {}, align 4", param->Name, param->Type->LLVMType);
+        innerStack.Operation("store {} %param.{}, ptr %{}, align 4", param->Type->LLVMType, param->Name, param->Name);
     }
     for (auto&& expr : FunctionScope->Expressions)
     {

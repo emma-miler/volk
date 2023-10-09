@@ -20,6 +20,7 @@ static std::map<std::string, TokenType> KeywordLookup =
     {"false", TokenType::ImmediateBoolValue},
     {"if", TokenType::IfStatement},
     {"else", TokenType::ElseStatement},
+    {"for", TokenType::ForStatement},
 };
 
 }
