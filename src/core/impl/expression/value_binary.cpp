@@ -80,11 +80,11 @@ void BinaryValueExpression::TypeCheck(Scope* scope)
 	{
 		if (Left->ResolvedType == BUILTIN_INT)
 		{
-			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_INT, BUILTIN_DOUBLE));
+			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_DOUBLE, BUILTIN_INT->ImplicitConverters[BUILTIN_DOUBLE]);
 		}
 		if (Right->ResolvedType == BUILTIN_INT)
 		{
-			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_INT, BUILTIN_DOUBLE));
+			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_DOUBLE, BUILTIN_INT->ImplicitConverters[BUILTIN_DOUBLE]);
 		}
 	}
 	// This mess basically makes it so that you can e.g multiple a float by a double,
@@ -94,29 +94,29 @@ void BinaryValueExpression::TypeCheck(Scope* scope)
 	{
 		if (Left->ResolvedType == BUILTIN_FLOAT && Right->ResolvedType == BUILTIN_INT)
 		{
-			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_FLOAT, GetSidecastForTypes(BUILTIN_INT, BUILTIN_FLOAT));
+			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_FLOAT, BUILTIN_INT->ImplicitConverters[BUILTIN_FLOAT]);
 		}
 		else if (Left->ResolvedType == BUILTIN_DOUBLE && Right->ResolvedType == BUILTIN_INT)
 		{
-			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_INT, BUILTIN_DOUBLE));
+			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_DOUBLE, BUILTIN_INT->ImplicitConverters[BUILTIN_DOUBLE]);
 		}
 		
 		else if (Left->ResolvedType == BUILTIN_INT && Right->ResolvedType == BUILTIN_FLOAT)
 		{
-			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_FLOAT, GetSidecastForTypes(BUILTIN_INT, BUILTIN_FLOAT));
+			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_FLOAT, BUILTIN_INT->ImplicitConverters[BUILTIN_FLOAT]);
 		}
 		else if (Left->ResolvedType == BUILTIN_INT && Right->ResolvedType == BUILTIN_DOUBLE)
 		{
-			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_INT, BUILTIN_DOUBLE));
+			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_DOUBLE, BUILTIN_INT->ImplicitConverters[BUILTIN_DOUBLE]);
 		}
 		
 		else if (Left->ResolvedType == BUILTIN_FLOAT && Right->ResolvedType == BUILTIN_DOUBLE)
 		{
-			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_FLOAT, BUILTIN_DOUBLE));
+			Left = std::make_unique<ValueCastExpression>(std::move(Left), BUILTIN_DOUBLE, BUILTIN_FLOAT->ImplicitConverters[BUILTIN_DOUBLE]);
 		}
 		else if (Left->ResolvedType == BUILTIN_DOUBLE && Right->ResolvedType == BUILTIN_FLOAT)
 		{
-			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_DOUBLE, GetSidecastForTypes(BUILTIN_FLOAT, BUILTIN_DOUBLE));
+			Right = std::make_unique<ValueCastExpression>(std::move(Right), BUILTIN_DOUBLE, BUILTIN_FLOAT->ImplicitConverters[BUILTIN_DOUBLE]);
 		}
 	}
 	if (Left->ResolvedType != Right->ResolvedType)

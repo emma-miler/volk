@@ -9,6 +9,6 @@ function int factorial(int level)
         return level * factorial(level - 1);
     }
 }
-printf("%d\n", factorial(12));
+printf("%d\n", factorial(3));
 bool test = true/true;
 return 0;

@@ -55,8 +55,8 @@ void AssignmentExpression::TypeCheck(Scope* scope)
 {
     if (ResolvedVariable->Type != Value->ResolvedType)
     {
-		auto rule = GetSidecastForTypes(Value->ResolvedType, ResolvedVariable->Type);
-		if (rule == nullptr)
+		auto rule = Value->ResolvedType->ImplicitConverters.find(ResolvedVariable->Type);
+		if (rule == Value->ResolvedType->ImplicitConverters.end())
 		{
 			Log::TYPESYS->error("Cannot implicitly convert from '{}' to '{}'", Value->ResolvedType->Name, ResolvedVariable->Type->Name);
 			Token->Indicate();
@@ -64,7 +64,7 @@ void AssignmentExpression::TypeCheck(Scope* scope)
 		}
 		else
 		{
-			Value = std::make_unique<ValueCastExpression>(std::move(Value), ResolvedVariable->Type, rule);
+			Value = std::make_unique<ValueCastExpression>(std::move(Value), ResolvedVariable->Type, rule->second);
 		}
     }
 }

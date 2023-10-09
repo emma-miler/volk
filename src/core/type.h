@@ -1,7 +1,17 @@
 #pragma once
 
 #include <memory>
+#include <functional>
+#include <map>
 #include "object.h"
+
+namespace Volk
+{
+    class VKType;
+}
+
+#include "expression_base.h"
+
 
 namespace Volk
 {
@@ -11,6 +21,8 @@ public:
     bool IsReferenceType;
     unsigned int Size;
     std::string LLVMType;
+
+    std::map<std::shared_ptr<VKType>, std::function<void(ExpressionStack&)>> ImplicitConverters;
 
     VKType(std::string name, unsigned int size) : Object(name)
     {

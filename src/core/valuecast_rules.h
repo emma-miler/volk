@@ -8,5 +8,5 @@
 
 namespace Volk
 {
-std::function<void(ExpressionStack&)> GetSidecastForTypes(std::shared_ptr<VKType>, std::shared_ptr<VKType>);
+void InitBuiltinSidecastRules();
 }

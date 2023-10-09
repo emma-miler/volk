@@ -15,6 +15,17 @@ FunctionObject::FunctionObject(std::string name, std::shared_ptr<VKType> returnT
 }
 
 
+std::string FunctionObject::ToHumanReadable()
+{
+    std::string value = fmt::format("\nfunction {} {}(\nargs=", ReturnType->Name, Name);
+    for (auto&& param : Parameters)
+    {
+        value += fmt::format("\n{}{} {}, ", INDENT, param->Type->Name, param->Name);
+    }
+    value = value.substr(0, value.length() - 2);
+    return value;
+}
+
 void FunctionObject::ToIR(ExpressionStack& stack)
 {
     std::string definitionString = fmt::format("define dso_local noundef {} @{}(", ReturnType->LLVMType, Name);

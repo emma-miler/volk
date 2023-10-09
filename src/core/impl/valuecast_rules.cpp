@@ -67,23 +67,13 @@ void double_to_int(Volk::ExpressionStack& stack)
 
 namespace Volk
 {
-std::function<void(ExpressionStack&)> GetSidecastForTypes(std::shared_ptr<VKType> source, std::shared_ptr<VKType> target)
+void InitBuiltinSidecastRules()
 {
-	if (source == BUILTIN_INT)
-	{
-		if (target == BUILTIN_FLOAT) return &int_to_float;
-		if (target == BUILTIN_DOUBLE) return &int_to_double;
-	}
-	if (source == BUILTIN_FLOAT)
-	{
-		if (target == BUILTIN_INT) return &float_to_int;
-		if (target == BUILTIN_DOUBLE) return &float_to_double;
-	}
-	if (source == BUILTIN_DOUBLE)
-	{
-		if (target == BUILTIN_FLOAT) return &double_to_float;
-		if (target == BUILTIN_INT) return &double_to_int;
-	}
-	return nullptr;
+	BUILTIN_INT->ImplicitConverters[BUILTIN_FLOAT] = int_to_float;
+	BUILTIN_INT->ImplicitConverters[BUILTIN_DOUBLE] = int_to_double;
+	BUILTIN_FLOAT->ImplicitConverters[BUILTIN_INT] = float_to_int;
+	BUILTIN_FLOAT->ImplicitConverters[BUILTIN_DOUBLE] = float_to_double;
+	BUILTIN_DOUBLE->ImplicitConverters[BUILTIN_INT] = double_to_int;
+	BUILTIN_DOUBLE->ImplicitConverters[BUILTIN_FLOAT] = double_to_float;
 }
 }

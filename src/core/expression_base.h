@@ -11,7 +11,6 @@ namespace Volk
 
 #include "irvariabledescriptor.h"
 #include "../util/options.h"
-#include "operator.h"
 #include "type.h"
 #include "token.h"
 #include "scope.h"
