@@ -70,11 +70,15 @@ public:
     std::vector<std::string> Expressions;
     int NameCounter;
     IRVariableDescriptor ActiveVariable;
+	int SpecialCounter;
+	std::string LastJumpPoint;
 
 public:
-    ExpressionStack() : ActiveVariable("", "", 0)
+    ExpressionStack() : ActiveVariable("", "", 0, IRVarType::Variable)
     {
-        NameCounter = 1;
+        NameCounter = 0;
+		SpecialCounter = 0;
+		LastJumpPoint = "entry";
     }
 
     // Advances the stack's active temporary variable by 1
@@ -82,7 +86,7 @@ public:
     {
         ActiveVariable.Name = std::to_string(NameCounter++);
         ActiveVariable.IsPointer = isPointer;
-        ActiveVariable.IsConstant = 0;
+		ActiveVariable.VarType = IRVarType::Variable;
         if (isPointer)
             ActiveVariable.Type = "ptr";
         else
@@ -121,6 +125,32 @@ public:
     {
         Expressions.push_back(label);
     }
+	
+	template <typename ...T>
+    void Jump(fmt::format_string<T...> format, T&&... args)
+    {
+		std::string labelName = fmt::vformat(format, fmt::make_format_args(args...));
+        Expressions.push_back("\tbr label %" + labelName);
+		LastJumpPoint = labelName;
+    }
+	
+	template <typename ...T>
+    void Jump_NoUpdate(fmt::format_string<T...> format, T&&... args)
+    {
+		std::string labelName = fmt::vformat(format, fmt::make_format_args(args...));
+        Expressions.push_back("\tbr label %" + labelName);
+    }
+
+    void Branch(IRVariableDescriptor condition, std::string if_true, std::string if_false, bool update = true)
+    {
+        Expressions.push_back(fmt::format("\tbr i1 {}, label %{}, label %{}", condition.GetOnlyName(), if_true, if_false));
+		if (update)
+		{
+			LastJumpPoint = if_false;
+		}
+    }
+	
+	
 
 };
 

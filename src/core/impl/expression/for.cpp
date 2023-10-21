@@ -25,7 +25,7 @@ void ForExpression::ToIR(ExpressionStack& stack)
     // in its current state, this will quickly run out of stack memory
     // since we both reallocate the iterator and the scope contents every iteration
     // we need to do cleanup of the scope contents, and not reallocate the iterator
-    std::string branchSuffix = stack.ActiveVariable.Name;
+    std::string branchSuffix = std::to_string(stack.SpecialCounter++);
     // Initializer
     stack.Comment("START FOR INITIALIZER");
     stack.Operation("%{} = alloca {}", Initializer->Name, Initializer->Value->ResolvedType->LLVMType);
@@ -34,7 +34,7 @@ void ForExpression::ToIR(ExpressionStack& stack)
 
     // Condition
     stack.Comment("START FOR CONDITION");
-    stack.Operation("br label %for{}.condition", branchSuffix);
+    stack.Jump("for{}.condition", branchSuffix);
     stack.Label("for{}.condition:", branchSuffix);
     Condition->ToIR(stack);
     IRVariableDescriptor conditionVar = stack.ActiveVariable;
@@ -50,8 +50,9 @@ void ForExpression::ToIR(ExpressionStack& stack)
         stack.Operation("{} = trunc {} to i1", stack.ActiveVariable.GetOnlyName(), conditionVar.Get());
     }
 
-    stack.Operation("br i1 {}, label %for{}.then, label %for{}.end", stack.ActiveVariable.GetOnlyName(), branchSuffix, branchSuffix);
-    stack.Label("for{}.then:", branchSuffix);
+    stack.Branch(stack.ActiveVariable, fmt::format("for{}.body", branchSuffix), fmt::format("for{}.end", branchSuffix));
+	stack.LastJumpPoint = fmt::format("for{}.body", branchSuffix);
+    stack.Label("for{}.body:", branchSuffix);
 
     // Inner scope
     for (auto&& statement : InnerScope->Expressions)
@@ -62,7 +63,7 @@ void ForExpression::ToIR(ExpressionStack& stack)
     Increment->ToIR(stack);
 
     // Branch back to condition
-    stack.Operation("br label %for{}.condition", branchSuffix);
+    stack.Jump("for{}.condition", branchSuffix);
 
     // End
     stack.Label("for{}.end:", branchSuffix);

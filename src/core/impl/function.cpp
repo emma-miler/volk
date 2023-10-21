@@ -37,6 +37,7 @@ void FunctionObject::ToIR(ExpressionStack& stack)
         definitionString = definitionString.substr(0, definitionString.length() - 2);
     definitionString += ") #0\n{";
     stack.Label(definitionString);
+	stack.Label("entry:");
     ExpressionStack innerStack;
     for (auto&& param : Parameters)
     {

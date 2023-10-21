@@ -16,12 +16,15 @@ std::string ImmediateValueExpression::ToHumanReadableString(std::string depthPre
 
 void ImmediateValueExpression::ToIR(ExpressionStack& stack)
 {
-    stack.AdvanceActive(1);
+    //stack.AdvanceActive(0);
+	stack.ActiveVariable.Name = Value;
+	stack.ActiveVariable.VarType = IRVarType::Immediate;
+	stack.ActiveVariable.Type = ResolvedType->LLVMType;
     // Allocate the variable
-    stack.Comment("START IMMEDIATE VALUE");
-    stack.Operation("%{} = alloca {}", stack.ActiveVariable.Name, ResolvedType->LLVMType);
+    //stack.Comment("START IMMEDIATE VALUE");
+    //stack.Operation("%{} = alloca {}", stack.ActiveVariable.Name, ResolvedType->LLVMType);
     // Assign the value
-    stack.Operation("store {} {}, {}", ResolvedType->LLVMType, Value, stack.ActiveVariable.Get());
-    stack.Comment("END IMMEDIATE VALUE\n");
+    //stack.Operation("store {} {}, {}", ResolvedType->LLVMType, Value, stack.ActiveVariable.Get());
+    //stack.Comment("END IMMEDIATE VALUE\n");
 }
 }

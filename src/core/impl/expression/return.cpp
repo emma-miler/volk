@@ -26,11 +26,11 @@ void ReturnExpression::ToIR(ExpressionStack& stack)
             IRVariableDescriptor variable = stack.ActiveVariable;
             stack.AdvanceActive(0);
             stack.Operation("%{} = load {}, {}", stack.ActiveVariable.Name, ReturnType->LLVMType, variable.Get());
-            stack.Operation("ret {} %{}",ReturnType->LLVMType, stack.ActiveVariable.Name);
+            stack.Operation("ret {}", stack.ActiveVariable.Get());
         }
         else
         {
-            stack.Operation("ret {} %{}", ReturnType->LLVMType, stack.ActiveVariable.Name);
+            stack.Operation("ret {}", stack.ActiveVariable.Get());
         }
     }
     else

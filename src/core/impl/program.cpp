@@ -47,6 +47,16 @@ void Program::printExpressionTree()
     {
         Log::PARSER->debug("{}", expr->ToString());
     }
+	
+	for (auto&& func : DefaultScope->Functions)
+    {	
+		Volk::Log::PARSER->debug("Function: '{}'", func.first);
+		Volk::Log::PARSER->debug(func.second->ToHumanReadable());
+        /*for (auto&& expr : func.second->FunctionScope->Expressions)
+		{
+			Log::PARSER->debug("{}", expr->ToString());
+		}*/
+    }
 }
 
 std::shared_ptr<VKType> Program::FindType(std::string typeName)

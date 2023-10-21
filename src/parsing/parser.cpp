@@ -225,32 +225,21 @@ std::shared_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
 			}
 			continue;
 		}
-		else if (frontType == TokenType::EqualSign ||
-                 frontType == TokenType::CloseAngleBrace ||
+		else if (frontType == TokenType::EqualSign)
+		{
+			Log::PARSER->error("Cannot assign a value to a variable within a value expression");
+			Log::PARSER->error("Did you mean to write `==` instead of `=`?");
+			Program->Tokens.front()->Indicate();
+			throw parse_error("");
+		}
+		else if (frontType == TokenType::CloseAngleBrace ||
                  frontType == TokenType::OpenAngleBrace ||
                  frontType == TokenType::ExclamationMark)
         {
             lastTokenWasOperator = true;
             std::shared_ptr<OperatorToken> opToken = std::make_shared<OperatorToken>("+", Program->Tokens.front()->Position); popToken();
             opToken->IsComparator = true;
-            if (frontType == TokenType::EqualSign)
-            {
-                std::shared_ptr<Token> frontToken = Program->Tokens.front();
-                if (Program->Tokens.front()->Type != TokenType::EqualSign)
-                {
-                    Log::PARSER->error("Cannot assign a value to a variable within a value expression");
-                    Log::PARSER->error("Did you mean to write `==` instead of `=`?");
-                    frontToken->Indicate();
-                    throw parse_error("");
-                }
-                else
-                {
-                    Program->Tokens.pop_front();
-                    opToken->OpType = OperatorType::OperatorEq;
-                    opToken->Position.Length++;
-                }
-            }
-            else if (frontType == TokenType::ExclamationMark)
+            if (frontType == TokenType::ExclamationMark)
             {
                 std::shared_ptr<Token> frontToken = Program->Tokens.front();
                 if (Program->Tokens.front()->Type != TokenType::EqualSign)
@@ -263,7 +252,7 @@ std::shared_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
                 else
                 {
                     Program->Tokens.pop_front();
-                    opToken->OpType = OperatorType::OperatorNeq;
+                    opToken->OpType = OperatorType::OperatorNe;
                     opToken->Position.Length++;
                 }
             }
@@ -272,7 +261,7 @@ std::shared_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
                 if (Program->Tokens.front()->Type == TokenType::EqualSign)
                 {
                     Program->Tokens.pop_front();
-                    opToken->OpType = OperatorType::OperatorGte;
+                    opToken->OpType = OperatorType::OperatorGe;
                     opToken->Position.Length++;
                 }
                 else
@@ -285,7 +274,7 @@ std::shared_ptr<ValueExpression> VKParser::parseValueExpression(int depth, Token
                 if (Program->Tokens.front()->Type == TokenType::EqualSign)
                 {
                     Program->Tokens.pop_front();
-                    opToken->OpType = OperatorType::OperatorLte;
+                    opToken->OpType = OperatorType::OperatorLe;
                     opToken->Position.Length++;
                 }
                 else

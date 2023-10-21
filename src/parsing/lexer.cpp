@@ -172,8 +172,15 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
         tokens.push_back(std::make_shared<Token>(TokenType::CloseCurlyBrace, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
-    /// ==========
-    /// Scope
+    else if (c == '!')
+    {
+        Log::LEXER->trace("Read ExclamationMark");
+        totalRead++;
+        tokens.push_back(std::make_shared<Token>(TokenType::ExclamationMark, data.substr(0, totalRead), currentPosition(totalRead, program)));
+    }
+
+	/// ==========
+    /// Angled Braces
     /// ==========
     else if (c == '<')
     {
@@ -186,13 +193,6 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
         Log::LEXER->trace("Read CloseAngledBrace");
         totalRead++;
         tokens.push_back(std::make_shared<Token>(TokenType::CloseAngleBrace, data.substr(0, totalRead), currentPosition(totalRead, program)));
-    }
-
-    else if (c == '!')
-    {
-        Log::LEXER->trace("Read ExclamationMark");
-        totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::ExclamationMark, data.substr(0, totalRead), currentPosition(totalRead, program)));
     }
 
     /// ==========
@@ -232,14 +232,22 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     }
 
     /// ==========
-    /// Assignment Operator
+    /// Assignment Operator & Logical And
     /// ==========
     else if (c == '=')
     {
         Log::LEXER->trace("Read Assign");
         totalRead++;
-        tokens.push_back(std::make_shared<Token>(TokenType::EqualSign, data.substr(0, totalRead), currentPosition(totalRead, program)));
-    }
+		if (tokens.back()->Type == TokenType::EqualSign)
+		{
+			tokens.pop_back();
+			tokens.push_back(std::make_shared<OperatorToken>(OperatorType::OperatorEq, true, data.substr(0, totalRead), currentPosition(totalRead, program)));
+		}
+		else
+		{
+			tokens.push_back(std::make_shared<Token>(TokenType::EqualSign, data.substr(0, totalRead), currentPosition(totalRead, program)));
+		}
+	}
 
     /// ==========
     /// Binary Operators
@@ -248,7 +256,31 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
     {
         Log::LEXER->trace("Read BinaryOperator");
         totalRead++;
-        tokens.push_back(std::make_shared<OperatorToken>(data.substr(0, totalRead), currentPosition(totalRead, program)));
+		/// ==========
+		/// Logical Operators
+		/// ==========
+		if (c == '&' && tokens.back()->Type == TokenType::Operator)
+		{
+			OperatorToken previousToken = *static_cast<OperatorToken*>(tokens.back().get());
+			if (previousToken.OpType == OperatorType::OperatorBitwiseAnd)
+			{
+				tokens.pop_back();
+				tokens.push_back(std::make_shared<OperatorToken>(OperatorType::OperatorLogicalAnd, true, data.substr(0, totalRead), currentPosition(totalRead, program)));
+			}
+		}
+		else if (c == '|' && tokens.back()->Type == TokenType::Operator)
+		{
+			OperatorToken previousToken = *static_cast<OperatorToken*>(tokens.back().get());
+			if (previousToken.OpType == OperatorType::OperatorBitwiseOr)
+			{
+				tokens.pop_back();
+				tokens.push_back(std::make_shared<OperatorToken>(OperatorType::OperatorLogicalOr, true, data.substr(0, totalRead), currentPosition(totalRead, program)));
+			}
+		}
+		else 
+		{
+			tokens.push_back(std::make_shared<OperatorToken>(data.substr(0, totalRead), currentPosition(totalRead, program)));
+		}
     }
 
     /// ==========
@@ -266,7 +298,7 @@ int readToken(std::string_view data, std::deque<std::shared_ptr<Token>>& tokens,
         program.printCurrentTokens();
         Log::LEXER->error("{}", program.Source->Lines[lineIndex]);
         Log::LEXER->error("{: >{}}", '^', charactersReadThisLine);
-        Log::LEXER->error("Failed to parse character '{}' (0x{:0x}) Bailing", c, c);
+        Log::LEXER->error("Failed to lex character '{}' (0x{:0x}) Bailing", c, c);
         exit(1);
     }
     charactersReadThisLine += totalRead;

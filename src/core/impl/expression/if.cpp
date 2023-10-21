@@ -41,23 +41,34 @@ void IfStatementExpression::ToIR(ExpressionStack& stack)
         stack.AdvanceActive(0);
         stack.Operation("{} = trunc {} to i1", stack.ActiveVariable.GetOnlyName(), conditionVar.Get());
     }
-    std::string branchSuffix = stack.ActiveVariable.Name;
-    stack.Operation("br i1 {}, label %if{}.then, label %if{}.else", stack.ActiveVariable.GetOnlyName(), branchSuffix, branchSuffix);
-    stack.Label("if{}.then:", branchSuffix);
+    std::string branchSuffix = std::to_string(stack.SpecialCounter++);
+	if (HasElseClauseDefined)
+	{
+		stack.Branch(stack.ActiveVariable, fmt::format("if{}.then", branchSuffix), fmt::format("if{}.else", branchSuffix));
+	}
+	else
+	{
+		stack.Branch(stack.ActiveVariable, fmt::format("if{}.then", branchSuffix), fmt::format("if{}.end", branchSuffix));
+    }
+	stack.Label("if{}.then:", branchSuffix);
 
     for (auto&& statement : ScopeIfTrue->Expressions)
     {
         statement->ToIR(stack);
     }
-    stack.Operation("br label %if{}.end", branchSuffix);
-    stack.AdvanceActive(0);
-    stack.Label("if{}.else:", branchSuffix);
+    stack.Jump("if{}.end", branchSuffix);
+	// I dont really know why LLVM wants this here
+	if (HasElseClauseDefined)
+	{
+		stack.AdvanceActive(0);
+		stack.Label("if{}.else:", branchSuffix);
 
-    for (auto&& statement : ScopeIfFalse->Expressions)
-    {
-        statement->ToIR(stack);
-    }
-    stack.Operation("br label %if{}.end", branchSuffix);
+		for (auto&& statement : ScopeIfFalse->Expressions)
+		{
+			statement->ToIR(stack);
+		}
+		stack.Jump("if{}.end", branchSuffix);		
+	}
 
     stack.Label("if{}.end:", branchSuffix);
     if (HasElseClauseDefined)

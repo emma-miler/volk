@@ -20,11 +20,47 @@ std::string BinaryValueExpression::ToHumanReadableString(std::string depthPrefix
 
 void BinaryValueExpression::ToIR(ExpressionStack& stack)
 {
-    Left->ToIR(stack);
-    IRVariableDescriptor left = stack.ActiveVariable;
+	Left->ToIR(stack);
+	IRVariableDescriptor left = stack.ActiveVariable;
+	// Special handling with shortcircuit logic
+	if (Operator == OperatorType::OperatorLogicalAnd || Operator == OperatorType::OperatorLogicalOr)
+	{	
+		std::string branchSuffix = std::to_string(stack.SpecialCounter++);
+		
+		if (Operator == OperatorType::OperatorLogicalAnd) stack.Branch(left, fmt::format("lor{}.rhs", branchSuffix), fmt::format("lor{}.end", branchSuffix), false);
+		if (Operator == OperatorType::OperatorLogicalOr) stack.Branch(left, fmt::format("lor{}.end", branchSuffix), fmt::format("lor{}.rhs", branchSuffix), false);
+		
+		stack.Label("lor{}.rhs:", branchSuffix);
+		Right->ToIR(stack);
+		IRVariableDescriptor right = stack.ActiveVariable;
+		stack.Jump_NoUpdate("lor{}.end", branchSuffix);
+		
+		stack.Label("lor{}.end:", branchSuffix);
+		stack.AdvanceActive(0);
+		stack.ActiveVariable.Type = BUILTIN_BOOL->LLVMType;
+		if (Operator == OperatorType::OperatorLogicalAnd) stack.Operation("{} = phi i1 [ false, %{} ], [{}, %lor{}.rhs ]", stack.ActiveVariable.GetOnlyName(), stack.LastJumpPoint, right.GetOnlyName(), branchSuffix);
+		if (Operator == OperatorType::OperatorLogicalOr) stack.Operation("{} = phi i1 [ true, %{} ], [{}, %lor{}.rhs ]", stack.ActiveVariable.GetOnlyName(), stack.LastJumpPoint, right.GetOnlyName(), branchSuffix);
+		stack.Comment("END BINARY OPERATOR\n");
+		return;
+	}
+	
+	Right->ToIR(stack);
+	IRVariableDescriptor right = stack.ActiveVariable;
+/*
+  %tobool = trunc i8 %0 to i1
+  br i1 %tobool, label %lor.end, label %lor.rhs
 
-    Right->ToIR(stack);
-    IRVariableDescriptor right = stack.ActiveVariable;
+lor.rhs:
+  %1 = load i8, ptr %test1, align 1
+  %tobool1 = trunc i8 %1 to i1
+  br label %lor.end
+
+lor.end:
+  %2 = phi i1 [ true, %entry ], [ %tobool1, %lor.rhs ]
+  %frombool = zext i1 %2 to i8
+  store i8 %frombool, ptr %test2, align 1
+  ret i32 0
+*/
 
     // LLVM does not allow you to operate on an immediate i64 with a ptr value or vice versa,
     // and requires that the type of both operands is the same,
@@ -60,7 +96,7 @@ void BinaryValueExpression::ToIR(ExpressionStack& stack)
     else
     {
         stack.Operation("%{} = {}{} {} {}, {}", stack.ActiveVariable.Name,
-                                                            Left->ResolvedType == BUILTIN_FLOAT || Left->ResolvedType == BUILTIN_DOUBLE ? "f" : Operator == OperatorType::OperatorDivide ? "s" : "",
+                                                            Left->ResolvedType == BUILTIN_FLOAT || Left->ResolvedType == BUILTIN_DOUBLE ? "f" : Operator == OperatorType::OperatorDivide || Operator == OperatorType::OperatorModulo ? "s" : "",
                                                             OperatorInstructionLookup[Operator],
                                                             Left->ResolvedType->LLVMType,
                                                             left.GetOnlyName(),
@@ -140,6 +176,11 @@ void BinaryValueExpression::TypeCheck(Scope* scope)
     ResolvedType = Left->ResolvedType;
     if (IsComparator)
     {
+		// These two are handled specifically because they use shortcircuit logic
+		if (Operator == OperatorType::OperatorLogicalAnd || Operator == OperatorType::OperatorLogicalOr)
+		{
+			return;
+		}
         ResolvedType = BUILTIN_BOOL;
         CompareFunction = GetComparisonFunction(Left->ResolvedType);
         if (CompareFunction == nullptr)
