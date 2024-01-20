@@ -1,5 +1,0 @@
-cd scripts
-llc sample.ll -relocation-model=pic
-gcc sample.s
-./a.out
-echo $?
