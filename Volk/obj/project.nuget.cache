@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "x2QnPUwvHvoW2HorRUWkLSZLJk2QF2R7RK2GZcibocPsP5RNybCqjQY0WHTMBC5FomGcrMS4KzNYBkvTlLgsnQ==",
+  "success": true,
+  "projectFilePath": "/home/emma/source/Volk/Volk/Volk.csproj",
+  "expectedPackageFiles": [
+    "/home/emma/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "/home/emma/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
+    "/home/emma/.nuget/packages/osiris/0.1.3/osiris.0.1.3.nupkg.sha512"
+  ],
+  "logs": []
+}
