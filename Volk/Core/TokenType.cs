@@ -10,9 +10,11 @@ public enum TokenType
     EndOfExpression,
     OpenParenthesis,
     CloseParenthesis,
-    OpenAngleBracket,
-    CloseAngleBracket,
     OpenCurlyBracket,
     CloseCurlyBracket,
     CommaSeparator,
+    If,
+    Else,
+    For,
+    FunctionDeclaration,
 }

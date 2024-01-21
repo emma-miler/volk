@@ -17,10 +17,10 @@ public class AssignmentExpression : Expression
 
     public override void Print(int depth)
     {
-        string prefix = " ".Repeat(depth);
+        string prefix = "|".Repeat(depth);
         Log.Info($"{prefix}[AssignmentExpression]");
-        Log.Info($"{prefix} Name={Token.Value}");
-        Log.Info($"{prefix} Value=");
+        Log.Info($"{prefix}|Name={Token.Value}");
+        Log.Info($"{prefix}|Value=");
         Value.Print(depth + 1);
     }
 }

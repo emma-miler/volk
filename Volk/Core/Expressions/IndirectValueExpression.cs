@@ -15,8 +15,8 @@ public class IndirectValueExpression : ValueExpression
 
     public override void Print(int depth)
     {
-        string prefix = " ".Repeat(depth);
+        string prefix = "|".Repeat(depth);
         Log.Info($"{prefix}[IndirectValueExpression]");
-        Log.Info($"{prefix} Name={Token.Value}");
+        Log.Info($"{prefix}|Name={Token.Value}");
     }
 }

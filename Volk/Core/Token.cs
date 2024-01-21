@@ -8,6 +8,7 @@ using Volk.Core;
 namespace Volk.Core;
 public class Token
 {
+
     public TokenType Type { get; }
     public SourcePosition Position { get; }
     public string Value { get; }

@@ -108,7 +108,12 @@ public static class Lexer
             {
                 // TODO: keywords
                 length += ReadWhile(IsValidNameCharacter);
-                yield return new Token(TokenType.Name, fs, dataPos.BytesRead, length);
+                Token t = new Token(TokenType.Name, fs, dataPos.BytesRead, length);
+                TokenType? keywordType = Keyword.GetKeywordType(t.Value);
+                if (keywordType != null)
+                    yield return new Token(keywordType.Value, fs, dataPos.BytesRead, length);
+                else
+                    yield return t;
                 continue;
             }
 
@@ -174,21 +179,6 @@ public static class Lexer
             }
 
             // =========================
-            // Brackets and Operators
-            // =========================
-
-            if (c == '<' && PeekByte() != '=')
-            {
-                yield return new Token(TokenType.OpenAngleBracket, fs, dataPos.BytesRead, 1);
-                continue;
-            }
-            if (c == '>' && PeekByte() != '=')
-            {
-                yield return new Token(TokenType.CloseAngleBracket, fs, dataPos.BytesRead, 1);
-                continue;
-            }
-
-            // =========================
             // Operators
             // =========================
             if (c == '=')
@@ -220,17 +210,45 @@ public static class Lexer
                     continue;
                 }
             }
-            if (c == '<' && PeekByte() == '=')
+            if (c == '<')
             {
-                ReadByte();
-                yield return new OperatorToken(OperatorTokenType.Le, fs, dataPos.BytesRead, 2);
-                continue;
+                if (PeekByte() == '=')
+                {
+                    ReadByte();
+                    yield return new OperatorToken(OperatorTokenType.Le, fs, dataPos.BytesRead, 2);
+                    continue;
+                }
+                else if (PeekByte() == '<')
+                {
+                    ReadByte();
+                    yield return new OperatorToken(OperatorTokenType.ShiftLeft, fs, dataPos.BytesRead, 2);
+                    continue;
+                }
+                else
+                {
+                    yield return new OperatorToken(OperatorTokenType.Lt, fs, dataPos.BytesRead, 1);
+                    continue;
+                }
             }
-            if (c == '>' && PeekByte() == '=')
+            if (c == '>')
             {
-                ReadByte();
-                yield return new OperatorToken(OperatorTokenType.Ge, fs, dataPos.BytesRead, 2);
-                continue;
+                if (PeekByte() == '=')
+                {
+                    ReadByte();
+                    yield return new OperatorToken(OperatorTokenType.Ge, fs, dataPos.BytesRead, 2);
+                    continue;
+                }
+                else if (PeekByte() == '>')
+                {
+                    ReadByte();
+                    yield return new OperatorToken(OperatorTokenType.ShiftRight, fs, dataPos.BytesRead, 2);
+                    continue;
+                }
+                else
+                {
+                    yield return new OperatorToken(OperatorTokenType.Gt, fs, dataPos.BytesRead, 1);
+                    continue;
+                }
             }
 
             if (c == '&')

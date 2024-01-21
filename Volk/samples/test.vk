@@ -1,2 +1,8 @@
-int a = 1;
-int b = test();
+if (test)
+{
+    int a = 0;
+}
+else 
+{
+    int b = 1;
+}

@@ -19,5 +19,7 @@ namespace Volk.Core
         Divide,
         Modulo,
         Negate,
+        ShiftLeft,
+        ShiftRight
     }
 }
