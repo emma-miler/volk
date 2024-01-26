@@ -16,8 +16,8 @@ public class ImmediateValueExpression : ValueExpression
 
     public override void Print(int depth)
     {
-        string prefix = "|".Repeat(depth);
+        string prefix = " ".Repeat(depth);
         Log.Info($"{prefix}[ImmediateValueExpression]");
-        Log.Info($"{prefix}|Value={Token}");
+        Log.Info($"{prefix} Value={Token}");
     }
 }

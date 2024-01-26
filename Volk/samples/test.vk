@@ -1,8 +1,1 @@
-if (test)
-{
-    int a = 0;
-}
-else 
-{
-    int b = 1;
-}
+int "test"

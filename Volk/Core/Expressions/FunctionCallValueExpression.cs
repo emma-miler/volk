@@ -18,10 +18,10 @@ public class FunctionCallValueExpression : ValueExpression
 
     public override void Print(int depth)
     {
-        string prefix = "|".Repeat(depth);
+        string prefix = " ".Repeat(depth);
         Log.Info($"{prefix}[FunctionCallValueExpression]");
-        Log.Info($"{prefix}|Func={Token.Value}");
-        Log.Info($"{prefix}|Args=");
+        Log.Info($"{prefix} Func={Token.Value}");
+        Log.Info($"{prefix} Args=");
         foreach (ValueExpression expr in Arguments)
         {
             expr.Print(depth + 1);

@@ -21,12 +21,12 @@ public class BinaryValueExpression : ValueExpression
 
     public override void Print(int depth)
     {
-        string prefix = "|".Repeat(depth);
+        string prefix = " ".Repeat(depth);
         Log.Info($"{prefix}[BinaryValueExpression]");
-        Log.Info($"{prefix}|Operator={Operator}");
-        Log.Info($"{prefix}|Left=");
+        Log.Info($"{prefix} Operator={Operator}");
+        Log.Info($"{prefix} Left=");
         Left.Print(depth + 1);
-        Log.Info($"{prefix}|Right=");
+        Log.Info($"{prefix} Right=");
         Right.Print(depth + 2);
     }
 }

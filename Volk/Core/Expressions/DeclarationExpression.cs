@@ -17,9 +17,9 @@ public class DeclarationExpression : Expression
 
     public override void Print(int depth)
     {
-        string prefix = "|".Repeat(depth);
+        string prefix = " ".Repeat(depth);
         Log.Info($"{prefix}[DeclarationExpression]");
-        Log.Info($"{prefix}|Type={Typename.Value}");
-        Log.Info($"{prefix}|Name={Token.Value}");
+        Log.Info($"{prefix} Type={Typename.Value}");
+        Log.Info($"{prefix} Name={Token.Value}");
     }
 }

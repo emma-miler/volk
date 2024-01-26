@@ -10,63 +10,47 @@ public class Token
 {
 
     public TokenType Type { get; }
-    public SourcePosition Position { get; }
-    public string Value { get; }
+    public SourcePosition ValueSource { get; }
+    protected string? _value;
+    public string Value => _value ??= ValueSource.GetValue(); 
 
-    public Token(TokenType type, Stream stream, int currentPosition, int length)
+    public Token(TokenType type, SourcePosition valueSource)
     {
         Type = type;
-        Position = new SourcePosition(currentPosition - length, length);
-        Value = Position.GetValue(stream);
-    }
-
-    public Token(TokenType type, string value, int currentPosition, int length)
-    {
-        Type = type;
-        Value = value;
-        Position = new SourcePosition(currentPosition - length, length);
+        ValueSource = valueSource;
     }
 
     public override string ToString()
     {
-        return $"{Type} {Position}";
+        return $"{Type} {ValueSource}";
     }
 }
 
 public class ValueToken : Token
 {
     public ValueTokenType ValueType { get; }
-    public ValueToken(ValueTokenType valueType, Stream stream, int currentPosition, int length) : base(TokenType.ImmediateValue, stream, currentPosition, length)
-    {
-        ValueType = valueType;
-    }
-
-    public ValueToken(ValueTokenType valueType, string value, int currentPosition, int length) : base(TokenType.ImmediateValue, value, currentPosition, length)
+    public ValueToken(ValueTokenType valueType, SourcePosition valueSource) : base(TokenType.ImmediateValue, valueSource)
     {
         ValueType = valueType;
     }
 
     public override string ToString()
     {
-        return $"{Type} ({ValueType}) {Position}";
+        return $"{Type} ({ValueType}) {ValueSource}";
     }
 }
 
 public class OperatorToken : Token
 {
     public OperatorTokenType OperatorType { get; }
-    public OperatorToken(OperatorTokenType valueType, Stream stream, int currentPosition, int length) : base(TokenType.Operator, stream, currentPosition, length)
-    {
-        OperatorType = valueType;
-    }
-    public OperatorToken(OperatorTokenType valueType, string value, int currentPosition, int length) : base(TokenType.Operator, value, currentPosition, length)
+    public OperatorToken(OperatorTokenType valueType, SourcePosition valueSource) : base(TokenType.Operator, valueSource)
     {
         OperatorType = valueType;
     }
 
     public override string ToString()
     {
-        return $"{Type} ({OperatorType}) {Position}";
+        return $"{Type} ({OperatorType}) {ValueSource}";
     }
 
     public bool IsComparisonOperator => OperatorType >= OperatorTokenType.Eq && OperatorType <= OperatorTokenType.Le;

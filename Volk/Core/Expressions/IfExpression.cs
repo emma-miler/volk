@@ -18,18 +18,18 @@ public class IfExpression : Expression
 
     public override void Print(int depth)
     {
-        string prefix = "|".Repeat(depth);
+        string prefix = " ".Repeat(depth);
         Log.Info($"{prefix}[IfExpression]");
-        Log.Info($"{prefix}|Condition=");
+        Log.Info($"{prefix} Condition=");
         Condition.Print(depth + 1);
-        Log.Info($"{prefix}|IfTrue=");
+        Log.Info($"{prefix} IfTrue=");
         foreach (Expression expr in IfTrue.Expressions)
         {
             expr.Print(depth + 2);
         }
         if (IfFalse != null)
         {
-            Log.Info($"{prefix}|IfFalse=");
+            Log.Info($"{prefix} IfFalse=");
             foreach (Expression expr in IfFalse.Expressions)
             {
                 expr.Print(depth + 2);

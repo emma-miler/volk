@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -7,61 +9,93 @@ using Osiris;
 using Volk.Core;
 
 namespace Volk.Lex;
-public static class Lexer
+public class Lexer
 {
+    int _offset = 0;
+    int _length = 0;
+    int _lineNumber = 0;
+    int _lineOffset = 0;
 
-    // This is a class so that the reader functions can modify it by-reference
-    class Position
+    Stream _fs;
+    StreamReader _data;
+
+    List<SourcePosition> _lines = new();
+
+    public Lexer(Stream fs)
     {
-        public int BytesRead = 0;
-    };
+        _fs = fs;
+        _data = new StreamReader(fs);
+    }
 
-    public static IEnumerable<Token> Lex(Stream fs)
+    public SourcePosition GetLine(int lineNumber) => _lines[lineNumber];
+
+    #region State Tracking
+
+    SourcePosition GetInputTokenValue(int length = -1, bool resetLength = true)
     {
-        Position dataPos = new();
-        StreamReader data = new StreamReader(fs);
+        length = length == -1 ? _length : length;
+        if (resetLength)
+            _length = 0;
+        return new SourcePosition(_fs, _offset - length, length, _lineOffset - length, _lineNumber);
+    }
 
-        var PeekByte = () => (char)data.Peek();
+    void MarkNewLine()
+    {
+        SourcePosition lastLine;
+        if (_lines.Any())
+            lastLine = _lines.Last();
+        else
+            lastLine = new SourcePosition(_fs, 0, 0, 0, 0);
+        _lines.Add(new SourcePosition(_fs, lastLine.Offset + lastLine.Length, _lineOffset, 0, 0));
+        _lineNumber++;
+        _lineOffset = 0;
+        _length = 0;
+    }
 
-        var ReadByte = () =>
+    #endregion State Tracking
+
+    #region Reading Functions
+    char ReadByte()
+    {
+        _offset++;
+        _length++;
+        _lineOffset++;
+        char c = (char)_data.Read();
+        //Console.WriteLine($"{(c == '\n' ? "\\n" : c.ToString())} {dataPos.BytesRead - 1}");
+        return c;
+    }
+
+    char PeekByte() => (char)_data.Peek();
+
+    int ReadUntil(char c)
+    {
+        int i = 0;
+        for (i = 0; _data.Peek() >= 0; i++)
         {
-            dataPos.BytesRead++;
-            char c = (char)data.Read();
-            //Console.WriteLine($"{(c == '\n' ? "\\n" : c.ToString())} {dataPos.BytesRead - 1}");
-            return c;
-        };
+            if (PeekByte() == c) return i;
+            ReadByte();
+        }
+        return i;
+    }
 
-        var ReadUntil = (char c) =>
+    int ReadWhile(Predicate<char> predicate)
+    {
+        int i = 0;
+        for (i = 0; _data.Peek() >= 0; i++)
         {
-            int i = 0;
-            for (i = 0; data.Peek() >= 0; i++)
-            {
-                if ((char)data.Peek() == c) return i;
-                ReadByte();
-            }
-            return i;
-        };
+            if (!predicate(PeekByte())) return i;
+            ReadByte();
+        }
+        return i;
+    }
 
-        var ReadWhile = (Predicate<char> predicate) =>
-        {
-            int i = 0;
-            for (i = 0; data.Peek() >= 0; i++)
-            {
-                if (!predicate((char)data.Peek())) return i;
-                ReadByte();
-            }
-            return i;
-        };
-
+    #endregion Reading Functions
+    public IEnumerable<Token> Lex()
+    {
         char c = '\0';
-        int length = 0;
-        int lineNumber = 0;
-        int positionBeforeLastLineBreak = 0;
-
         // Read until EOF
-        while (data.Peek() >= 0)
+        while (_data.Peek() >= 0)
         {
-            length = 1;
             c = ReadByte();
             Log.Trace($"'{(c == '\n' ? "\\n" : c.ToString())}' (0x{((int)c).ToString("X2")})");
             if (c == '\0')
@@ -71,13 +105,13 @@ public static class Lexer
             }
             else if (c == ' ' || c == '\t')
             {
+                _length = 0;
                 Log.Trace("skipping whitespace");
                 continue;
             }
             else if (c == '\n')
             {
-                positionBeforeLastLineBreak = dataPos.BytesRead;
-                lineNumber++;
+                MarkNewLine();
                 Log.Trace("skipping newline");
                 continue;
             }
@@ -87,8 +121,8 @@ public static class Lexer
             // =========================
             if (c == '/' && PeekByte() == '/')
             {
-                length += ReadUntil('\n');
-                yield return new Token(TokenType.Comment, fs, dataPos.BytesRead, length);
+                ReadUntil('\n');
+                yield return new Token(TokenType.Comment, GetInputTokenValue());
                 continue;
             }
 
@@ -97,7 +131,7 @@ public static class Lexer
             // =========================
             if (c == ';')
             {
-                yield return new Token(TokenType.EndOfExpression, fs, dataPos.BytesRead, length);
+                yield return new Token(TokenType.EndOfExpression, GetInputTokenValue());
                 continue;
             }
 
@@ -107,13 +141,16 @@ public static class Lexer
             if (IsValidNameStartCharacter(c))
             {
                 // TODO: keywords
-                length += ReadWhile(IsValidNameCharacter);
-                Token t = new Token(TokenType.Name, fs, dataPos.BytesRead, length);
+                ReadWhile(IsValidNameCharacter);
+                Token t = new Token(TokenType.Name, GetInputTokenValue(-1, false));
                 TokenType? keywordType = Keyword.GetKeywordType(t.Value);
                 if (keywordType != null)
-                    yield return new Token(keywordType.Value, fs, dataPos.BytesRead, length);
+                    yield return new Token(keywordType.Value, GetInputTokenValue());
                 else
+                {
+                    _length = 0;
                     yield return t;
+                }
                 continue;
             }
 
@@ -122,10 +159,11 @@ public static class Lexer
             // =========================
             if (c == '"')
             {
-                length += ReadUntil('"');
+                ReadUntil('"');
                 ReadByte();
-                SourcePosition pos = new(dataPos.BytesRead + 1, length -1);
-                yield return new ValueToken(ValueTokenType.String, pos.GetValue(fs), dataPos.BytesRead + 1, length - 1);
+                SourcePosition newPos = new SourcePosition(_fs, _offset - _length + 1, _length - 2, _lineOffset - _length + 1, _lineNumber);
+                _length = 0;
+                yield return new ValueToken(ValueTokenType.String, newPos);
                 continue;
             }
 
@@ -134,18 +172,17 @@ public static class Lexer
             // =========================
             if (char.IsNumber(c))
             {
-                length += ReadWhile(IsValidNumberCharacter);
+                ReadWhile(IsValidNumberCharacter);
                 if (PeekByte() == '.')
                 {
                     ReadByte();
-                    length++;
-                    length += ReadWhile(IsValidNumberCharacter);
-                    yield return new ValueToken(ValueTokenType.Real, fs, dataPos.BytesRead, length);
+                    ReadWhile(IsValidNumberCharacter);
+                    yield return new ValueToken(ValueTokenType.Real, GetInputTokenValue());
                     continue;
                 }
                 else
                 {
-                    yield return new ValueToken(ValueTokenType.Int, fs, dataPos.BytesRead, length);
+                    yield return new ValueToken(ValueTokenType.Int, GetInputTokenValue());
                     continue;
                 }
             }
@@ -155,12 +192,12 @@ public static class Lexer
             // =========================
             if (c == '(')
             {
-                yield return new Token(TokenType.OpenParenthesis, fs, dataPos.BytesRead, 1);
+                yield return new Token(TokenType.OpenParenthesis, GetInputTokenValue(1));
                 continue;
             }
             if (c == ')')
             {
-                yield return new Token(TokenType.CloseParenthesis, fs, dataPos.BytesRead, 1);
+                yield return new Token(TokenType.CloseParenthesis, GetInputTokenValue(1));
                 continue;
             }
 
@@ -169,12 +206,12 @@ public static class Lexer
             // =========================
             if (c == '{')
             {
-                yield return new Token(TokenType.OpenCurlyBracket, fs, dataPos.BytesRead, 1);
+                yield return new Token(TokenType.OpenCurlyBracket, GetInputTokenValue(1));
                 continue;
             }
             if (c == '}')
             {
-                yield return new Token(TokenType.CloseCurlyBracket, fs, dataPos.BytesRead, 1);
+                yield return new Token(TokenType.CloseCurlyBracket, GetInputTokenValue(1));
                 continue;
             }
 
@@ -186,12 +223,12 @@ public static class Lexer
                 if (PeekByte() == '=')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.Eq, fs, dataPos.BytesRead, 2);
+                    yield return new OperatorToken(OperatorTokenType.Eq, GetInputTokenValue(2));
                     continue;
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorTokenType.Assignment, fs, dataPos.BytesRead, 1);
+                    yield return new OperatorToken(OperatorTokenType.Assignment, GetInputTokenValue(1));
                     continue;
                 }
             }
@@ -201,12 +238,12 @@ public static class Lexer
                 {
 
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.Ne, fs, dataPos.BytesRead, 2);
+                    yield return new OperatorToken(OperatorTokenType.Ne, GetInputTokenValue(2));
                     continue;
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorTokenType.Negate, fs, dataPos.BytesRead, 2);
+                    yield return new OperatorToken(OperatorTokenType.Negate, GetInputTokenValue(2));
                     continue;
                 }
             }
@@ -215,18 +252,18 @@ public static class Lexer
                 if (PeekByte() == '=')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.Le, fs, dataPos.BytesRead, 2);
+                    yield return new OperatorToken(OperatorTokenType.Le, GetInputTokenValue(2));
                     continue;
                 }
                 else if (PeekByte() == '<')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.ShiftLeft, fs, dataPos.BytesRead, 2);
+                    yield return new OperatorToken(OperatorTokenType.ShiftLeft, GetInputTokenValue(2));
                     continue;
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorTokenType.Lt, fs, dataPos.BytesRead, 1);
+                    yield return new OperatorToken(OperatorTokenType.Lt, GetInputTokenValue());
                     continue;
                 }
             }
@@ -235,18 +272,18 @@ public static class Lexer
                 if (PeekByte() == '=')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.Ge, fs, dataPos.BytesRead, 2);
+                    yield return new OperatorToken(OperatorTokenType.Ge, GetInputTokenValue(2));
                     continue;
                 }
                 else if (PeekByte() == '>')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.ShiftRight, fs, dataPos.BytesRead, 2);
+                    yield return new OperatorToken(OperatorTokenType.ShiftRight, GetInputTokenValue(2));
                     continue;
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorTokenType.Gt, fs, dataPos.BytesRead, 1);
+                    yield return new OperatorToken(OperatorTokenType.Gt, GetInputTokenValue());
                     continue;
                 }
             }
@@ -256,12 +293,12 @@ public static class Lexer
                 if (PeekByte() == '&')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.LogicalAnd, fs, dataPos.BytesRead, 2);
+                    yield return new OperatorToken(OperatorTokenType.LogicalAnd, GetInputTokenValue(2));
                     continue;
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorTokenType.BitwiseAnd, fs, dataPos.BytesRead, 1);
+                    yield return new OperatorToken(OperatorTokenType.BitwiseAnd, GetInputTokenValue());
                     continue;
                 }
             }
@@ -270,38 +307,38 @@ public static class Lexer
                 if (PeekByte() == '|')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.LogicalOr, fs, dataPos.BytesRead, 2);
+                    yield return new OperatorToken(OperatorTokenType.LogicalOr, GetInputTokenValue(2));
                     continue;
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorTokenType.BitwiseOr, fs, dataPos.BytesRead, 1);
+                    yield return new OperatorToken(OperatorTokenType.BitwiseOr, GetInputTokenValue());
                     continue;
                 }
             }
             if (c == '*')
             {
-                yield return new OperatorToken(OperatorTokenType.Multiply, fs, dataPos.BytesRead, 1);
+                yield return new OperatorToken(OperatorTokenType.Multiply, GetInputTokenValue());
                 continue;
             }
             if (c == '/')
             {
-                yield return new OperatorToken(OperatorTokenType.Divide, fs, dataPos.BytesRead, 1);
+                yield return new OperatorToken(OperatorTokenType.Divide, GetInputTokenValue());
                 continue;
             }
             if (c == '+')
             {
-                yield return new OperatorToken(OperatorTokenType.Plus, fs, dataPos.BytesRead, 1);
+                yield return new OperatorToken(OperatorTokenType.Plus, GetInputTokenValue());
                 continue;
             }
             if (c == '-')
             {
-                yield return new OperatorToken(OperatorTokenType.Minus, fs, dataPos.BytesRead, 1);
+                yield return new OperatorToken(OperatorTokenType.Minus, GetInputTokenValue());
                 continue;
             }
             if (c == '%')
             {
-                yield return new OperatorToken(OperatorTokenType.Modulo, fs, dataPos.BytesRead, 1);
+                yield return new OperatorToken(OperatorTokenType.Modulo, GetInputTokenValue());
                 continue;
             }
 
@@ -310,18 +347,20 @@ public static class Lexer
             // =========================
             if (c == ',')
             {
-                yield return new Token(TokenType.CommaSeparator, fs, dataPos.BytesRead, 1);
+                yield return new Token(TokenType.CommaSeparator, GetInputTokenValue());
                 continue;
             }
 
             // Failed to match any token predicates
             // so its a syntax error
+            SourcePosition pos = GetInputTokenValue();
             Log.Error("Syntax error: failed to lex token.");
-            Log.Error($"Position: line {lineNumber} character {dataPos.BytesRead - positionBeforeLastLineBreak}");
+            Log.Error($"Position: line {pos.LineNumber} character {pos.LineOffset}");
             Log.Error($"Character: '{c}' (0x{((int)c).ToString("X2")})");
             throw new FormatException("Unable to lex next token");
         }
-        yield return new Token(TokenType.EOF, fs, dataPos.BytesRead + 2, 0);
+        MarkNewLine();
+        yield return new Token(TokenType.EOF, GetInputTokenValue());
     }
 
 
