@@ -54,5 +54,5 @@ public class OperatorToken : Token
     }
 
     public bool IsComparisonOperator => OperatorType >= OperatorTokenType.Eq && OperatorType <= OperatorTokenType.Le;
-    public bool IsUnaryOperator => OperatorType == OperatorTokenType.Minus || OperatorType <= OperatorTokenType.Negate;
+    public bool IsUnaryOperator => OperatorType == OperatorTokenType.Minus || OperatorType == OperatorTokenType.Negate || OperatorType == OperatorTokenType.UnaryIncrement || OperatorType == OperatorTokenType.UnaryDecrement;
 }

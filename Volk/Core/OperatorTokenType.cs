@@ -20,6 +20,8 @@ namespace Volk.Core
         Modulo,
         Negate,
         ShiftLeft,
-        ShiftRight
+        ShiftRight,
+        UnaryIncrement,
+        UnaryDecrement
     }
 }

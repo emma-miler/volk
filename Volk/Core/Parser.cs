@@ -246,13 +246,26 @@ public class Parser
         while (operators.Count != 0)
         {
             OperatorToken op = operators.Pop();
-            if (expressions.Count < 2)
+            if (op.IsUnaryOperator)
             {
-                throw new ParseException($"Expected 2 values for binary operator {op.OperatorType}, but got {expressions.Count}", op);
+                if (expressions.Count < 1)
+                {
+                    throw new ParseException($"Expected 1 value for unary operator {op.OperatorType}, but got {expressions.Count}", op);
+                }
+                ValueExpression operand = expressions.Pop();
+                expressions.Push(new UnaryValueExpression(op, operand));
             }
-            ValueExpression left = expressions.Pop();
-            ValueExpression right = expressions.Pop();
-            expressions.Push(new BinaryValueExpression(op, left, right));
+            else
+            {
+                if (expressions.Count < 2)
+                {
+                    throw new ParseException($"Expected 2 values for binary operator {op.OperatorType}, but got {expressions.Count}", op);
+                }
+                ValueExpression left = expressions.Pop();
+                ValueExpression right = expressions.Pop();
+                expressions.Push(new BinaryValueExpression(op, left, right));
+            }
+            
         }
 
         if (!expressions.Any())
@@ -268,7 +281,7 @@ public class Parser
     /// </summary>
     /// <param name="tokens"></param>
     /// <returns></returns>
-    void ParseStatement()
+    void ParseStatement(TokenType endMarker = TokenType.EndOfExpression)
     {
         Token t = PeekToken();
         // =========================
@@ -292,19 +305,24 @@ public class Parser
             // Declaration
             // =========================
             if (peekType == TokenType.Name)
-                ParseDeclaration();
+                ParseDeclaration(endMarker);
 
             // =========================
             // Assignment
             // =========================
             else if (peekToken is OperatorToken ot && ot.OperatorType == OperatorTokenType.Assignment)
-                ParseAssignment();
+                ParseAssignment(endMarker);
 
             // =========================
             // Function call
             // =========================
             else if (peekType == TokenType.OpenParenthesis)
-                ParseFunctionCall();
+                ParseFunctionCall(endMarker);
+
+            else if (peekType == TokenType.Operator)
+            {
+                ParseTopLevelValueExpression(endMarker);
+            }
 
             else
             {
@@ -316,9 +334,15 @@ public class Parser
         // If statement
         // =========================
         else if (t.Type == TokenType.If)
-            ParseIfStatement();
+            ParseIfStatement(endMarker);
         else if (t.Type == TokenType.Else)
-            ParseElseStatement();
+            ParseElseStatement(endMarker);
+
+        // =========================
+        // For statement
+        // =========================
+        else if (t.Type == TokenType.For)
+            ParseForStatement(endMarker);
 
         else if (t.Type == TokenType.EOF)
         {
@@ -327,46 +351,50 @@ public class Parser
             return;
         }
         else
-        {
-            throw new ParseException($"GRAMMAR ERROR: failed to parse token '{t}'", t);
-        }
+            ParseTopLevelValueExpression(endMarker);
     }
 
+    void ParseTopLevelValueExpression(TokenType endMarker)
+    {
+        ActiveScope().Expressions.Add(ParseValueExpression(0, endMarker));
+        Expect(endMarker);
+    }
 
-    void ParseDeclaration()
+    void ParseDeclaration(TokenType endMarker)
     {
         Token t = PopToken();
         Token name = Expect(TokenType.Name);
-        Token nextToken = Expect(TokenType.Operator, TokenType.EndOfExpression);
+        Token nextToken = Expect(TokenType.Operator, endMarker);
         // Declaration + assignment
         if (nextToken.Type == TokenType.Operator && ((OperatorToken)nextToken).OperatorType == OperatorTokenType.Assignment)
         {
             ActiveScope().Expressions.Add(new DeclarationExpression(t, name));
-            ActiveScope().Expressions.Add(new AssignmentExpression(name, ParseValueExpression(0, TokenType.EndOfExpression)));
-            Expect(TokenType.EndOfExpression);
+            ActiveScope().Expressions.Add(new AssignmentExpression(name, ParseValueExpression(0, endMarker)));
+            Expect(endMarker);
         }
-        else if (nextToken.Type == TokenType.EndOfExpression)
+        else if (nextToken.Type == endMarker)
         {
             ActiveScope().Expressions.Add(new DeclarationExpression(t, name));
         }
     }
 
-    void ParseAssignment()
+    void ParseAssignment(TokenType endMarker)
     {
         Token t = PopToken();
         Expect(TokenType.Operator);
-        ActiveScope().Expressions.Add(new AssignmentExpression(t, ParseValueExpression(0, TokenType.EndOfExpression)));
-        Expect(TokenType.EndOfExpression);
+        ActiveScope().Expressions.Add(new AssignmentExpression(t, ParseValueExpression(0, endMarker)));
+        Expect(endMarker);
     }
 
-    void ParseFunctionCall()
+    void ParseFunctionCall(TokenType endMarker)
     {
         Log.Trace("parsing function call");
-        ActiveScope().Expressions.Add(ParseValueExpression(0, TokenType.EndOfExpression));
-        Expect(TokenType.EndOfExpression);
+        ActiveScope().Expressions.Add(ParseValueExpression(0, endMarker));
+        Expect(endMarker);
     }
 
-    void ParseIfStatement()
+    void ParseIfStatement(TokenType endMarker)
+
     {
         Token t = Expect(TokenType.If);
         Expect(TokenType.OpenParenthesis);
@@ -379,7 +407,7 @@ public class Parser
         return;
     }
 
-    void ParseElseStatement()
+    void ParseElseStatement(TokenType endMarker)
     {
         Token t = Expect(TokenType.Else);
         Expression lastExpr = ActiveScope().Expressions.Last();
@@ -402,5 +430,32 @@ public class Parser
         {
             throw new ParseException("Cannot start an else-statement without a preceding if-statement", t);
         }
+    }
+
+    void ParseForStatement(TokenType endMarker)
+    {
+        Token t = Expect(TokenType.For);
+
+        Scope parentScope = ActiveScope();
+        Expect(TokenType.OpenParenthesis);
+
+        Scope scope = new Scope("__impl_for", parentScope, parentScope.ReturnType);
+        _scopes.Push(scope);
+
+        ParseStatement();
+        List<Expression> initializers = scope.Expressions.ToList();
+        scope.Expressions.Clear();
+
+        ValueExpression conditional = ParseValueExpression(0, TokenType.EndOfExpression);
+        Expect(TokenType.EndOfExpression);
+
+        ParseStatement(TokenType.CloseParenthesis);
+        Expression action = scope.Expressions.Single();
+        scope.Expressions.Clear();
+
+        Expect(TokenType.OpenCurlyBracket);
+
+        ForExpression forExpr = new ForExpression(t, initializers, conditional, action, scope);
+        parentScope.Expressions.Add(forExpr);
     }
 }

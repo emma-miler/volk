@@ -206,12 +206,12 @@ public class Lexer
             // =========================
             if (c == '{')
             {
-                yield return new Token(TokenType.OpenCurlyBracket, GetInputTokenValue(1));
+                yield return new Token(TokenType.OpenCurlyBracket, GetInputTokenValue());
                 continue;
             }
             if (c == '}')
             {
-                yield return new Token(TokenType.CloseCurlyBracket, GetInputTokenValue(1));
+                yield return new Token(TokenType.CloseCurlyBracket, GetInputTokenValue());
                 continue;
             }
 
@@ -223,12 +223,12 @@ public class Lexer
                 if (PeekByte() == '=')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.Eq, GetInputTokenValue(2));
+                    yield return new OperatorToken(OperatorTokenType.Eq, GetInputTokenValue());
                     continue;
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorTokenType.Assignment, GetInputTokenValue(1));
+                    yield return new OperatorToken(OperatorTokenType.Assignment, GetInputTokenValue());
                     continue;
                 }
             }
@@ -238,12 +238,12 @@ public class Lexer
                 {
 
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.Ne, GetInputTokenValue(2));
+                    yield return new OperatorToken(OperatorTokenType.Ne, GetInputTokenValue());
                     continue;
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorTokenType.Negate, GetInputTokenValue(2));
+                    yield return new OperatorToken(OperatorTokenType.Negate, GetInputTokenValue());
                     continue;
                 }
             }
@@ -252,13 +252,13 @@ public class Lexer
                 if (PeekByte() == '=')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.Le, GetInputTokenValue(2));
+                    yield return new OperatorToken(OperatorTokenType.Le, GetInputTokenValue());
                     continue;
                 }
                 else if (PeekByte() == '<')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.ShiftLeft, GetInputTokenValue(2));
+                    yield return new OperatorToken(OperatorTokenType.ShiftLeft, GetInputTokenValue());
                     continue;
                 }
                 else
@@ -272,13 +272,13 @@ public class Lexer
                 if (PeekByte() == '=')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.Ge, GetInputTokenValue(2));
+                    yield return new OperatorToken(OperatorTokenType.Ge, GetInputTokenValue());
                     continue;
                 }
                 else if (PeekByte() == '>')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.ShiftRight, GetInputTokenValue(2));
+                    yield return new OperatorToken(OperatorTokenType.ShiftRight, GetInputTokenValue());
                     continue;
                 }
                 else
@@ -293,7 +293,7 @@ public class Lexer
                 if (PeekByte() == '&')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.LogicalAnd, GetInputTokenValue(2));
+                    yield return new OperatorToken(OperatorTokenType.LogicalAnd, GetInputTokenValue());
                     continue;
                 }
                 else
@@ -307,7 +307,7 @@ public class Lexer
                 if (PeekByte() == '|')
                 {
                     ReadByte();
-                    yield return new OperatorToken(OperatorTokenType.LogicalOr, GetInputTokenValue(2));
+                    yield return new OperatorToken(OperatorTokenType.LogicalOr, GetInputTokenValue());
                     continue;
                 }
                 else
@@ -328,13 +328,31 @@ public class Lexer
             }
             if (c == '+')
             {
-                yield return new OperatorToken(OperatorTokenType.Plus, GetInputTokenValue());
-                continue;
+                if (PeekByte() == '+')
+                {
+                    ReadByte();
+                    yield return new OperatorToken(OperatorTokenType.UnaryIncrement, GetInputTokenValue());
+                    continue;
+                }
+                else
+                {
+                    yield return new OperatorToken(OperatorTokenType.Plus, GetInputTokenValue());
+                    continue;
+                }
             }
             if (c == '-')
             {
-                yield return new OperatorToken(OperatorTokenType.Minus, GetInputTokenValue());
-                continue;
+                if (PeekByte() == '+')
+                {
+                    ReadByte();
+                    yield return new OperatorToken(OperatorTokenType.UnaryDecrement, GetInputTokenValue());
+                    continue;
+                }
+                else
+                {
+                    yield return new OperatorToken(OperatorTokenType.Minus, GetInputTokenValue());
+                    continue;
+                }
             }
             if (c == '%')
             {
