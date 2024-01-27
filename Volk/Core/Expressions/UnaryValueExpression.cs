@@ -20,9 +20,12 @@ public class UnaryValueExpression : ValueExpression
     public override void Print(int depth)
     {
         string prefix = " ".Repeat(depth);
-        Log.Info($"{prefix}[ImmediateValueExpression]");
-        Log.Info($"{prefix} Operator={Operator.Value}");
-        Log.Info($"{prefix} Value=");
+        Log.Info($"{prefix}[UnaryValueExpression] {Operator.Value}");
         Value.Print(depth + 1);
+    }
+
+    public override void ResolveNames(Scope scope)
+    {
+        Value.ResolveNames(scope);
     }
 }

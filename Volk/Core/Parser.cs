@@ -1,5 +1,6 @@
 using Osiris;
 using Volk.Core.Expressions;
+using Volk.Core.Objects;
 
 namespace Volk.Core;
 public class Parser
@@ -14,7 +15,12 @@ public class Parser
     {
         _tokens = tokens;
         _scopes = new();
-        _scopes.Push(new Scope("__root", null!, VKType.BUILTIN_VOID));
+        Scope root = new Scope("__root", null!, VKType.BUILTIN_SYSTEM_VOID);
+        root.AddObject(VKType.BUILTIN_BOOL);
+        root.AddObject(VKType.BUILTIN_REAL);
+        root.AddObject(VKType.BUILTIN_INT);
+        root.AddObject(VKType.BUILTIN_VOID);
+        _scopes.Push(root);
     }
 
     public void Parse()
@@ -331,7 +337,7 @@ public class Parser
         }
 
         // =========================
-        // If statement
+        // If/Else statement
         // =========================
         else if (t.Type == TokenType.If)
             ParseIfStatement(endMarker);
@@ -344,6 +350,9 @@ public class Parser
         else if (t.Type == TokenType.For)
             ParseForStatement(endMarker);
 
+        else if (t.Type == TokenType.FunctionDeclaration)
+            ParseFunctionDeclaration(endMarker);
+
         else if (t.Type == TokenType.EOF)
         {
             Log.Info("FINISH PARSE");
@@ -354,8 +363,59 @@ public class Parser
             ParseTopLevelValueExpression(endMarker);
     }
 
+    void ParseFunctionDeclaration(TokenType endMarker)
+    {
+        Expect(TokenType.FunctionDeclaration);
+        Token type = Expect(TokenType.Name);
+        Token name = Expect(TokenType.Name);
+        VKType? returnType = ActiveScope().FindType(type.Value);
+        if  (returnType == null)
+                throw new TypeException($"Unknown type '{type}'", type);
+
+        Expect(TokenType.OpenParenthesis);
+        // Loop through all arguments
+        List<VKObject> parameters = new();
+        while (true)
+        {
+            Token peek = PeekToken();
+            // If the next token is a closing parenthesis, we have reached the end of the parameter pack
+            if (peek.Type == TokenType.CloseParenthesis)
+            {
+                Expect(TokenType.CloseParenthesis);
+                break;
+            }
+
+            // If we haven't reached that point, expect a typename and parameter name
+            Token paramType = Expect(TokenType.Name);
+            Token paramName = Expect(TokenType.Name);
+            // TODO: add support for optional and default parameters right here
+            VKType? resolvedType = ActiveScope().FindType(paramType.Value);
+            if  (resolvedType == null)
+                throw new TypeException($"Unknown type '{paramType}'", paramType);
+            parameters.Add(new VKObject(paramType.Value, resolvedType));
+
+            // Then, peek again to see if we've reached the parameter pack end, or if we need to keep parsing
+            peek = PeekToken();
+            // If the next token is a closing parenthesis, we have reached the end of the parameter pack
+            if (peek.Type == TokenType.CloseParenthesis)
+            {
+                Expect(TokenType.CloseParenthesis);
+                break;
+            }
+            // If we haven't, expect a comma separator
+            Expect(TokenType.CommaSeparator);
+        }
+
+        VKFunction func = new VKFunction(name.Value, returnType, parameters, ActiveScope());
+        ActiveScope().AddObject(func);
+        ActiveScope().Expressions.Add(new FunctionDeclarationExpression(name, func));
+        _scopes.Push(func.Scope);
+        Expect(TokenType.OpenCurlyBracket);
+    }
+
     void ParseTopLevelValueExpression(TokenType endMarker)
     {
+        // For convenience, we allow value expression to appear as a top level statement
         ActiveScope().Expressions.Add(ParseValueExpression(0, endMarker));
         Expect(endMarker);
     }
@@ -365,17 +425,21 @@ public class Parser
         Token t = PopToken();
         Token name = Expect(TokenType.Name);
         Token nextToken = Expect(TokenType.Operator, endMarker);
+        VKObject newVar = new VKObject(name.Value, VKType.BUILTIN_ERROR);
         // Declaration + assignment
         if (nextToken.Type == TokenType.Operator && ((OperatorToken)nextToken).OperatorType == OperatorTokenType.Assignment)
         {
-            ActiveScope().Expressions.Add(new DeclarationExpression(t, name));
+            ActiveScope().Expressions.Add(new DeclarationExpression(t, name, newVar));
             ActiveScope().Expressions.Add(new AssignmentExpression(name, ParseValueExpression(0, endMarker)));
             Expect(endMarker);
         }
+        // Only declaration
         else if (nextToken.Type == endMarker)
         {
-            ActiveScope().Expressions.Add(new DeclarationExpression(t, name));
+            ActiveScope().Expressions.Add(new DeclarationExpression(t, name, newVar));
         }
+        
+        ActiveScope().AddObject(newVar);
     }
 
     void ParseAssignment(TokenType endMarker)
@@ -438,17 +502,24 @@ public class Parser
 
         Scope parentScope = ActiveScope();
         Expect(TokenType.OpenParenthesis);
-
+        
+        // Create a new scope that will be shared by the for loop expressions and the for loop body
         Scope scope = new Scope("__impl_for", parentScope, parentScope.ReturnType);
         _scopes.Push(scope);
 
+        // Parse a singular gramatically top level statement
+        // Note: because a compound declaration and assignment such as 'int i = 0' is modelled as two top level statements,
+        // we can actually have multiple statements here. I don't really want to introduce a single declare-and-assign expression,
+        // so this will have to do for now.
         ParseStatement();
         List<Expression> initializers = scope.Expressions.ToList();
         scope.Expressions.Clear();
 
+        // Then, parse the loop conditional
         ValueExpression conditional = ParseValueExpression(0, TokenType.EndOfExpression);
         Expect(TokenType.EndOfExpression);
 
+        // Then, parse the action statement
         ParseStatement(TokenType.CloseParenthesis);
         Expression action = scope.Expressions.Single();
         scope.Expressions.Clear();

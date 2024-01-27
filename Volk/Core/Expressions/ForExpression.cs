@@ -39,4 +39,18 @@ public class ForExpression : Expression
             expr.Print(depth + 2);
         }
     }
+
+    public override void ResolveNames(Scope scope)
+    {
+        foreach (Expression expr in Initializer)
+        {
+            expr.ResolveNames(Scope);
+        }
+        Condition.ResolveNames(Scope);
+        Action.ResolveNames(Scope);
+        foreach (Expression expr in Scope.Expressions)
+        {
+            expr.ResolveNames(Scope);
+        }
+    }
 }

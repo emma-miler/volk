@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Transactions;
 using Osiris;
 using Volk.Core;
+using Volk.Core.Objects;
 
 namespace Volk.Lex;
 public class Lexer
@@ -163,7 +164,7 @@ public class Lexer
                 ReadByte();
                 SourcePosition newPos = new SourcePosition(_fs, _offset - _length + 1, _length - 2, _lineOffset - _length + 1, _lineNumber);
                 _length = 0;
-                yield return new ValueToken(ValueTokenType.String, newPos);
+                yield return new ValueToken(VKType.BUILTIN_STRING, newPos);
                 continue;
             }
 
@@ -177,12 +178,12 @@ public class Lexer
                 {
                     ReadByte();
                     ReadWhile(IsValidNumberCharacter);
-                    yield return new ValueToken(ValueTokenType.Real, GetInputTokenValue());
+                    yield return new ValueToken(VKType.BUILTIN_REAL, GetInputTokenValue());
                     continue;
                 }
                 else
                 {
-                    yield return new ValueToken(ValueTokenType.Int, GetInputTokenValue());
+                    yield return new ValueToken(VKType.BUILTIN_INT, GetInputTokenValue());
                     continue;
                 }
             }

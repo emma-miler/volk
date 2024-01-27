@@ -26,7 +26,7 @@ public record SourcePosition
 
     public override string ToString()
     {
-        return $"{{{Offset}, {Length}}}";
+        return $"<{LineNumber}:{LineOffset}:{Length}>";
     }
 
     public string GetValue(Encoding? encoding = null)

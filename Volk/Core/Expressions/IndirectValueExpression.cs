@@ -4,10 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Osiris;
 using Osiris.Extensions;
+using Volk.Core.Objects;
 
 namespace Volk.Core.Expressions;
-public class IndirectValueExpression : ValueExpression
+public class IndirectValueExpression : ValueExpression, ILValue
 {
+
+    VKObject? _variable;
     
     public IndirectValueExpression(Token name) : base(ValueExpressionType.Indirect, name)
     {
@@ -16,7 +19,17 @@ public class IndirectValueExpression : ValueExpression
     public override void Print(int depth)
     {
         string prefix = " ".Repeat(depth);
-        Log.Info($"{prefix}[IndirectValueExpression]");
-        Log.Info($"{prefix} Name={Token.Value}");
+        if (_variable == null)
+            Log.Info($"{prefix}[IndirectValueExpression] '{Token.Value}'");
+        else
+            Log.Info($"{prefix}[IndirectValueExpression] '{_variable.Name}': {_variable.Type}");
+    }
+
+    public override void ResolveNames(Scope scope)
+    {
+        _variable = scope.FindVariable(Token.Value);
+        if (_variable == null)
+            throw new NameException($"Undefined variable '{Token.Value}'", Token);
+        ValueType = _variable.Type;
     }
 }

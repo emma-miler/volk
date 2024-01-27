@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Volk.Core;
+using Volk.Core.Objects;
 
 namespace Volk.Core;
 public class Token
@@ -28,8 +29,8 @@ public class Token
 
 public class ValueToken : Token
 {
-    public ValueTokenType ValueType { get; }
-    public ValueToken(ValueTokenType valueType, SourcePosition valueSource) : base(TokenType.ImmediateValue, valueSource)
+    public VKType ValueType { get; }
+    public ValueToken(VKType valueType, SourcePosition valueSource) : base(TokenType.ImmediateValue, valueSource)
     {
         ValueType = valueType;
     }

@@ -22,11 +22,14 @@ public class BinaryValueExpression : ValueExpression
     public override void Print(int depth)
     {
         string prefix = " ".Repeat(depth);
-        Log.Info($"{prefix}[BinaryValueExpression]");
-        Log.Info($"{prefix} Operator={Operator}");
-        Log.Info($"{prefix} Left=");
+        Log.Info($"{prefix}[BinaryValueExpression] {Operator}");
         Left.Print(depth + 1);
-        Log.Info($"{prefix} Right=");
-        Right.Print(depth + 2);
+        Right.Print(depth + 1);
+    }
+
+    public override void ResolveNames(Scope scope)
+    {
+        Left.ResolveNames(scope);
+        Right.ResolveNames(scope);
     }
 }

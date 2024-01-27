@@ -46,13 +46,32 @@ class Program
                 expr.Print(0);
             }
         }
+
+        Log.Info($"NAME RESOLUTION");
+        foreach (Scope scope in _parser.Scopes)
+        {
+            foreach (Expression expr in scope.Expressions)
+            {
+                expr.ResolveNames(scope);
+            }
+        }
+        Log.Info($"NAME RESOLUTION SUCCESFUL");
+
+        foreach (Scope scope in _parser.Scopes)
+        {
+            Log.Info($"SCOPE: {scope.ChainName}");
+            foreach (Expression expr in scope.Expressions)
+            {
+                expr.Print(0);
+            }
+        }
         
         Log.LogDetailLevel = Log.DetailLevel.Detailed;
     }
 
     static void IndicateToken(Token t)
     {
-        string line = _lexer.GetLine(t.ValueSource.LineNumber).GetValue();
+        string line = _lexer.GetLine(t.ValueSource.LineNumber).GetValue().Replace('\n', ' ');
         Log.Error(line);
         string prefix = " ".Repeat(t.ValueSource.LineOffset);
         Log.Error(prefix + "^".Repeat(t.ValueSource.Length));

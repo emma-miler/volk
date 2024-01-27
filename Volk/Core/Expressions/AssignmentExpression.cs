@@ -4,23 +4,32 @@ using System.Linq;
 using System.Threading.Tasks;
 using Osiris;
 using Osiris.Extensions;
+using Volk.Core.Objects;
 
 namespace Volk.Core.Expressions;
 public class AssignmentExpression : Expression
 {
-    ValueExpression Value;
+    ValueExpression _valueExpression;
     
+    VKObject? _variable;
+
     public AssignmentExpression(Token name, ValueExpression value) : base(ExpressionType.Assigment, name)
     {
-        Value = value;
+        _valueExpression = value;
     }
 
     public override void Print(int depth)
     {
         string prefix = " ".Repeat(depth);
-        Log.Info($"{prefix}[AssignmentExpression]");
-        Log.Info($"{prefix} Name={Token.Value}");
-        Log.Info($"{prefix} Value=");
-        Value.Print(depth + 1);
+        Log.Info($"{prefix}[AssignmentExpression] '{Token.Value}': {_variable?.Type.Name ?? "__builtin_error"}");
+        _valueExpression.Print(depth + 1);
+    }
+
+    public override void ResolveNames(Scope scope)
+    {
+        _variable = scope.FindVariable(Token.Value);
+        if (_variable == null)
+            throw new NameException($"Could not find bound object with name '{Token.Value}'", Token);
+        _valueExpression.ResolveNames(scope);
     }
 }
