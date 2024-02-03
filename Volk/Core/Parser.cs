@@ -11,15 +11,23 @@ public class Parser
     Queue<Token> _tokens;
     Stack<Scope> _scopes;
 
-    public Parser(Queue<Token> tokens)
+    VKProgram _program;
+
+    public Parser(Queue<Token> tokens, VKProgram program)
     {
+        _program = program;
         _tokens = tokens;
         _scopes = new();
-        Scope root = new Scope("__root", null!, VKType.BUILTIN_SYSTEM_VOID);
+        Scope root = new Scope("__root", null!, VKType.BUILTIN_VOID);
         root.AddObject(VKType.BUILTIN_BOOL);
         root.AddObject(VKType.BUILTIN_REAL);
         root.AddObject(VKType.BUILTIN_INT);
         root.AddObject(VKType.BUILTIN_VOID);
+        root.AddObject(VKType.BUILTIN_STRING);
+        VKFunction mainFunc = new VKFunction("main", VKType.BUILTIN_VOID, new(), null!) {
+            Scope = root
+        };
+        _program.Functions.Add(mainFunc);
         _scopes.Push(root);
     }
 
@@ -127,7 +135,17 @@ public class Parser
         if (t is ValueToken vt)
         {
             Log.Trace("consume value token");
-            expr = new ImmediateValueExpression(vt);
+            if (vt.ValueType == VKType.BUILTIN_STRING)
+            {
+                VKCompileTimeString cts = new(vt.Value, _program.CompileTimeStrings.Count);
+                expr = new ImmediateValueExpression(vt, cts);
+                _program.CompileTimeStrings.Add(cts);
+            }
+            else
+            {
+                expr = new ImmediateValueExpression(vt);
+            }
+            
         }
         else if (t.Type == TokenType.Name)
         {
@@ -392,7 +410,7 @@ public class Parser
             VKType? resolvedType = ActiveScope().FindType(paramType.Value);
             if  (resolvedType == null)
                 throw new TypeException($"Unknown type '{paramType}'", paramType);
-            parameters.Add(new VKObject(paramType.Value, resolvedType));
+            parameters.Add(new VKObject(paramName.Value, resolvedType));
 
             // Then, peek again to see if we've reached the parameter pack end, or if we need to keep parsing
             peek = PeekToken();
@@ -410,6 +428,7 @@ public class Parser
         ActiveScope().AddObject(func);
         ActiveScope().Expressions.Add(new FunctionDeclarationExpression(name, func));
         _scopes.Push(func.Scope);
+        _program.Functions.Add(func);
         Expect(TokenType.OpenCurlyBracket);
     }
 

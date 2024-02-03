@@ -32,4 +32,17 @@ public class DeclarationExpression : Expression
             throw new NameException($"Declared variable '{_variable.Name}' of unknown type '{Typename.Value}'", Token);
         _variable.UpdateType(varType);
     }
+
+    public override void TypeCheck(Scope scope)
+    {
+        return;
+    }
+
+    public override IRVariable GenerateCode(CodeGenerator gen)
+    {
+        gen.Comment("START DECLARATION");
+        gen.Operation($"%{_variable.Name} = alloca {_variable.Type.IRType}, align 8");
+        gen.Comment("END DECLARATION");
+        return new IRVariable(_variable.Name, _variable.Type, IRVariableType.Variable);
+    }
 }

@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": ".NET Core Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/Volk/bin/Debug/net6.0/Volk.dll",
+            "args": ["samples/test.vk"],
+            "cwd": "${workspaceFolder}/Volk/bin/Debug/net6.0/",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        }
+    ]
+}

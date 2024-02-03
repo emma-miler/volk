@@ -20,12 +20,15 @@ public class Lexer
     Stream _fs;
     StreamReader _data;
 
+    VKProgram _program;
+
     List<SourcePosition> _lines = new();
 
-    public Lexer(Stream fs)
+    public Lexer(Stream fs, VKProgram program)
     {
         _fs = fs;
         _data = new StreamReader(fs);
+        _program = program;
     }
 
     public SourcePosition GetLine(int lineNumber) => _lines[lineNumber];

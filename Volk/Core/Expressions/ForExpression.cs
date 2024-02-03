@@ -53,4 +53,24 @@ public class ForExpression : Expression
             expr.ResolveNames(Scope);
         }
     }
+
+    public override void TypeCheck(Scope scope)
+    {
+        foreach (Expression initializer in Initializer)
+        {
+            initializer.TypeCheck(scope);
+        }
+        Condition.TypeCheck(scope);
+        Action.TypeCheck(scope);
+
+        foreach (Expression expr in Scope.Expressions)
+        {
+            expr.TypeCheck(Scope);
+        }
+    }
+
+    public override IRVariable GenerateCode(CodeGenerator gen)
+    {
+        throw new NotImplementedException();
+    }
 }

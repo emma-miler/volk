@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using Volk.Core;
@@ -52,6 +54,25 @@ public class OperatorToken : Token
     public override string ToString()
     {
         return $"{Type} ({OperatorType}) {ValueSource}";
+    }
+
+    public string GetIROperator()
+    {
+        switch (OperatorType)
+        {
+            case OperatorTokenType.Plus: return "add";
+            case OperatorTokenType.Minus: return "sub";
+            case OperatorTokenType.Multiply: return "mul";
+            case OperatorTokenType.Divide: return "div";
+            case OperatorTokenType.Modulo: return "rem";
+            case OperatorTokenType.Eq: return "eq";
+            case OperatorTokenType.Ne: return "ne";
+            case OperatorTokenType.Gt: return "gt";
+            case OperatorTokenType.Ge: return "ge";
+            case OperatorTokenType.Lt: return "lt";
+            case OperatorTokenType.Le: return "le";
+            default: throw new InvalidEnumArgumentException(OperatorType.ToString());
+        }
     }
 
     public bool IsComparisonOperator => OperatorType >= OperatorTokenType.Eq && OperatorType <= OperatorTokenType.Le;

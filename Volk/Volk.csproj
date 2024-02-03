@@ -8,10 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Osiris" Version="0.1.3" />
+    <PackageReference Include="Osiris" Version="0.1.4" />
   </ItemGroup>
 
-  <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
+  <Target Name="CopyCustomContent" AfterTargets="BeforeBuild">
+    <Copy SourceFiles="debug_scripts/run.sh" DestinationFolder="$(OutDir)/" />
     <Copy SourceFiles="samples/test.vk" DestinationFolder="$(OutDir)/samples/" />
   </Target>
 </Project>

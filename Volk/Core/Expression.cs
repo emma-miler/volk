@@ -22,7 +22,15 @@ public abstract class Expression
     /// <param name="scope"></param>
     public abstract void ResolveNames(Scope scope);
 
-    //public abstract void TypeCheck(Scope scope);
+    /// <summary>
+    /// Type-check this expression
+    /// </summary>
+    public abstract void TypeCheck(Scope scope);
+
+    /// <summary>
+    /// Run code generation for this expression
+    /// </summary>
+    public abstract IRVariable GenerateCode(CodeGenerator gen);
 }
 
 public abstract class ValueExpression : Expression

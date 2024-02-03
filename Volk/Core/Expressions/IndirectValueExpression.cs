@@ -32,4 +32,18 @@ public class IndirectValueExpression : ValueExpression, ILValue
             throw new NameException($"Undefined variable '{Token.Value}'", Token);
         ValueType = _variable.Type;
     }
+
+    public override void TypeCheck(Scope scope)
+    {
+        return;
+    }
+
+    public override IRVariable GenerateCode(CodeGenerator gen)
+    {
+        // If it is already the most recent value on the stack, we don't need to do anything
+        IRVariable ret = gen.NewVariable(_variable!.Type, IRVariableType.Immediate);
+        // Assign the value
+        gen.Operation($"{ret} = load {_variable.Type}, {_variable}");
+        return ret;
+    }
 }

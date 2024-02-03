@@ -29,4 +29,14 @@ public class FunctionDeclarationExpression : Expression
             expr.ResolveNames(_function.Scope);
         }
     }
+
+    public override void TypeCheck(Scope scope)
+    {
+        return;
+    }
+
+    public override IRVariable GenerateCode(CodeGenerator gen)
+    {
+        return new IRVariable(_function.Name, VKType.BUILTIN_FUNCTION, IRVariableType.Immediate);
+    }
 }

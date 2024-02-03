@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "dotnet",
+			"task": "build /home/emma/source/volk/Volk/Volk.csproj",
+			"file": "/home/emma/source/volk/Volk/Volk.csproj",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "dotnet: build /home/emma/source/volk/Volk/Volk.csproj"
+		}
+	]
+}

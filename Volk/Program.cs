@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Osiris;
 using Osiris.Extensions;
 using Volk.Core;
+using Volk.Core.Objects;
 using Volk.Lex;
 
 namespace Volk;
@@ -14,19 +15,23 @@ class Program
     static Lexer _lexer = null!;
     static Parser _parser = null!;
 
-    static void Main()
+    static void Main(string[] args)
     {
         Log.Initialize(null);
         Log.LogDetailLevel = Log.DetailLevel.Basic;
-        FileStream fs = File.OpenRead("samples/test.vk");
-        _lexer = new(fs);
+        FileInfo file = new FileInfo(args[0]);
+        FileStream fs = File.OpenRead(args[0]);
+        
+
+        VKProgram program = new();
+        _lexer = new(fs, program);
         List<Token> tokens = _lexer.Lex().ToList();
         foreach (Token token in tokens)
         {
             Log.Info($"{token} {token.Value}");
         }
 
-        _parser = new(new Queue<Token>(tokens));
+        _parser = new(new Queue<Token>(tokens), program);
         try
         {
             _parser.Parse();
@@ -37,36 +42,42 @@ class Program
             IndicateToken(ex.ErrorToken);
             throw;
         }
-        Log.LogDetailLevel = Log.DetailLevel.None;
-        foreach (Scope scope in _parser.Scopes)
-        {
-            Log.Info($"SCOPE: {scope.Name}");
-            foreach (Expression expr in scope.Expressions)
-            {
-                expr.Print(0);
-            }
-        }
 
-        Log.Info($"NAME RESOLUTION");
+        
+        program.PrintExpressions();
+
+        Log.Info($"START NAME RESOLUTION AND TYPE CHECK");
         foreach (Scope scope in _parser.Scopes)
         {
             foreach (Expression expr in scope.Expressions)
             {
                 expr.ResolveNames(scope);
             }
-        }
-        Log.Info($"NAME RESOLUTION SUCCESFUL");
-
-        foreach (Scope scope in _parser.Scopes)
-        {
-            Log.Info($"SCOPE: {scope.ChainName}");
             foreach (Expression expr in scope.Expressions)
             {
-                expr.Print(0);
+                expr.TypeCheck(scope);
             }
         }
-        
+        Log.Info($"END NAME RESOLUTION AND TYPE CHECK");
+
+        program.PrintExpressions();
+
+        string output = "";
+        CodeGenerator gen = new();
+        gen.AddStringTable(program.CompileTimeStrings);
+        foreach (VKFunction function in program.Functions)
+        {
+           function.GenerateCode(gen);
+        }
+        output += gen.Build();
+
+        Log.LogDetailLevel = Log.DetailLevel.None;
+        Log.Info(output);
         Log.LogDetailLevel = Log.DetailLevel.Detailed;
+        string newFileName = args[0];
+        newFileName = newFileName.ReplaceLast(".vk", ".ll");
+        File.WriteAllText(newFileName, output);
+        
     }
 
     static void IndicateToken(Token t)

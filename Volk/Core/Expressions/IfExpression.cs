@@ -49,4 +49,22 @@ public class IfExpression : Expression
             expr.ResolveNames(scope);
         }
     }
+
+    public override void TypeCheck(Scope scope)
+    {
+        Condition.TypeCheck(scope);
+        foreach (Expression expr in IfTrue.Expressions)
+        {
+            expr.TypeCheck(IfTrue);
+        }
+        foreach (Expression expr in IfFalse.Expressions)
+        {
+            expr.TypeCheck(IfFalse);
+        }
+    }
+
+    public override IRVariable GenerateCode(CodeGenerator gen)
+    {
+        throw new NotImplementedException();
+    }
 }

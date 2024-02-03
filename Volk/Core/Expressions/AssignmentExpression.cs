@@ -32,4 +32,23 @@ public class AssignmentExpression : Expression
             throw new NameException($"Could not find bound object with name '{Token.Value}'", Token);
         _valueExpression.ResolveNames(scope);
     }
+
+    public override void TypeCheck(Scope scope)
+    {
+        _valueExpression.TypeCheck(scope);
+        if (!VKType.IsEqualOrDerived(_variable!.Type, _valueExpression.ValueType!))
+            throw new TypeException($"Cannot assign value of type '{_valueExpression.ValueType}' to variable of type '{_variable!.Type}'", Token);
+    }
+
+    public override IRVariable GenerateCode(CodeGenerator gen)
+    {
+        // We check if we have an immediate value here for optimization
+        if (_valueExpression.ValueExpressionType != ValueExpressionType.Immediate)
+            gen.Comment("START ASSIGNMENT VALUE");
+        IRVariable value = _valueExpression.GenerateCode(gen);
+        gen.Comment("START ASSIGNMENT");
+        gen.Operation($"store {value}, ptr %{_variable!.Name}");
+        gen.Comment("END ASSIGNMENT");
+        return new IRVariable(_variable.Name, _variable.Type, IRVariableType.Variable);
+    }
 }
