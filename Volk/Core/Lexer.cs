@@ -144,7 +144,6 @@ public class Lexer
             // =========================
             if (IsValidNameStartCharacter(c))
             {
-                // TODO: keywords
                 ReadWhile(IsValidNameCharacter);
                 Token t = new Token(TokenType.Name, GetInputTokenValue(-1, false));
                 TokenType? keywordType = Keyword.GetKeywordType(t.Value);
@@ -346,7 +345,7 @@ public class Lexer
             }
             if (c == '-')
             {
-                if (PeekByte() == '+')
+                if (PeekByte() == '-')
                 {
                     ReadByte();
                     yield return new OperatorToken(OperatorTokenType.UnaryDecrement, GetInputTokenValue());

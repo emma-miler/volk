@@ -19,6 +19,8 @@ class Program
     {
         Log.Initialize(null);
         Log.LogDetailLevel = Log.DetailLevel.Basic;
+        RuntimeConfig.Initialize(args);
+
         FileInfo file = new FileInfo(args[0]);
         FileStream fs = File.OpenRead(args[0]);
         
@@ -70,6 +72,8 @@ class Program
            function.GenerateCode(gen);
         }
         output += gen.Build();
+        output += "\n\n";
+        output += "declare i64 @printf(ptr noundef, ...) #1\n";
 
         Log.LogDetailLevel = Log.DetailLevel.None;
         Log.Info(output);

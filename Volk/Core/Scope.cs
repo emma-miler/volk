@@ -29,6 +29,12 @@ public class Scope : VKObject
         _objects[obj.Name] = obj;
     }
 
+    public void CloseScope()
+    {
+        if (ReturnType != VKType.BUILTIN_VOID && Expressions.Last().ExpressionType != ExpressionType.Return)
+            throw new Exception($"Cannot exit non-void scope '{Name}' with return type '{ReturnType}' without a return statement");
+    }
+
     public VKObject? FindVariable(string name)
     {
         _objects.TryGetValue(name, out VKObject? obj);

@@ -18,15 +18,19 @@ public class VKFunction : VKObject
     {
         Parameters = parameters;
         Scope = new Scope(name, parentScope, returnType);
+
+        foreach (VKObject param in Parameters)
+            Scope.AddObject(param);
     }
 
     public override string ToString()
     {
-        return $"function {Name} ({string.Join(',', Parameters)})";
+        return $"function {ReturnType} {Name} ({string.Join(',', Parameters)})";
     }
 
     public void GenerateCode(CodeGenerator gen)
     {
+        gen.Counter = 0;
         string parameters = string.Join(", ", Parameters.Select(x => $"{x.Type.IRType} noundef %param.{x.Name}"));
         string header = $"define dso_local {(ReturnType == VKType.BUILTIN_VOID ? "" : "noundef")} {ReturnType.IRType} @{Name} ({parameters}) #0 {{";
         gen.Label(header);
@@ -41,7 +45,6 @@ public class VKFunction : VKObject
         {
             expr.GenerateCode(gen);
         }
-        gen.Operation($"ret void");
         gen.Label("}");
     }
 }

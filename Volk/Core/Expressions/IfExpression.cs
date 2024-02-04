@@ -1,5 +1,6 @@
 using Osiris;
 using Osiris.Extensions;
+using Volk.Core.Objects;
 
 namespace Volk.Core.Expressions;
 public class IfExpression : Expression
@@ -65,6 +66,46 @@ public class IfExpression : Expression
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
-        throw new NotImplementedException();
+        gen.Comment("START IF CONDITION");
+        IRVariable condition = Condition.GenerateCode(gen);
+        // Derefence the value if its a pointer value
+        condition = gen.DereferenceIfPointer(condition);
+        // If it it's for example int, truncate it to bool
+        if (condition.Type != VKType.BUILTIN_BOOL)
+        {
+            IRVariable tmp = gen.NewVariable(VKType.BUILTIN_BOOL, IRVariableType.Immediate);
+            gen.Operation($"{tmp} = trunc {condition} to i1");
+            condition = tmp;
+        }
+        gen.Comment("END IF CONDITION");
+
+        string name = "if" + gen.Counter++.ToString();
+        if (HasElseClause)
+            gen.Branch(condition, $"{name}.then", $"{name}.else");
+        else
+            gen.Branch(condition, $"{name}.then", $"{name}.end");
+
+        gen.Comment("START IF BODY");
+        gen.Label($"{name}.then:");
+        foreach (Expression expr in IfTrue.Expressions)
+            expr.GenerateCode(gen);
+        gen.Jump($"{name}.end");
+        gen.Comment("END IF BODY");
+
+        if (HasElseClause)
+        {
+            gen.Comment("START ELSE BODY");
+            gen.Label($"{name}.else:");
+            foreach (Expression expr in IfFalse.Expressions)
+                expr.GenerateCode(gen);
+            gen.Jump($"{name}.end");
+            gen.Comment("END ELSE BODY");
+        }
+
+        gen.Label($"{name}.end:");
+        if (HasElseClause)
+            gen.Operation("unreachable");
+
+        return condition;
     }
 }

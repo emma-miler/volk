@@ -16,5 +16,6 @@ public enum TokenType
     If,
     Else,
     For,
+    Return,
     FunctionDeclaration,
 }

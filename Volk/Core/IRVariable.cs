@@ -28,18 +28,19 @@ public record struct IRVariable
         VariableType = variableType;
     }
 
-    public string GetName()
-    {
-        string prefix;
-        switch (VariableType)
-        {
-            case IRVariableType.Immediate: prefix = ""; break;
-            case IRVariableType.Constant: prefix = "@"; break;
-            case IRVariableType.Variable: prefix = "%"; break;
-            case IRVariableType.Pointer: prefix = "%"; break;
-            default: throw new InvalidEnumArgumentException();
+    public string Reference 
+    { get {
+            string prefix;
+            switch (VariableType)
+            {
+                case IRVariableType.Immediate: prefix = ""; break;
+                case IRVariableType.Constant: prefix = "@"; break;
+                case IRVariableType.Variable: prefix = "%"; break;
+                case IRVariableType.Pointer: prefix = "%"; break;
+                default: throw new InvalidEnumArgumentException();
+            }
+            return $"{prefix}{Name}";
         }
-        return $"{prefix}{Name}";
     }
 
     public override string ToString()

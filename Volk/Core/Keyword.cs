@@ -14,6 +14,7 @@ public static class Keyword
             case "else": return TokenType.Else;
             case "for": return TokenType.For;
             case "function": return TokenType.FunctionDeclaration;
+            case "return": return TokenType.Return;
             default: return null!;
         }
     }

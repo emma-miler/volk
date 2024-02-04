@@ -29,7 +29,7 @@ public record SourcePosition
         return $"<{LineNumber}:{LineOffset}:{Length}>";
     }
 
-    public string GetValue(Encoding? encoding = null)
+    public virtual string GetValue(Encoding? encoding = null)
     {
         if (encoding == null) encoding = Encoding.ASCII;
         _stream.Seek(Offset, SeekOrigin.Begin);
@@ -37,5 +37,21 @@ public record SourcePosition
         _stream.Read(buf, 0, Length);
         _stream.Seek(-Length, SeekOrigin.Current);
         return encoding.GetString(buf);
+    }
+}
+
+public record DummySourcePosition : SourcePosition
+{
+
+    string _value;
+
+    public DummySourcePosition(string value) : base(null!, 0, 0, 0, 0)
+    {
+        _value = value;
+    }
+
+    public override string GetValue(Encoding? encoding = null)
+    {
+        return _value;
     }
 }

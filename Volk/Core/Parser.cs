@@ -18,17 +18,29 @@ public class Parser
         _program = program;
         _tokens = tokens;
         _scopes = new();
-        Scope root = new Scope("__root", null!, VKType.BUILTIN_VOID);
+        Scope root = new Scope("__root", null!, VKType.BUILTIN_INT);
         root.AddObject(VKType.BUILTIN_BOOL);
         root.AddObject(VKType.BUILTIN_REAL);
         root.AddObject(VKType.BUILTIN_INT);
         root.AddObject(VKType.BUILTIN_VOID);
         root.AddObject(VKType.BUILTIN_STRING);
-        VKFunction mainFunc = new VKFunction("main", VKType.BUILTIN_VOID, new(), null!) {
+        VKFunction mainFunc = new VKFunction("main", VKType.BUILTIN_INT, new(), null!) {
             Scope = root
         };
         _program.Functions.Add(mainFunc);
         _scopes.Push(root);
+
+        root.AddObject(
+            new VKFunction(
+                "printf", 
+                VKType.BUILTIN_INT, 
+                new List<VKObject>() { 
+                    new VKObject("format_string", VKType.BUILTIN_STRING),
+                    new VKObject("args", VKType.BUILTIN_C_VARARGS),
+                },
+                root
+            )
+        );
     }
 
     public void Parse()
@@ -314,7 +326,8 @@ public class Parser
         if (t.Type == TokenType.CloseCurlyBracket)
         {
             Expect(TokenType.CloseCurlyBracket);
-            _scopes.Pop();
+            Scope scope = _scopes.Pop();
+            scope.CloseScope();
             return;
         }
 
@@ -371,14 +384,46 @@ public class Parser
         else if (t.Type == TokenType.FunctionDeclaration)
             ParseFunctionDeclaration(endMarker);
 
+        // =========================
+        // For statement
+        // =========================
+        else if (t.Type == TokenType.Return)
+            ParseReturn(endMarker);
+
         else if (t.Type == TokenType.EOF)
         {
             Log.Info("FINISH PARSE");
             PopToken();
+            // Add default return value for main function
+            if (ActiveScope().Expressions.Last().ExpressionType != ExpressionType.Return)
+            {
+                ImmediateValueExpression value = new ImmediateValueExpression(new ValueToken(VKType.BUILTIN_INT, new DummySourcePosition("0")));
+                ReturnExpression returnExpr = new ReturnExpression(new Token(TokenType.Return, new DummySourcePosition("return")), value, ActiveScope());
+                ActiveScope().Expressions.Add(returnExpr);
+            }
+            ActiveScope().CloseScope();
             return;
         }
         else
             ParseTopLevelValueExpression(endMarker);
+    }
+
+    #region Top Level Statements
+
+    void ParseReturn(TokenType endMarker)
+    {
+        Token ret = Expect(TokenType.Return);
+        Token next = PeekToken();
+        if (next.Type == endMarker)
+        {
+            Expect(endMarker);
+            ActiveScope().Expressions.Add(new ReturnExpression(ret, null, ActiveScope()));
+        }
+        else
+        {
+            ActiveScope().Expressions.Add(new ReturnExpression(ret, ParseValueExpression(0, endMarker), ActiveScope()));
+            Expect(endMarker);
+        }
     }
 
     void ParseFunctionDeclaration(TokenType endMarker)
@@ -548,4 +593,6 @@ public class Parser
         ForExpression forExpr = new ForExpression(t, initializers, conditional, action, scope);
         parentScope.Expressions.Add(forExpr);
     }
+
+    #endregion Top Level Statements
 }

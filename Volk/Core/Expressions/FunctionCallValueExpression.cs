@@ -54,6 +54,11 @@ public class FunctionCallValueExpression : ValueExpression
         int i = 0;
         foreach (ValueExpression arg in Arguments)
         {
+            if (_function!.Parameters[i].Type == VKType.BUILTIN_C_VARARGS)
+            {
+                // If we hit a varargs, it doesnt make sense to continue searching, cause we cant guarantee type safety anymore anyway
+                return;
+            }
             arg.TypeCheck(scope);
             VKObject parameter = _function!.Parameters[i];
             if (parameter.Type != arg.ValueType)
@@ -64,6 +69,33 @@ public class FunctionCallValueExpression : ValueExpression
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
-        throw new NotImplementedException();
+        bool hasVarArgs = _function!.Parameters.Any(x => x.Type == VKType.BUILTIN_C_VARARGS);
+        gen.Comment("STACK FUNCTION CALL ARGUMENTS");
+        List<IRVariable> argVariables = new();
+        int i = 0;
+        foreach (ValueExpression arg in Arguments)
+        {
+            gen.Comment($"ARG {i}");
+            IRVariable argVar = arg.GenerateCode(gen);
+            argVar = gen.DereferenceIfPointer(argVar);
+            Log.Debug($"Has varargs: {hasVarArgs}");
+            Log.Debug($"Arg type: {arg.ValueType}");
+            argVariables.Add(argVar);
+            i++;
+        }
+        gen.Comment("END FUNCTION CALL ARGUMENTS");
+        gen.Comment("START FUNCTION CALL");
+        IRVariable retVal = gen.NewVariable(_function.ReturnType);
+        string ir = "";
+        if (_function.ReturnType == VKType.BUILTIN_VOID)
+            ir = $"call {_function.ReturnType.IRType} @{_function.Name}(";
+        else
+            ir = $"{retVal.Reference} = call noundef {_function.ReturnType.IRType} @{_function.Name}(";
+
+        ir += string.Join(", ", argVariables);
+        ir += ")";
+        gen.Operation(ir);
+        gen.Comment("END FUNCTION CALL");
+        return retVal;
     }
 }

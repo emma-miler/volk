@@ -10,10 +10,24 @@ public record struct VKCompileTimeString
     public string Value;
     public int Index;
 
+    Dictionary<string, string> _desanitizePatterns = new() {
+        { "\\\\" , "\\" },
+        { "\\n", "\n" },
+        { "\\r", "\r" },
+        { "\\t", "\t" },
+        { "\\\"", "\"" }
+    };
+
+
     public VKCompileTimeString(string value, int index)
     {
         Value = value;
         Index = index;
+
+        foreach ((string pattern, string replace) in _desanitizePatterns)
+        {
+            Value = Value.Replace(pattern, replace);
+        }
     }
 
     Dictionary<char, string> _llvmPatterns = new() {

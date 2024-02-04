@@ -15,6 +15,7 @@ public class VKType : VKObject
     public static VKType BUILTIN_SYSTEM_VOID = new VKType("__system_void", false);
     public static VKType BUILTIN_ERROR = new VKType("__builtin_error", false);
     public static VKType BUILTIN_FUNCTION = new VKType("function", true);
+    public static VKType BUILTIN_C_VARARGS = new VKType("__varargs", true);
 
 
     bool IsReferenceType { get; }
@@ -23,7 +24,7 @@ public class VKType : VKObject
     public VKType(string name, bool isReferenceType, string? irType = null) : base(name, BUILTIN_TYPE)
     {
         IsReferenceType = isReferenceType;
-        IRType = irType;
+        IRType = irType ?? $"__INVALID_IR_TYPE({name})";
     }
 
     public override string ToString()

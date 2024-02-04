@@ -32,6 +32,7 @@ public class UnaryValueExpression : ValueExpression
     public override void TypeCheck(Scope scope)
     {
         _value.TypeCheck(scope);
+        ValueType = _value.ValueType;
     }
 
     public override IRVariable GenerateCode(CodeGenerator gen)
@@ -43,11 +44,11 @@ public class UnaryValueExpression : ValueExpression
         {
             IRVariable tmp = gen.NewVariable(left.Type, IRVariableType.Immediate);
             gen.Comment("!!! CHECK CODE 5101");
-            gen.Operation($"{tmp} = load i64, ptr %{left}");
+            gen.Operation($"{tmp.Reference} = load i64, ptr %{left}");
             left = tmp;
         }
         IRVariable ret = gen.NewVariable(left.Type, IRVariableType.Immediate);
-        gen.Operation($"{ret} = {_operator.GetIROperator()} nsw i64 0, {left}");
+        gen.Operation($"{ret.Reference} = {_operator.GetIROperator()} nsw i64 0, {left}");
         gen.Comment("END UNARY OPERATOR");
         return ret;
     }

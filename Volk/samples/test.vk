@@ -1,1 +1,9 @@
-string test = "abc";
+function void countdown(int i)
+{
+    for (int i = i; i > 0; i--)
+    {
+        printf("%d\n", i);
+    }
+}
+
+countdown(5);

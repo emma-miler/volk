@@ -23,10 +23,11 @@ public class VKProgram
     public void PrintExpressions()
     {
         Log.LogDetailLevel = Log.DetailLevel.None;
-        foreach (Scope scope in Scopes)
+        foreach (VKFunction func in Functions)
         {
-            Log.Info($"SCOPE: {scope.ChainName}");
-            foreach (Expression expr in scope.Expressions)
+            Log.Info($"FUNC: {func.Name}");
+            Log.Info($"SCOPE: {func.Scope.ChainName}");
+            foreach (Expression expr in func.Scope.Expressions)
             {
                 expr.Print(0);
             }
