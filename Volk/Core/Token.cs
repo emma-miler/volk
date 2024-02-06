@@ -45,8 +45,8 @@ public class ValueToken : Token
 
 public class OperatorToken : Token
 {
-    public OperatorTokenType OperatorType { get; }
-    public OperatorToken(OperatorTokenType valueType, SourcePosition valueSource) : base(TokenType.Operator, valueSource)
+    public OperatorType OperatorType { get; }
+    public OperatorToken(OperatorType valueType, SourcePosition valueSource) : base(TokenType.Operator, valueSource)
     {
         OperatorType = valueType;
     }
@@ -56,25 +56,29 @@ public class OperatorToken : Token
         return $"{Type} ({OperatorType}) {ValueSource}";
     }
 
-    public string GetIROperator()
+    public string GetIROperator() => GetIROperator(OperatorType);
+
+    public static string GetIROperator(OperatorType op)
     {
-        switch (OperatorType)
+        switch (op)
         {
-            case OperatorTokenType.Plus: return "add";
-            case OperatorTokenType.Minus: return "sub";
-            case OperatorTokenType.Multiply: return "mul";
-            case OperatorTokenType.Divide: return "div";
-            case OperatorTokenType.Modulo: return "rem";
-            case OperatorTokenType.Eq: return "eq";
-            case OperatorTokenType.Ne: return "ne";
-            case OperatorTokenType.Gt: return "gt";
-            case OperatorTokenType.Ge: return "ge";
-            case OperatorTokenType.Lt: return "lt";
-            case OperatorTokenType.Le: return "le";
-            default: throw new InvalidEnumArgumentException(OperatorType.ToString());
+            case OperatorType.Plus: return "add";
+            case OperatorType.Minus: return "sub";
+            case OperatorType.Multiply: return "mul";
+            case OperatorType.Divide: return "div";
+            case OperatorType.Modulo: return "rem";
+            case OperatorType.Eq: return "eq";
+            case OperatorType.Ne: return "ne";
+            case OperatorType.Gt: return "gt";
+            case OperatorType.Ge: return "ge";
+            case OperatorType.Lt: return "lt";
+            case OperatorType.Le: return "le";
+            case OperatorType.UnaryDecrement: return "sub";
+            case OperatorType.UnaryIncrement: return "add";
+            default: throw new InvalidEnumArgumentException($"Invalid operator '{op}'");
         }
     }
 
-    public bool IsComparisonOperator => OperatorType >= OperatorTokenType.Eq && OperatorType <= OperatorTokenType.Le;
-    public bool IsUnaryOperator => OperatorType == OperatorTokenType.Minus || OperatorType == OperatorTokenType.Negate || OperatorType == OperatorTokenType.UnaryIncrement || OperatorType == OperatorTokenType.UnaryDecrement;
+    public bool IsComparisonOperator => OperatorType >= OperatorType.Eq && OperatorType <= OperatorType.Le;
+    public bool IsUnaryOperator => OperatorType == OperatorType.Minus || OperatorType == OperatorType.Negate || OperatorType == OperatorType.UnaryIncrement || OperatorType == OperatorType.UnaryDecrement;
 }

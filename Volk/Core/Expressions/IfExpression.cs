@@ -79,7 +79,7 @@ public class IfExpression : Expression
         }
         gen.Comment("END IF CONDITION");
 
-        string name = "if" + gen.Counter++.ToString();
+        string name = "if" + gen.Counter.ToString();
         if (HasElseClause)
             gen.Branch(condition, $"{name}.then", $"{name}.else");
         else

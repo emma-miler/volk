@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Volk.Core.Expressions;
 using Volk.Core.Objects;
 
 namespace Volk.Core;
@@ -57,5 +58,24 @@ public class Scope : VKObject
             return null;
     }
 
+    public IRVariable GenerateCode(CodeGenerator gen, bool forceReturnValue)
+    {
+        IRVariable last = new IRVariable("__ret", ReturnType, IRVariableType.Immediate);
+        foreach (Expression expr in Expressions)
+        {
+            last = expr.GenerateCode(gen);
+        }
+
+        // Add default return value for scope
+        if (forceReturnValue && Expressions.Last().ExpressionType != ExpressionType.Return)
+        {
+            ImmediateValueExpression value = new ImmediateValueExpression(new ValueToken(VKType.BUILTIN_VOID, new DummySourcePosition("0")));
+            ReturnExpression returnExpr = new ReturnExpression(new Token(TokenType.Return, new DummySourcePosition("return")), value, this);
+            Expressions.Add(returnExpr);
+            returnExpr.GenerateCode(gen);
+        }
+
+        return last;
+    }
 
 }

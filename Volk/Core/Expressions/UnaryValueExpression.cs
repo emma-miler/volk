@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Osiris;
 using Osiris.Extensions;
+using Volk.Core.Objects;
 
 namespace Volk.Core.Expressions;
 public class UnaryValueExpression : ValueExpression
@@ -37,18 +38,25 @@ public class UnaryValueExpression : ValueExpression
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
+        IndirectValueExpression? indirectValueExpression = _value as IndirectValueExpression; 
         IRVariable left = _value.GenerateCode(gen);
+        IRVariable ret = gen.NewVariable(left.Type);
+         
         gen.Comment("START UNARY OPERATOR");
 
-        if (left.VariableType == IRVariableType.Pointer)
+        if (left.VariableType == IRVariableType.Variable)
         {
-            IRVariable tmp = gen.NewVariable(left.Type, IRVariableType.Immediate);
-            gen.Comment("!!! CHECK CODE 5101");
-            gen.Operation($"{tmp.Reference} = load i64, ptr %{left}");
-            left = tmp;
+            // If the value we are incrementing is a variable, we have to store the new value back in
+            gen.Operation($"{ret.Reference} = {_operator.GetIROperator()} nsw i64 {left.Reference}, 1");
+            // To do that, we directly get the variable name form the IndirectValueExpression.
+            // This will break when the type system gets classes!!!
+            if (indirectValueExpression is not null)
+                left = new IRVariable(indirectValueExpression.Token.Value, VKType.BUILTIN_SYSTEM_POINTER, IRVariableType.Variable);
+            gen.Operation($"store {ret}, {left}");
+            return ret;
         }
-        IRVariable ret = gen.NewVariable(left.Type, IRVariableType.Immediate);
-        gen.Operation($"{ret.Reference} = {_operator.GetIROperator()} nsw i64 0, {left}");
+        
+        gen.Operation($"{ret.Reference} = {_operator.GetIROperator()} nsw i64 {left.Reference}, 1");
         gen.Comment("END UNARY OPERATOR");
         return ret;
     }

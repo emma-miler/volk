@@ -72,7 +72,7 @@ public class ForExpression : Expression
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
-        string name = "for" + gen.Counter++.ToString();
+        string name = "for" + gen.Counter.ToString();
         gen.Comment("START FOR_LOOP INITITALIZER");
         foreach (Expression initializer in Initializer)
         {
@@ -90,8 +90,8 @@ public class ForExpression : Expression
         // If it it's for example int, truncate it to bool
         if (conditionVar.Type != VKType.BUILTIN_BOOL)
         {
-            IRVariable tmp = gen.NewVariable(VKType.BUILTIN_BOOL, IRVariableType.Immediate);
-            gen.Operation($"{tmp} = trunc {conditionVar} to i1");
+            IRVariable tmp = gen.NewVariable(VKType.BUILTIN_BOOL);
+            gen.Operation($"{tmp.Reference} = trunc {conditionVar} to i1");
             conditionVar = tmp;
         }
         gen.Branch(conditionVar, $"{name}.body", $"{name}.end");
@@ -100,21 +100,21 @@ public class ForExpression : Expression
         gen.LastJumpPoint = $"{name}.body";
 
         gen.Comment("START FOR_LOOP BODY");
+        gen.Label($"{name}.body:");
         // Generate for expression body
-        foreach (Expression expr in Scope.Expressions)
-        {
-            expr.GenerateCode(gen);
-        }
+        Scope.GenerateCode(gen, false);
+        gen.Operation($"br label %{name}.inc");
         gen.Comment("END FOR_LOOP BODY");
 
         gen.Comment("START FOR_LOOP INCREMENT");
         // Generate loop increment
+        gen.Label($"{name}.inc:");
         IRVariable inc = Increment.GenerateCode(gen);
         gen.Comment("END FOR_LOOP INCREMENT");
         // Jump back to loop start
         gen.Jump($"{name}.condition");
         
-        gen.Label($"{name}.end");
+        gen.Label($"{name}.end:");
         return inc;
     }
 }

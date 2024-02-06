@@ -85,16 +85,7 @@ public class FunctionCallValueExpression : ValueExpression
         }
         gen.Comment("END FUNCTION CALL ARGUMENTS");
         gen.Comment("START FUNCTION CALL");
-        IRVariable retVal = gen.NewVariable(_function.ReturnType);
-        string ir = "";
-        if (_function.ReturnType == VKType.BUILTIN_VOID)
-            ir = $"call {_function.ReturnType.IRType} @{_function.Name}(";
-        else
-            ir = $"{retVal.Reference} = call noundef {_function.ReturnType.IRType} @{_function.Name}(";
-
-        ir += string.Join(", ", argVariables);
-        ir += ")";
-        gen.Operation(ir);
+        IRVariable retVal = _function.CallInIR(gen, argVariables.ToArray());
         gen.Comment("END FUNCTION CALL");
         return retVal;
     }

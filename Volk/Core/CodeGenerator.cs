@@ -9,7 +9,7 @@ namespace Volk.Core;
 public class CodeGenerator
 {
 
-    List<string> _lines = new();
+    public List<string> Lines = new();
     public int Counter { get; set; } = 0;
     public string LastJumpPoint { get; set; } = string.Empty;
 
@@ -17,7 +17,7 @@ public class CodeGenerator
     {
          foreach (VKCompileTimeString str in stringObjects)
         {
-            _lines.Add($"@.str.{str.Index} = private unnamed_addr constant [{str.Value.Length + 1} x i8] c\"{str.AsLLVMString() + "\\00"}\", align 1");
+            Lines.Add($"@.str.{str.Index} = private unnamed_addr constant [{str.Value.Length + 1} x i8] c\"{str.AsLLVMString() + "\\00"}\", align 1");
         }
     }
 
@@ -30,43 +30,43 @@ public class CodeGenerator
 
     public string Build()
     {
-        return string.Join('\n', _lines);
+        return string.Join('\n', Lines);
     }
 
-    public void Comment(string comment, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
+    public void Comment(string comment, bool silent = false, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
     {
-        if (RuntimeConfig.IRVerbosity >= 1)
-            _lines.Add($"\t; {comment}");
+        if (RuntimeConfig.IRVerbosity >= 1 && !silent)
+            Lines.Add($"\t; {comment}");
     }
 
-    public void Operation(string operation, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
+    public void Operation(string operation, bool silent = false, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
     {
-        if (RuntimeConfig.IRVerbosity >= 2)
-            _lines.Add($"\t; {file.Split('/').Last()}:{lineNumber}");
-        _lines.Add($"\t{operation}");
+        if (RuntimeConfig.IRVerbosity >= 2 && !silent)
+            Lines.Add($"\t; {file.Split('/').Last()}:{lineNumber}");
+        Lines.Add($"\t{operation}");
     }
 
-    public void Label(string label, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
+    public void Label(string label, bool silent = false, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
     {
-        if (RuntimeConfig.IRVerbosity >= 2)
-            _lines.Add($"\t; {file.Split('/').Last()}:{lineNumber}");
-        _lines.Add(label);
+        if (RuntimeConfig.IRVerbosity >= 2 && !silent)
+            Lines.Add($"\t; {file.Split('/').Last()}:{lineNumber}");
+        Lines.Add(label);
     }
 
-    public void Jump(string label, bool updateLastJumpPoint = true, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
+    public void Jump(string label, bool silent = false, bool updateLastJumpPoint = true, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
     {
-        if (RuntimeConfig.IRVerbosity >= 2)
-            _lines.Add($"\t; {file.Split('/').Last()}:{lineNumber}");
-        _lines.Add($"\br label %{label}");
+        if (RuntimeConfig.IRVerbosity >= 2 && !silent)
+            Lines.Add($"\t; {file.Split('/').Last()}:{lineNumber}");
+        Lines.Add($"\tbr label %{label}");
         if (updateLastJumpPoint)
             LastJumpPoint = label;
     }
 
-    public void Branch(IRVariable condition, string labelIfTrue, string labelIfFalse, bool updateLastJumpPoint = true, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
+    public void Branch(IRVariable condition, string labelIfTrue, string labelIfFalse, bool updateLastJumpPoint = true, bool silent = false, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
     {
-        if (RuntimeConfig.IRVerbosity >= 2)
-            _lines.Add($"\t; {file.Split('/').Last()}:{lineNumber}");
-        _lines.Add($"\br i1 {condition.Reference}, label %{labelIfTrue}, label %{labelIfFalse}");
+        if (RuntimeConfig.IRVerbosity >= 2 && !silent)
+            Lines.Add($"\t; {file.Split('/').Last()}:{lineNumber}");
+        Lines.Add($"\tbr i1 {condition.Reference}, label %{labelIfTrue}, label %{labelIfFalse}");
         if (updateLastJumpPoint)
             LastJumpPoint = labelIfFalse;
     }

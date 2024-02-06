@@ -21,10 +21,14 @@ class Program
         Log.LogDetailLevel = Log.DetailLevel.Basic;
         RuntimeConfig.Initialize(args);
 
+        if (args.Length == 0)
+        {
+            Log.Error("Please provide a filename to compile as the first argument");
+            return;
+        }
+
         FileInfo file = new FileInfo(args[0]);
         FileStream fs = File.OpenRead(args[0]);
-        
-
         VKProgram program = new();
         _lexer = new(fs, program);
         List<Token> tokens = _lexer.Lex().ToList();
@@ -49,38 +53,45 @@ class Program
         program.PrintExpressions();
 
         Log.Info($"START NAME RESOLUTION AND TYPE CHECK");
-        foreach (Scope scope in _parser.Scopes)
+        foreach (VKFunction function in program.Functions)
         {
-            foreach (Expression expr in scope.Expressions)
+            foreach (Expression expr in function.Scope.Expressions)
             {
-                expr.ResolveNames(scope);
+                expr.ResolveNames(function.Scope);
             }
-            foreach (Expression expr in scope.Expressions)
+            foreach (Expression expr in function.Scope.Expressions)
             {
-                expr.TypeCheck(scope);
+                expr.TypeCheck(function.Scope);
             }
         }
         Log.Info($"END NAME RESOLUTION AND TYPE CHECK");
 
         program.PrintExpressions();
 
-        string output = "";
+        List<string> output = new();
         CodeGenerator gen = new();
         gen.AddStringTable(program.CompileTimeStrings);
         foreach (VKFunction function in program.Functions)
         {
            function.GenerateCode(gen);
         }
-        output += gen.Build();
-        output += "\n\n";
-        output += "declare i64 @printf(ptr noundef, ...) #1\n";
+        output.AddRange(gen.Lines);
+        output.Add("\n\n");
+        output.Add("declare i64 @printf(ptr noundef, ...) #1\n");
+
+        List<string> consoleOutput = output.Zip(Enumerable.Range(0, output.Count))
+        .Select((line, num) => (num+1).ToString().PadLeft(3, '0') + " " + line.First)
+        .ToList();
+
+        string outputString = string.Join('\n', output);
+        string consoleOutputString = string.Join('\n', consoleOutput);
 
         Log.LogDetailLevel = Log.DetailLevel.None;
-        Log.Info(output);
+        Log.Info(consoleOutputString);
         Log.LogDetailLevel = Log.DetailLevel.Detailed;
         string newFileName = args[0];
         newFileName = newFileName.ReplaceLast(".vk", ".ll");
-        File.WriteAllText(newFileName, output);
+        File.WriteAllText(newFileName, outputString);
         
     }
 

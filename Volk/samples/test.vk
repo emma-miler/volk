@@ -1,9 +1,10 @@
-function void countdown(int i)
+function void countdown(int num)
 {
-    for (int i = i; i > 0; i--)
+    for (int i = num; i > 0; i--)
     {
         printf("%d\n", i);
     }
 }
 
-countdown(5);
+countdown(15);
+return 5;

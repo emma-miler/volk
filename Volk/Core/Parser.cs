@@ -9,7 +9,7 @@ public class Parser
     public IEnumerable<Scope> Scopes => _scopes;
 
     Queue<Token> _tokens;
-    Stack<Scope> _scopes;
+    Stack<Scope> _scopes = new();
 
     VKProgram _program;
 
@@ -17,30 +17,7 @@ public class Parser
     {
         _program = program;
         _tokens = tokens;
-        _scopes = new();
-        Scope root = new Scope("__root", null!, VKType.BUILTIN_INT);
-        root.AddObject(VKType.BUILTIN_BOOL);
-        root.AddObject(VKType.BUILTIN_REAL);
-        root.AddObject(VKType.BUILTIN_INT);
-        root.AddObject(VKType.BUILTIN_VOID);
-        root.AddObject(VKType.BUILTIN_STRING);
-        VKFunction mainFunc = new VKFunction("main", VKType.BUILTIN_INT, new(), null!) {
-            Scope = root
-        };
-        _program.Functions.Add(mainFunc);
-        _scopes.Push(root);
-
-        root.AddObject(
-            new VKFunction(
-                "printf", 
-                VKType.BUILTIN_INT, 
-                new List<VKObject>() { 
-                    new VKObject("format_string", VKType.BUILTIN_STRING),
-                    new VKObject("args", VKType.BUILTIN_C_VARARGS),
-                },
-                root
-            )
-        );
+        _scopes.Push(program.RootScope);
     }
 
     public void Parse()
@@ -259,7 +236,7 @@ public class Parser
                     }
                     continue;
                 }
-                else if (ot.OperatorType == OperatorTokenType.Assignment)
+                else if (ot.OperatorType == OperatorType.Assignment)
                 {
                     throw new ParseException("Cannot assign a value to a variable within a value expression. Did you mean to write '==' instead of '='?", ot);
                 }
@@ -347,7 +324,7 @@ public class Parser
             // =========================
             // Assignment
             // =========================
-            else if (peekToken is OperatorToken ot && ot.OperatorType == OperatorTokenType.Assignment)
+            else if (peekToken is OperatorToken ot && ot.OperatorType == OperatorType.Assignment)
                 ParseAssignment(endMarker);
 
             // =========================
@@ -394,13 +371,14 @@ public class Parser
         {
             Log.Info("FINISH PARSE");
             PopToken();
-            // Add default return value for main function
+
             if (ActiveScope().Expressions.Last().ExpressionType != ExpressionType.Return)
             {
                 ImmediateValueExpression value = new ImmediateValueExpression(new ValueToken(VKType.BUILTIN_INT, new DummySourcePosition("0")));
                 ReturnExpression returnExpr = new ReturnExpression(new Token(TokenType.Return, new DummySourcePosition("return")), value, ActiveScope());
                 ActiveScope().Expressions.Add(returnExpr);
             }
+
             ActiveScope().CloseScope();
             return;
         }
@@ -491,7 +469,7 @@ public class Parser
         Token nextToken = Expect(TokenType.Operator, endMarker);
         VKObject newVar = new VKObject(name.Value, VKType.BUILTIN_ERROR);
         // Declaration + assignment
-        if (nextToken.Type == TokenType.Operator && ((OperatorToken)nextToken).OperatorType == OperatorTokenType.Assignment)
+        if (nextToken.Type == TokenType.Operator && ((OperatorToken)nextToken).OperatorType == OperatorType.Assignment)
         {
             ActiveScope().Expressions.Add(new DeclarationExpression(t, name, newVar));
             ActiveScope().Expressions.Add(new AssignmentExpression(name, ParseValueExpression(0, endMarker)));

@@ -50,6 +50,12 @@ public class ReturnExpression : Expression
         IRVariable ret;
         if (_value != null)
         {
+            if (_value.ValueType == VKType.BUILTIN_VOID)
+            {
+                gen.Counter++;
+                gen.Operation($"ret void");
+                return new IRVariable("__void", VKType.BUILTIN_VOID, IRVariableType.Immediate);
+            }
             gen.Comment("START RETURN VALUE");
             ret = _value.GenerateCode(gen);
             ret = gen.DereferenceIfPointer(ret);

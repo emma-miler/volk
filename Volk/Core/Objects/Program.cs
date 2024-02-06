@@ -9,6 +9,8 @@ namespace Volk.Core;
 public class VKProgram
 {
 
+    public Scope RootScope { get; }
+
     public List<Scope> Scopes = new();
     public List<VKFunction> Functions = new();
 
@@ -16,7 +18,31 @@ public class VKProgram
 
     public VKProgram()
     {
+        RootScope = new Scope("__root", null!, VKType.BUILTIN_INT);
+        RootScope.AddObject(VKType.BUILTIN_BOOL);
+        RootScope.AddObject(VKType.BUILTIN_REAL);
+        RootScope.AddObject(VKType.BUILTIN_INT);
+        RootScope.AddObject(VKType.BUILTIN_VOID);
+        RootScope.AddObject(VKType.BUILTIN_STRING);
+        VKFunction mainFunc = new VKFunction("main", VKType.BUILTIN_INT, new(), null!) {
+            Scope = RootScope
+        };
+        Functions.Add(mainFunc);
+        Scopes.Add(RootScope);
 
+        RootScope.AddObject(
+            new VKFunction(
+                "printf", 
+                VKType.BUILTIN_INT, 
+                new List<VKObject>() { 
+                    new VKObject("format_string", VKType.BUILTIN_STRING),
+                    new VKObject("args", VKType.BUILTIN_C_VARARGS),
+                },
+                RootScope
+            )
+        );
+
+        BuiltinTypes.AddBuiltinTypes(RootScope);
     }
 
 

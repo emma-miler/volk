@@ -12,7 +12,9 @@ public class BinaryValueExpression : ValueExpression
     ValueExpression Left;
     ValueExpression Right;
     OperatorToken Operator;
-    
+
+    VKFunction? _function;
+
     public BinaryValueExpression(OperatorToken operatorToken, ValueExpression left, ValueExpression right) : base(ValueExpressionType.Binary, operatorToken)
     {
         Left = left;
@@ -41,6 +43,13 @@ public class BinaryValueExpression : ValueExpression
         ValueType = Left.ValueType;
         if (!VKType.IsEqualOrDerived(Left.ValueType!, Right.ValueType!))
             throw new TypeException($"Cannot apply operator '{Operator}' value of type '{Left.ValueType}' to variable of type '{Right.ValueType}'", Token);
+
+        if (Operator.IsComparisonOperator)
+        {
+            _function = Left.ValueType!.Methods.Where(x => x.Name == $"__{Operator.OperatorType}" && x.Parameters.Count == 2 && x.Parameters.First().Type == Right.ValueType).FirstOrDefault();
+            if (_function == null)
+                throw new TypeException($"Type '{Left.ValueType}' does not support operation '{Operator.OperatorType}' with type '{Right.ValueType}'", Operator);
+        }
     }
 
     public override IRVariable GenerateCode(CodeGenerator gen)
@@ -49,14 +58,14 @@ public class BinaryValueExpression : ValueExpression
         gen.Comment("START BINARY OPERATOR VALUE");
         IRVariable left = Left.GenerateCode(gen);
         // Short-circuit logic for logical operators
-        if (Operator.OperatorType == OperatorTokenType.LogicalAnd || Operator.OperatorType == OperatorTokenType.LogicalOr)
+        if (Operator.OperatorType == OperatorType.LogicalAnd || Operator.OperatorType == OperatorType.LogicalOr)
         {
-            string name = Operator.OperatorType == OperatorTokenType.LogicalOr ? "lor" : "land";
-            name += gen.Counter++.ToString();
+            string name = Operator.OperatorType == OperatorType.LogicalOr ? "lor" : "land";
+            name += gen.Counter.ToString();
 
             // Generate the branch instruction
-            if (Operator.OperatorType == OperatorTokenType.LogicalAnd) gen.Branch(left, $"{name}.rhs", $"{name}.end");
-            if (Operator.OperatorType == OperatorTokenType.LogicalOr) gen.Branch(left, $"{name}.end", $"{name}.rhs");
+            if (Operator.OperatorType == OperatorType.LogicalAnd) gen.Branch(left, $"{name}.rhs", $"{name}.end");
+            if (Operator.OperatorType == OperatorType.LogicalOr) gen.Branch(left, $"{name}.end", $"{name}.rhs");
 
             // Generate righthand branch
             gen.Label($"{name}.rhs:");
@@ -68,8 +77,8 @@ public class BinaryValueExpression : ValueExpression
             IRVariable tmp = gen.NewVariable(VKType.BUILTIN_BOOL);
 
             // Phi node for retrieving value
-            if (Operator.OperatorType == OperatorTokenType.LogicalAnd) gen.Operation($"{tmp.Reference} = phi i1 [ false, %{gen.LastJumpPoint} ], [ {short_right.Reference}, {name}.rhs ]");
-            if (Operator.OperatorType == OperatorTokenType.LogicalOr) gen.Operation($"{tmp.Reference} = phi i1 [ true, %{gen.LastJumpPoint} ], [ {short_right.Reference}, {name}.rhs ]");
+            if (Operator.OperatorType == OperatorType.LogicalAnd) gen.Operation($"{tmp.Reference} = phi i1 [ false, %{gen.LastJumpPoint} ], [ {short_right.Reference}, {name}.rhs ]");
+            if (Operator.OperatorType == OperatorType.LogicalOr) gen.Operation($"{tmp.Reference} = phi i1 [ true, %{gen.LastJumpPoint} ], [ {short_right.Reference}, {name}.rhs ]");
 
             gen.Comment("END BINARY OPERATOR VALUE");
             return tmp;
@@ -97,19 +106,20 @@ public class BinaryValueExpression : ValueExpression
             gen.Comment("END BINARY OPERATOR DEREFERENCE");
         }
 
-        IRVariable ret = gen.NewVariable(Left.ValueType!);
+        IRVariable ret;
         gen.Comment("START BINARY OPERATOR");
         if (Operator.IsComparisonOperator)
         {
-            throw new NotImplementedException();
+            ret = _function!.CallInIR(gen, left, right);
         }
         else
         {
+            ret = gen.NewVariable(Left.ValueType!);
             string prefix = "";
             // TODO: what?
             if (Left.ValueType == VKType.BUILTIN_REAL)
                 prefix = "f";
-            if (Operator.OperatorType == OperatorTokenType.Divide || Operator.OperatorType == OperatorTokenType.Modulo)
+            if (Operator.OperatorType == OperatorType.Divide || Operator.OperatorType == OperatorType.Modulo)
                 prefix = "s";
             gen.Operation($"{ret.Reference} = {prefix}{Operator.GetIROperator()} {left}, {right.Reference}");
         }

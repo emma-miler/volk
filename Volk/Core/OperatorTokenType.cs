@@ -1,6 +1,6 @@
 namespace Volk.Core
 {
-    public enum OperatorTokenType
+    public enum OperatorType
     {
         Assignment,
         LogicalOr,

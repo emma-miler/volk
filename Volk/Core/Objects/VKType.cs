@@ -13,9 +13,12 @@ public class VKType : VKObject
     public static VKType BUILTIN_VOID = new VKType("void", false, "void");
     public static VKType BUILTIN_STRING = new VKType("string", false, "ptr");
     public static VKType BUILTIN_SYSTEM_VOID = new VKType("__system_void", false);
+    public static VKType BUILTIN_SYSTEM_POINTER = new VKType("__system_ptr", false, "ptr");
     public static VKType BUILTIN_ERROR = new VKType("__builtin_error", false);
     public static VKType BUILTIN_FUNCTION = new VKType("function", true);
     public static VKType BUILTIN_C_VARARGS = new VKType("__varargs", true);
+
+    public List<VKFunction> Methods = new();
 
 
     bool IsReferenceType { get; }
