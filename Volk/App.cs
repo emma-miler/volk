@@ -4,12 +4,13 @@ using Microsoft.Extensions.Logging;
 using Osiris;
 using Osiris.Extensions;
 using Volk.Core;
+using Volk.Core.Exceptions;
 using Volk.Core.Objects;
 using Volk.Lex;
 
 namespace Volk;
 
-class Program
+class App
 {
 
     static Lexer _lexer = null!;
@@ -53,6 +54,7 @@ class Program
         program.PrintExpressions();
 
         Log.Info($"START NAME RESOLUTION AND TYPE CHECK");
+        try{
         foreach (VKFunction function in program.Functions)
         {
             foreach (Expression expr in function.Scope.Expressions)
@@ -63,6 +65,12 @@ class Program
             {
                 expr.TypeCheck(function.Scope);
             }
+        }
+        }
+        catch (TokenTaggedException ex)
+        {
+            IndicateToken(ex.ErrorToken);
+            throw;
         }
         Log.Info($"END NAME RESOLUTION AND TYPE CHECK");
 

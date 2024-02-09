@@ -7,7 +7,7 @@ using Osiris.Extensions;
 using Volk.Core.Objects;
 
 namespace Volk.Core.Expressions;
-public class ImmediateValueExpression : ValueExpression, IRValue
+public class ImmediateValueExpression : ValueExpression
 {
     VKCompileTimeString? _value;
     public string Value => ((ValueToken)Token).Value;
@@ -39,7 +39,9 @@ public class ImmediateValueExpression : ValueExpression, IRValue
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
         if (ValueType == VKType.BUILTIN_STRING)
-            return new IRVariable($".str.{_value!.Value.Index}", VKType.BUILTIN_STRING, IRVariableType.Constant);
+            return new IRVariable($".str.{_value!.Index}", VKType.BUILTIN_STRING, IRVariableType.Constant);
+        else if (ValueType == VKType.BUILTIN_REAL)
+            return new IRVariable("0x" + BitConverter.ToString(BitConverter.GetBytes(double.Parse(Value)).Reverse().ToArray()).Replace("-", ""), ValueType!, IRVariableType.Immediate);
         else
             return new IRVariable(Value, ValueType!, IRVariableType.Immediate);
     }

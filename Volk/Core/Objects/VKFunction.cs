@@ -14,6 +14,8 @@ public class VKFunction : VKObject
 
     public Scope Scope;
 
+    public string MangledName => Scope.ChainName == "" ? Name : Scope.ChainName;
+
     public VKFunction(string name, VKType returnType, List<VKObject> parameters, Scope parentScope) : base(name, VKType.BUILTIN_FUNCTION)
     {
         Parameters = parameters;
@@ -35,7 +37,7 @@ public class VKFunction : VKObject
         // Add 2 newlines
         gen.Label("", silent: true);
         gen.Label("", silent: true);
-        string header = $"define dso_local {(ReturnType == VKType.BUILTIN_VOID ? "" : "noundef")} {ReturnType.IRType} @{Name} ({parameters}) #0 {{";
+        string header = $"define dso_local {(ReturnType == VKType.BUILTIN_VOID ? "" : "noundef ")}{ReturnType.IRType} @{MangledName} ({parameters}) #0 {{";
         gen.Label(header);
         gen.Label("entry:");
         foreach (VKObject parameter in Parameters)
@@ -50,12 +52,18 @@ public class VKFunction : VKObject
 
     public virtual IRVariable CallInIR(CodeGenerator gen, params IRVariable[] arguments)
     {
-        IRVariable retVal = gen.NewVariable(ReturnType);
+        IRVariable retVal;
         string ir;
         if (ReturnType == VKType.BUILTIN_VOID)
-            ir = $"call {ReturnType.IRType} @{Name}(";
+        {
+            retVal = new IRVariable("__void", VKType.BUILTIN_ERROR, IRVariableType.Variable);
+            ir = $"call {ReturnType.IRType} @{MangledName}(";
+        }
         else
-            ir = $"{retVal.Reference} = call noundef {ReturnType.IRType} @{Name}(";
+        {
+            retVal = gen.NewVariable(ReturnType);
+            ir = $"{retVal.Reference} = call noundef {ReturnType.IRType} @{MangledName}(";
+        }
         ir += string.Join(", ", arguments);
         ir += ")";
         gen.Operation(ir);

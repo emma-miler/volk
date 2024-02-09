@@ -15,14 +15,22 @@ public class Scope : VKObject
     public VKType ReturnType { get; }
     Scope? _parentScope { get; }
 
-    public string ChainName => _parentScope?.ChainName ?? "" + Name;
+    public string ChainName
+    {
+        get
+        {
+            if (_parentScope == null) return "";
+            else if (_parentScope.ChainName == "") return Name;
+            else return _parentScope.ChainName + "$" + Name;
+        }
+    }
 
     public Scope(string name, Scope parentScope, VKType returnType) : base(name, VKType.BUILTIN_SYSTEM_VOID)
     {
         _parentScope = parentScope;
         ReturnType = returnType;
     }
-    
+
     public void AddObject(VKObject obj)
     {
         if (_objects.ContainsKey(obj.Name))
@@ -36,14 +44,14 @@ public class Scope : VKObject
             throw new Exception($"Cannot exit non-void scope '{Name}' with return type '{ReturnType}' without a return statement");
     }
 
-    public VKObject? FindVariable(string name)
+    public VKObject? FindVariable(string name, Type? typeRestriction = null)
     {
         _objects.TryGetValue(name, out VKObject? obj);
         if (obj != null && obj is VKObject varObj)
             return varObj;
         else if (_parentScope != null)
             return _parentScope.FindVariable(name);
-        else 
+        else
             return null;
     }
 

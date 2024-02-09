@@ -13,7 +13,7 @@ public static class RuntimeConfig
         for (int i = 0; i < args.Length; i++)
         {
             string arg = args[i];
-            if (arg == "--ir_verbosity")
+            if (arg == "-v")
             {
                 i++;
                 arg = args[i];

@@ -2,14 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Volk.Core.Exceptions;
 
 namespace Volk.Core;
-public class ParseException : Exception
+public class ParseException : TokenTaggedException
 {
-    public Token ErrorToken {get;}
-
-    public ParseException(string message, Token errorToken) : base(message)
-    {
-        ErrorToken = errorToken;
-    }
+    public ParseException(string message, Token token) : base(message, token) {}
 }

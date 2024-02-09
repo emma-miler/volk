@@ -4,11 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 
 namespace Volk.Core.Objects;
-public record struct VKCompileTimeString
+public record VKCompileTimeString
 {
 
-    public string Value;
-    public int Index;
+    public string Value { get; }
+    public int Index { get; }
 
     Dictionary<string, string> _desanitizePatterns = new() {
         { "\\\\" , "\\" },

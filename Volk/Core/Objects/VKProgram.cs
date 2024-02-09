@@ -14,7 +14,8 @@ public class VKProgram
     public List<Scope> Scopes = new();
     public List<VKFunction> Functions = new();
 
-    public List<VKCompileTimeString> CompileTimeStrings = new();
+    Dictionary<string, VKCompileTimeString> _compileTimeStrings = new();
+    public IEnumerable<VKCompileTimeString> CompileTimeStrings => _compileTimeStrings.Values;
 
     public VKProgram()
     {
@@ -59,5 +60,14 @@ public class VKProgram
             }
         }
         Log.LogDetailLevel = Log.DetailLevel.Detailed;
+    }
+
+    public VKCompileTimeString AddCompileTimeString(string value)
+    {
+        _compileTimeStrings.TryGetValue(value, out VKCompileTimeString? existing);
+        if (existing != null) return existing;
+        VKCompileTimeString cts = new(value, _compileTimeStrings.Count);
+        _compileTimeStrings[value] = cts;
+        return cts;
     }
 }

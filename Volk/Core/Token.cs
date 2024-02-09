@@ -62,11 +62,11 @@ public class OperatorToken : Token
     {
         switch (op)
         {
-            case OperatorType.Plus: return "add";
-            case OperatorType.Minus: return "sub";
-            case OperatorType.Multiply: return "mul";
-            case OperatorType.Divide: return "div";
-            case OperatorType.Modulo: return "rem";
+            case OperatorType.Add: return "add";
+            case OperatorType.Sub: return "sub";
+            case OperatorType.Mul: return "mul";
+            case OperatorType.Div: return "div";
+            case OperatorType.Mod: return "rem";
             case OperatorType.Eq: return "eq";
             case OperatorType.Ne: return "ne";
             case OperatorType.Gt: return "gt";
@@ -80,5 +80,5 @@ public class OperatorToken : Token
     }
 
     public bool IsComparisonOperator => OperatorType >= OperatorType.Eq && OperatorType <= OperatorType.Le;
-    public bool IsUnaryOperator => OperatorType == OperatorType.Minus || OperatorType == OperatorType.Negate || OperatorType == OperatorType.UnaryIncrement || OperatorType == OperatorType.UnaryDecrement;
+    public bool IsUnaryOperator => OperatorType == OperatorType.Sub || OperatorType == OperatorType.Neg || OperatorType == OperatorType.UnaryIncrement || OperatorType == OperatorType.UnaryDecrement;
 }

@@ -126,9 +126,8 @@ public class Parser
             Log.Trace("consume value token");
             if (vt.ValueType == VKType.BUILTIN_STRING)
             {
-                VKCompileTimeString cts = new(vt.Value, _program.CompileTimeStrings.Count);
+                VKCompileTimeString cts = _program.AddCompileTimeString(vt.Value);
                 expr = new ImmediateValueExpression(vt, cts);
-                _program.CompileTimeStrings.Add(cts);
             }
             else
             {

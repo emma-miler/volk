@@ -2,14 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Volk.Core.Exceptions;
 
 namespace Volk.Core;
-public class NameException : Exception
+public class NameException : TokenTaggedException
 {
-    public Token ErrorToken {get;}
-
-    public NameException(string message, Token errorToken) : base(message)
-    {
-        ErrorToken = errorToken;
-    }
+    public NameException(string message, Token token) : base(message, token) {}
 }

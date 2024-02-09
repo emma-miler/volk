@@ -246,7 +246,7 @@ public class Lexer
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorType.Negate, GetInputTokenValue());
+                    yield return new OperatorToken(OperatorType.Neg, GetInputTokenValue());
                     continue;
                 }
             }
@@ -321,12 +321,12 @@ public class Lexer
             }
             if (c == '*')
             {
-                yield return new OperatorToken(OperatorType.Multiply, GetInputTokenValue());
+                yield return new OperatorToken(OperatorType.Mul, GetInputTokenValue());
                 continue;
             }
             if (c == '/')
             {
-                yield return new OperatorToken(OperatorType.Divide, GetInputTokenValue());
+                yield return new OperatorToken(OperatorType.Div, GetInputTokenValue());
                 continue;
             }
             if (c == '+')
@@ -339,7 +339,7 @@ public class Lexer
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorType.Plus, GetInputTokenValue());
+                    yield return new OperatorToken(OperatorType.Add, GetInputTokenValue());
                     continue;
                 }
             }
@@ -353,13 +353,13 @@ public class Lexer
                 }
                 else
                 {
-                    yield return new OperatorToken(OperatorType.Minus, GetInputTokenValue());
+                    yield return new OperatorToken(OperatorType.Sub, GetInputTokenValue());
                     continue;
                 }
             }
             if (c == '%')
             {
-                yield return new OperatorToken(OperatorType.Modulo, GetInputTokenValue());
+                yield return new OperatorToken(OperatorType.Mod, GetInputTokenValue());
                 continue;
             }
 

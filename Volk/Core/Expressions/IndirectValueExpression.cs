@@ -7,7 +7,7 @@ using Osiris.Extensions;
 using Volk.Core.Objects;
 
 namespace Volk.Core.Expressions;
-public class IndirectValueExpression : ValueExpression, ILValue
+public class IndirectValueExpression : ValueExpression
 {
 
     VKObject? _variable;

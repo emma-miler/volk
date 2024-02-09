@@ -13,15 +13,16 @@ namespace Volk.Core
         Ge,
         Lt,
         Le,
-        Plus,
-        Minus,
-        Multiply,
-        Divide,
-        Modulo,
-        Negate,
+        Add,
+        Sub,
+        Mul,
+        Div,
+        Mod,
+        Neg,
         ShiftLeft,
         ShiftRight,
         UnaryIncrement,
-        UnaryDecrement
+        UnaryDecrement,
+        Cast,
     }
 }

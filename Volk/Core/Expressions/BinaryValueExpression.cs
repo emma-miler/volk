@@ -40,16 +40,13 @@ public class BinaryValueExpression : ValueExpression
     {
         Left.TypeCheck(scope);
         Right.TypeCheck(scope);
-        ValueType = Left.ValueType;
         if (!VKType.IsEqualOrDerived(Left.ValueType!, Right.ValueType!))
             throw new TypeException($"Cannot apply operator '{Operator}' value of type '{Left.ValueType}' to variable of type '{Right.ValueType}'", Token);
 
-        if (Operator.IsComparisonOperator)
-        {
-            _function = Left.ValueType!.Methods.Where(x => x.Name == $"__{Operator.OperatorType}" && x.Parameters.Count == 2 && x.Parameters.First().Type == Right.ValueType).FirstOrDefault();
-            if (_function == null)
-                throw new TypeException($"Type '{Left.ValueType}' does not support operation '{Operator.OperatorType}' with type '{Right.ValueType}'", Operator);
-        }
+        _function = Left.ValueType!.Methods.Where(x => x.Name == $"__{Operator.OperatorType}" && x.Parameters.Count == 2 && x.Parameters.First().Type == Right.ValueType).FirstOrDefault();
+        if (_function == null)
+            throw new TypeException($"Type '{Left.ValueType}' does not support operation '{Operator.OperatorType}' with type '{Right.ValueType}'", Operator);
+        ValueType = _function.ReturnType;
     }
 
     public override IRVariable GenerateCode(CodeGenerator gen)
@@ -108,22 +105,7 @@ public class BinaryValueExpression : ValueExpression
 
         IRVariable ret;
         gen.Comment("START BINARY OPERATOR");
-        if (Operator.IsComparisonOperator)
-        {
-            ret = _function!.CallInIR(gen, left, right);
-        }
-        else
-        {
-            ret = gen.NewVariable(Left.ValueType!);
-            string prefix = "";
-            // TODO: what?
-            if (Left.ValueType == VKType.BUILTIN_REAL)
-                prefix = "f";
-            if (Operator.OperatorType == OperatorType.Divide || Operator.OperatorType == OperatorType.Modulo)
-                prefix = "s";
-            gen.Operation($"{ret.Reference} = {prefix}{Operator.GetIROperator()} {left}, {right.Reference}");
-        }
-
+        ret = _function!.CallInIR(gen, left, right);
         gen.Comment("END BINARY OPERATOR");
         return ret;
     }

@@ -54,6 +54,14 @@ public class IfExpression : Expression
     public override void TypeCheck(Scope scope)
     {
         Condition.TypeCheck(scope);
+
+        if (Condition.ValueType != VKType.BUILTIN_BOOL)
+        {
+            Condition = new ImplicitCastExpression(Token, Condition, VKType.BUILTIN_BOOL);
+            Condition.TypeCheck(scope);
+        }
+        
+
         foreach (Expression expr in IfTrue.Expressions)
         {
             expr.TypeCheck(IfTrue);
@@ -70,13 +78,6 @@ public class IfExpression : Expression
         IRVariable condition = Condition.GenerateCode(gen);
         // Derefence the value if its a pointer value
         condition = gen.DereferenceIfPointer(condition);
-        // If it it's for example int, truncate it to bool
-        if (condition.Type != VKType.BUILTIN_BOOL)
-        {
-            IRVariable tmp = gen.NewVariable(VKType.BUILTIN_BOOL, IRVariableType.Immediate);
-            gen.Operation($"{tmp} = trunc {condition} to i1");
-            condition = tmp;
-        }
         gen.Comment("END IF CONDITION");
 
         string name = "if" + gen.Counter.ToString();

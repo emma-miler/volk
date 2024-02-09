@@ -13,7 +13,7 @@ public class CodeGenerator
     public int Counter { get; set; } = 0;
     public string LastJumpPoint { get; set; } = string.Empty;
 
-    public void AddStringTable(List<VKCompileTimeString> stringObjects)
+    public void AddStringTable(IEnumerable<VKCompileTimeString> stringObjects)
     {
          foreach (VKCompileTimeString str in stringObjects)
         {
@@ -21,8 +21,10 @@ public class CodeGenerator
         }
     }
 
-    public IRVariable NewVariable(VKType type, IRVariableType variableType = IRVariableType.Variable)
+    public IRVariable NewVariable(VKType type, IRVariableType variableType = IRVariableType.Variable, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
     {
+        if (RuntimeConfig.IRVerbosity >= 3)
+            Lines.Add($"\t\t; COUNTER {Counter} -> {Counter + 1} {file.Split('/').Last()}:{lineNumber}");
         IRVariable var = new IRVariable(Counter.ToString(), type, variableType);
         Counter++;
         return var;

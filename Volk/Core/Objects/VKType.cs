@@ -39,4 +39,13 @@ public class VKType : VKObject
     {
         return left == right;
     }
+
+    public VKFunction? FindCastFunction(VKType target)
+    {
+        return Methods.FirstOrDefault(
+            x => x.Name == $"__{OperatorType.Cast}" && 
+            x.Parameters.Count == 1 && 
+            x.ReturnType == target
+        );
+    }
 }
