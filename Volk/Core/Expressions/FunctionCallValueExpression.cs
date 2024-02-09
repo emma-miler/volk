@@ -41,7 +41,7 @@ public class FunctionCallValueExpression : ValueExpression
             expr.ResolveNames(scope);
         }
 
-        _function = (VKFunction)scope.FindVariable(Token.Value) ?? throw new NameException($"Undefined function '{Token.Value}'", Token);
+        _function = (VKFunction?)scope.FindVariable(Token.Value) ?? throw new NameException($"Undefined function '{Token.Value}'", Token);
 
         if (_function is VKFunction func)
             ValueType = func.ReturnType;
