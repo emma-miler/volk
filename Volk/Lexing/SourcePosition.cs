@@ -45,7 +45,7 @@ public record DummySourcePosition : SourcePosition
 
     string _value;
 
-    public DummySourcePosition(string value) : base(null!, 0, 0, 0, 0)
+    public DummySourcePosition(string value, int offset = 0, int length = 0, int lineOffset = 0, int lineNumber = 0) : base(null!, offset, length, lineOffset, lineNumber)
     {
         _value = value;
     }

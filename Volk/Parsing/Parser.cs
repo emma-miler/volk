@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Osiris;
 using Volk.Core.Expressions;
 using Volk.Core.Objects;
@@ -6,10 +7,10 @@ namespace Volk.Core;
 public class Parser
 {
 
-    public IEnumerable<Scope> Scopes => _scopes;
+    public IEnumerable<VKScope> Scopes => _scopes;
 
     Queue<Token> _tokens;
-    Stack<Scope> _scopes = new();
+    Stack<VKScope> _scopes = new();
 
     VKProgram _program;
 
@@ -39,10 +40,7 @@ public class Parser
     {
         Token t = PopToken();
         if (t.Type == expected) return t;
-        // TODO: proper error message
-        Log.Error($"Expected token of type '{expected}', instead got '{t.Type}'");
-        Log.Error($"{t}");
-        throw new Exception();
+        throw new ParseException($"Expected token of type '{expected}', instead got '{t.Type}'", t);
     }
 
     /// <summary>
@@ -54,7 +52,6 @@ public class Parser
     {
         Token t = PopToken();
         if (expected.Contains(t.Type)) return t;
-        // TODO: proper error message
         throw new ParseException($"Expected token of any type '{string.Join(',', expected)}', instead got '{t.Type}'", t);
     }
 
@@ -71,7 +68,7 @@ public class Parser
 
     Token PopToken() => _tokens.Dequeue();
     Token PeekToken() => _tokens.Peek();
-    Scope ActiveScope() => _scopes.First();
+    VKScope ActiveScope() => _scopes.First();
 
     #endregion Token Functions
 
@@ -124,7 +121,7 @@ public class Parser
         if (t is ValueToken vt)
         {
             Log.Trace("consume value token");
-            if (vt.ValueType == VKType.BUILTIN_STRING)
+            if (vt.ValueType == VKType.BUILTIN_C_STRING)
             {
                 VKCompileTimeString cts = _program.AddCompileTimeString(vt.Value);
                 expr = new ImmediateValueExpression(vt, cts);
@@ -169,6 +166,30 @@ public class Parser
                 Log.Trace("  consume lvalue ref");
                 expr = new IndirectValueExpression(t);
             }
+        }
+        /// ==========
+        /// Type instantiation
+        /// ==========
+        else if (t.Type == TokenType.NewExpression)
+        {
+            Log.Trace("consume new expression");
+            Token nameToken = Expect(TokenType.Name);
+            Expect(TokenType.OpenParenthesis);
+            List<ValueExpression> args = new();
+            if (_tokens.Peek().Type == TokenType.CloseParenthesis)
+                PopToken();
+            else
+            {
+                while (_tokens.Peek().Type != TokenType.CloseParenthesis)
+                {
+                    args.Add(ParseValueExpression(depth + 1, TokenType.CommaSeparator));
+                    Log.Trace($"func argument {args.Last()}");
+                    if (SoftExpect(TokenType.CommaSeparator) == null)
+                        break;
+                }
+                Expect(TokenType.CloseParenthesis);
+            }
+            expr = new FunctionCallValueExpression(nameToken, args, $"{nameToken.Value}$__constructor");
         }
         else
         {
@@ -280,10 +301,11 @@ public class Parser
             
         }
 
-        if (!expressions.Any())
-        {
-            throw new ParseException($"Expected a value expression, but did not find any?", t);
-        }
+        int exprCount = expressions.Count();
+        if (exprCount == 0)
+            throw new ParseException($"Expected a value expression, but did not find any", t);
+        if (exprCount == 2)
+            throw new ParseException($"Expected a single value expression, but found multiple. This is a syntax error", t);
 
         return expressions.Single();
     }
@@ -302,9 +324,9 @@ public class Parser
         if (t.Type == TokenType.CloseCurlyBracket)
         {
             Expect(TokenType.CloseCurlyBracket);
-            Scope scope = _scopes.Pop();
+            VKScope scope = _scopes.Pop();
+            scope.Expressions.Add(new ScopeCloseExpression(t));
             scope.CloseScope();
-            return;
         }
 
         // =========================
@@ -347,21 +369,30 @@ public class Parser
         // If/Else statement
         // =========================
         else if (t.Type == TokenType.If)
-            ParseIfStatement(endMarker);
+            ParseIfStatement();
         else if (t.Type == TokenType.Else)
-            ParseElseStatement(endMarker);
+            ParseElseStatement();
 
         // =========================
         // For statement
         // =========================
         else if (t.Type == TokenType.For)
-            ParseForStatement(endMarker);
-
-        else if (t.Type == TokenType.FunctionDeclaration)
-            ParseFunctionDeclaration(endMarker);
+            ParseForStatement();
 
         // =========================
-        // For statement
+        // Function Declaration
+        // =========================
+        else if (t.Type == TokenType.FunctionDeclaration)
+            ParseFunctionDeclaration();
+
+        // =========================
+        // Class Declaration
+        // =========================
+        else if (t.Type == TokenType.ClassDeclaration)
+            ParseClassDeclaration();
+
+        // =========================
+        // Return statement
         // =========================
         else if (t.Type == TokenType.Return)
             ParseReturn(endMarker);
@@ -371,15 +402,14 @@ public class Parser
             Log.Info("FINISH PARSE");
             PopToken();
 
-            if (ActiveScope().Expressions.Last().ExpressionType != ExpressionType.Return)
+            if (ActiveScope().Expressions.LastOrDefault()?.ExpressionType != ExpressionType.Return)
             {
-                ImmediateValueExpression value = new ImmediateValueExpression(new ValueToken(VKType.BUILTIN_INT, new DummySourcePosition("0")));
+                ImmediateValueExpression value = new ImmediateValueExpression(new ValueToken(VKType.INT, new DummySourcePosition("0")));
                 ReturnExpression returnExpr = new ReturnExpression(new Token(TokenType.Return, new DummySourcePosition("return")), value, ActiveScope());
                 ActiveScope().Expressions.Add(returnExpr);
             }
 
             ActiveScope().CloseScope();
-            return;
         }
         else
             ParseTopLevelValueExpression(endMarker);
@@ -403,14 +433,32 @@ public class Parser
         }
     }
 
-    void ParseFunctionDeclaration(TokenType endMarker)
+    void ParseClassDeclaration()
+    {
+        Token decl = Expect(TokenType.ClassDeclaration);
+        Token name = Expect(TokenType.Name);
+        Expect(TokenType.OpenCurlyBracket);
+        VKType type = new VKType(name.Value, true);
+        _scopes.Push(type);
+        while (PeekToken().Type != TokenType.CloseCurlyBracket)
+        {
+            Token t = PeekToken();
+            if (t.Type == TokenType.Name)
+                ParseDeclaration(TokenType.EndOfExpression);
+        }
+        Expect(TokenType.CloseCurlyBracket);
+        _scopes.Pop();
+        ActiveScope().AddType(type);
+    }
+
+    void ParseFunctionDeclaration()
     {
         Expect(TokenType.FunctionDeclaration);
         Token type = Expect(TokenType.Name);
         Token name = Expect(TokenType.Name);
         VKType? returnType = ActiveScope().FindType(type.Value);
-        if  (returnType == null)
-                throw new TypeException($"Unknown type '{type}'", type);
+        if (returnType == null)
+            throw new TypeException($"Unknown type '{type}'", type);
 
         Expect(TokenType.OpenParenthesis);
         // Loop through all arguments
@@ -446,8 +494,8 @@ public class Parser
             Expect(TokenType.CommaSeparator);
         }
 
-        VKFunction func = new VKFunction(name.Value, returnType, parameters, ActiveScope());
-        ActiveScope().AddObject(func);
+        VKFunction func = new VKFunction(ActiveScope(), name.Value, returnType, parameters.ToArray());
+        ActiveScope().AddFunction(func);
         ActiveScope().Expressions.Add(new FunctionDeclarationExpression(name, func));
         _scopes.Push(func.Scope);
         _program.Functions.Add(func);
@@ -466,7 +514,7 @@ public class Parser
         Token t = PopToken();
         Token name = Expect(TokenType.Name);
         Token nextToken = Expect(TokenType.Operator, endMarker);
-        VKObject newVar = new VKObject(name.Value, VKType.BUILTIN_ERROR);
+        VKObject newVar = new VKObject(name.Value, VKType.SYSTEM_ERROR);
         // Declaration + assignment
         if (nextToken.Type == TokenType.Operator && ((OperatorToken)nextToken).OperatorType == OperatorType.Assignment)
         {
@@ -498,7 +546,7 @@ public class Parser
         Expect(endMarker);
     }
 
-    void ParseIfStatement(TokenType endMarker)
+    void ParseIfStatement()
 
     {
         Token t = Expect(TokenType.If);
@@ -512,7 +560,7 @@ public class Parser
         return;
     }
 
-    void ParseElseStatement(TokenType endMarker)
+    void ParseElseStatement()
     {
         Token t = Expect(TokenType.Else);
         Expression lastExpr = ActiveScope().Expressions.Last();
@@ -537,15 +585,15 @@ public class Parser
         }
     }
 
-    void ParseForStatement(TokenType endMarker)
+    void ParseForStatement()
     {
         Token t = Expect(TokenType.For);
 
-        Scope parentScope = ActiveScope();
+        VKScope parentScope = ActiveScope();
         Expect(TokenType.OpenParenthesis);
         
         // Create a new scope that will be shared by the for loop expressions and the for loop body
-        Scope scope = new Scope("__impl_for", parentScope, parentScope.ReturnType);
+        VKScope scope = new VKScope("__impl_for", parentScope, parentScope.ReturnType);
         _scopes.Push(scope);
 
         // Parse a singular gramatically top level statement

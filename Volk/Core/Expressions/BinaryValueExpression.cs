@@ -30,20 +30,20 @@ public class BinaryValueExpression : ValueExpression
         Right.Print(depth + 1);
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         Left.ResolveNames(scope);
         Right.ResolveNames(scope);
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         Left.TypeCheck(scope);
         Right.TypeCheck(scope);
         if (!VKType.IsEqualOrDerived(Left.ValueType!, Right.ValueType!))
             throw new TypeException($"Cannot apply operator '{Operator}' value of type '{Left.ValueType}' to variable of type '{Right.ValueType}'", Token);
 
-        _function = Left.ValueType!.Methods.Where(x => x.Name == $"__{Operator.OperatorType}" && x.Parameters.Count == 2 && x.Parameters.First().Type == Right.ValueType).FirstOrDefault();
+        _function = Left.ValueType!.Functions.Where(x => x.Name == $"__{Operator.OperatorType}" && x.Parameters.Count == 2 && x.Parameters.First().Type == Right.ValueType).FirstOrDefault();
         if (_function == null)
             throw new TypeException($"Type '{Left.ValueType}' does not support operation '{Operator.OperatorType}' with type '{Right.ValueType}'", Operator);
         ValueType = _function.ReturnType;
@@ -71,7 +71,7 @@ public class BinaryValueExpression : ValueExpression
 
             // Generate end of shortcircuit branch
             gen.Label($"{name}.end");
-            IRVariable tmp = gen.NewVariable(VKType.BUILTIN_BOOL);
+            IRVariable tmp = gen.NewVariable(VKType.BOOL);
 
             // Phi node for retrieving value
             if (Operator.OperatorType == OperatorType.LogicalAnd) gen.Operation($"{tmp.Reference} = phi i1 [ false, %{gen.LastJumpPoint} ], [ {short_right.Reference}, {name}.rhs ]");

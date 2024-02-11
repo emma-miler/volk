@@ -10,7 +10,7 @@ public class VKNativeFunction : VKFunction
 
     Func<VKType, CodeGenerator, IRVariable[], IRVariable> _function;
 
-    public VKNativeFunction(string name, VKType returnType, List<VKObject> parameters, Scope parentScope, Func<VKType, CodeGenerator, IRVariable[], IRVariable> function) : base(name, returnType, parameters, parentScope)
+    public VKNativeFunction(VKScope parentScope, string name, VKType returnType, Func<VKType, CodeGenerator, IRVariable[], IRVariable> function, params VKObject[] parameters) : base(parentScope, name, returnType, parameters.ToArray())
     {
         _function = function;
     }

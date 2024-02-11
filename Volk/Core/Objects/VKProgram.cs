@@ -9,9 +9,9 @@ namespace Volk.Core;
 public class VKProgram
 {
 
-    public Scope RootScope { get; }
+    public VKScope RootScope { get; }
 
-    public List<Scope> Scopes = new();
+    public List<VKScope> Scopes = new();
     public List<VKFunction> Functions = new();
 
     Dictionary<string, VKCompileTimeString> _compileTimeStrings = new();
@@ -19,31 +19,20 @@ public class VKProgram
 
     public VKProgram()
     {
-        RootScope = new Scope("__root", null!, VKType.BUILTIN_INT);
-        RootScope.AddObject(VKType.BUILTIN_BOOL);
-        RootScope.AddObject(VKType.BUILTIN_REAL);
-        RootScope.AddObject(VKType.BUILTIN_INT);
-        RootScope.AddObject(VKType.BUILTIN_VOID);
-        RootScope.AddObject(VKType.BUILTIN_STRING);
-        VKFunction mainFunc = new VKFunction("main", VKType.BUILTIN_INT, new(), null!) {
+        RootScope = new VKScope("__root", null!, VKType.INT);
+        RootScope.AddType(VKType.BOOL);
+        RootScope.AddType(VKType.REAL);
+        RootScope.AddType(VKType.INT);
+        RootScope.AddType(VKType.VOID);
+        RootScope.AddType(VKType.STRING);
+        VKFunction mainFunc = new VKFunction(null!, "main", VKType.INT) {
             Scope = RootScope
         };
         Functions.Add(mainFunc);
         Scopes.Add(RootScope);
 
-        RootScope.AddObject(
-            new VKFunction(
-                "printf", 
-                VKType.BUILTIN_INT, 
-                new List<VKObject>() { 
-                    new VKObject("format_string", VKType.BUILTIN_STRING),
-                    new VKObject("args", VKType.BUILTIN_C_VARARGS),
-                },
-                RootScope
-            )
-        );
-
-        BuiltinTypes.AddBuiltinTypes(RootScope);
+        SystemNative.AddBuiltinFunctions(this, RootScope);
+        SystemNative.AddBuiltinTypes(RootScope);
     }
 
 

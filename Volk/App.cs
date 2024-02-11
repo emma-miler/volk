@@ -43,7 +43,7 @@ class App
         {
             _parser.Parse();
         }
-        catch (ParseException ex)
+        catch (TokenTaggedException ex)
         {
             Log.Error(ex.ErrorToken.Value);
             IndicateToken(ex.ErrorToken);
@@ -84,14 +84,11 @@ class App
            function.GenerateCode(gen);
         }
         output.AddRange(gen.Lines);
-        output.Add("\n\n");
-        output.Add("declare i64 @printf(ptr noundef, ...) #1\n");
-
         List<string> consoleOutput = output.Zip(Enumerable.Range(0, output.Count))
         .Select((line, num) => (num+1).ToString().PadLeft(3, '0') + " " + line.First)
         .ToList();
 
-        string outputString = string.Join('\n', output);
+        string outputString = string.Join('\n', output); 
         string consoleOutputString = string.Join('\n', consoleOutput);
 
         Log.LogDetailLevel = Log.DetailLevel.None;
@@ -109,5 +106,6 @@ class App
         Log.Error(line);
         string prefix = " ".Repeat(t.ValueSource.LineOffset);
         Log.Error(prefix + "^".Repeat(t.ValueSource.Length));
+        Log.Error($"Line: {t.ValueSource.LineNumber}, Offset: {t.ValueSource.Offset}, Token Length: {t.Value.Length}");
     }
 }

@@ -166,7 +166,7 @@ public class Lexer
                 ReadByte();
                 SourcePosition newPos = new SourcePosition(_fs, _offset - _length + 1, _length - 2, _lineOffset - _length + 1, _lineNumber);
                 _length = 0;
-                yield return new ValueToken(VKType.BUILTIN_STRING, newPos);
+                yield return new ValueToken(VKType.BUILTIN_C_STRING, newPos);
                 continue;
             }
 
@@ -180,12 +180,12 @@ public class Lexer
                 {
                     ReadByte();
                     ReadWhile(IsValidNumberCharacter);
-                    yield return new ValueToken(VKType.BUILTIN_REAL, GetInputTokenValue());
+                    yield return new ValueToken(VKType.REAL, GetInputTokenValue());
                     continue;
                 }
                 else
                 {
-                    yield return new ValueToken(VKType.BUILTIN_INT, GetInputTokenValue());
+                    yield return new ValueToken(VKType.INT, GetInputTokenValue());
                     continue;
                 }
             }
@@ -381,7 +381,9 @@ public class Lexer
             throw new FormatException("Unable to lex next token");
         }
         MarkNewLine();
-        yield return new Token(TokenType.EOF, GetInputTokenValue());
+        SourcePosition sPos = GetInputTokenValue();
+        _lines.Add(sPos);
+        yield return new Token(TokenType.EOF, new DummySourcePosition("", sPos.Offset, 1, sPos.LineOffset, sPos.LineNumber));
     }
 
 

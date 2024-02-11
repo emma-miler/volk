@@ -29,18 +29,18 @@ public class ImmediateValueExpression : ValueExpression
         Log.Info($"{prefix}[ImmediateValueExpression] {Token} '{Value}': '{ValueType}'");
     }
 
-    public override void ResolveNames(Scope scope) {}
+    public override void ResolveNames(VKScope scope) {}
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         return;
     }
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
-        if (ValueType == VKType.BUILTIN_STRING)
-            return new IRVariable($".str.{_value!.Index}", VKType.BUILTIN_STRING, IRVariableType.Constant);
-        else if (ValueType == VKType.BUILTIN_REAL)
+        if (ValueType == VKType.STRING)
+            return new IRVariable($".str.{_value!.Index}", VKType.STRING, IRVariableType.Constant);
+        else if (ValueType == VKType.REAL)
             return new IRVariable("0x" + BitConverter.ToString(BitConverter.GetBytes(double.Parse(Value)).Reverse().ToArray()).Replace("-", ""), ValueType!, IRVariableType.Immediate);
         else
             return new IRVariable(Value, ValueType!, IRVariableType.Immediate);

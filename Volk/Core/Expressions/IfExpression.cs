@@ -6,15 +6,15 @@ namespace Volk.Core.Expressions;
 public class IfExpression : Expression
 {
     ValueExpression Condition;
-    public Scope IfTrue;
-    public Scope IfFalse;
+    public VKScope IfTrue;
+    public VKScope IfFalse;
     public bool HasElseClause { get; set; }
 
-    public IfExpression(Token token, ValueExpression condition, Scope parentScope) : base(ExpressionType.If, token)
+    public IfExpression(Token token, ValueExpression condition, VKScope parentScope) : base(ExpressionType.If, token)
     {
         Condition = condition;
-        IfTrue = new Scope("__impl_if_true", parentScope, parentScope.ReturnType);
-        IfFalse = new Scope("__impl_if_false", parentScope, parentScope.ReturnType);
+        IfTrue = new VKScope("__impl_if_true", parentScope, parentScope.ReturnType);
+        IfFalse = new VKScope("__impl_if_false", parentScope, parentScope.ReturnType);
     }
 
     public override void Print(int depth)
@@ -38,7 +38,7 @@ public class IfExpression : Expression
         }
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         Condition.ResolveNames(scope);
         foreach (Expression expr in IfTrue.Expressions)
@@ -51,13 +51,13 @@ public class IfExpression : Expression
         }
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         Condition.TypeCheck(scope);
 
-        if (Condition.ValueType != VKType.BUILTIN_BOOL)
+        if (Condition.ValueType != VKType.BOOL)
         {
-            Condition = new ImplicitCastExpression(Token, Condition, VKType.BUILTIN_BOOL);
+            Condition = new ImplicitCastExpression(Token, Condition, VKType.BOOL);
             Condition.TypeCheck(scope);
         }
         

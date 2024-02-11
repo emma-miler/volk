@@ -12,14 +12,14 @@ public class VKFunction : VKObject
 
     public List<VKObject> Parameters { get; }
 
-    public Scope Scope;
+    public VKScope Scope;
 
     public string MangledName => Scope.ChainName == "" ? Name : Scope.ChainName;
 
-    public VKFunction(string name, VKType returnType, List<VKObject> parameters, Scope parentScope) : base(name, VKType.BUILTIN_FUNCTION)
+    public VKFunction(VKScope parentScope, string name, VKType returnType, params VKObject[] parameters) : base(name, VKType.BUILTIN_FUNCTION)
     {
-        Parameters = parameters;
-        Scope = new Scope(name, parentScope, returnType);
+        Parameters = parameters.ToList();
+        Scope = new VKScope(name, parentScope, returnType);
 
         foreach (VKObject param in Parameters)
             Scope.AddObject(param);
@@ -37,7 +37,11 @@ public class VKFunction : VKObject
         // Add 2 newlines
         gen.Label("", silent: true);
         gen.Label("", silent: true);
-        string header = $"define dso_local {(ReturnType == VKType.BUILTIN_VOID ? "" : "noundef ")}{ReturnType.IRType} @{MangledName} ({parameters}) #0 {{";
+        foreach (VKType type in Scope.Types)
+        {
+            type.GenerateCode(gen, false);
+        }
+        string header = $"define dso_local {(ReturnType == VKType.VOID ? "" : "noundef ")}{ReturnType.IRType} @{MangledName} ({parameters}) #0 {{";
         gen.Label(header);
         gen.Label("entry:");
         foreach (VKObject parameter in Parameters)
@@ -54,9 +58,9 @@ public class VKFunction : VKObject
     {
         IRVariable retVal;
         string ir;
-        if (ReturnType == VKType.BUILTIN_VOID)
+        if (ReturnType == VKType.VOID)
         {
-            retVal = new IRVariable("__void", VKType.BUILTIN_ERROR, IRVariableType.Variable);
+            retVal = new IRVariable("__void", VKType.SYSTEM_ERROR, IRVariableType.Variable);
             ir = $"call {ReturnType.IRType} @{MangledName}(";
         }
         else

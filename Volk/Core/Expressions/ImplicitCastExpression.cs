@@ -28,13 +28,13 @@ public class ImplicitCastExpression : ValueExpression
         _value?.Print(depth + 1);
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         // NOTE: probably redundant since this expression only gets created after typechecking anyway
         //_value.ResolveNames(scope);
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         // NOTE: probably redundant since this expression only gets created after typechecking anyway
         //_value.TypeCheck(scope);

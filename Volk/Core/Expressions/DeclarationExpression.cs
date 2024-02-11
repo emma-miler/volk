@@ -25,7 +25,7 @@ public class DeclarationExpression : Expression
         Log.Info($"{prefix}[DeclarationExpression] '{_variable.Name}': {_variable.Type}");
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         VKType? varType = scope.FindType(Typename.Value);
         if (varType == null)
@@ -33,7 +33,7 @@ public class DeclarationExpression : Expression
         _variable.UpdateType(varType);
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         return;
     }

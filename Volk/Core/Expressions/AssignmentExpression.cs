@@ -25,7 +25,7 @@ public class AssignmentExpression : Expression
         _valueExpression.Print(depth + 1);
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         _variable = scope.FindVariable(Token.Value);
         if (_variable == null)
@@ -33,7 +33,7 @@ public class AssignmentExpression : Expression
         _valueExpression.ResolveNames(scope);
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         _valueExpression.TypeCheck(scope);
         if (!VKType.IsEqualOrDerived(_variable!.Type, _valueExpression.ValueType!))

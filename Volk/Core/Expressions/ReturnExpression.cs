@@ -10,9 +10,9 @@ namespace Volk.Core.Expressions;
 public class ReturnExpression : Expression
 {
     ValueExpression? _value;
-    Scope _scope;
+    VKScope _scope;
     
-    public ReturnExpression(Token token, ValueExpression? value, Scope currentScope) : base(ExpressionType.Return, token)
+    public ReturnExpression(Token token, ValueExpression? value, VKScope currentScope) : base(ExpressionType.Return, token)
     {
         _value = value;
         _scope = currentScope;
@@ -25,12 +25,12 @@ public class ReturnExpression : Expression
         _value?.Print(depth + 1);
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         _value?.ResolveNames(scope);
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         if (_value != null)
         {
@@ -40,7 +40,7 @@ public class ReturnExpression : Expression
         }
         else
         {
-            if (_scope.ReturnType != VKType.BUILTIN_VOID)
+            if (_scope.ReturnType != VKType.VOID)
                 throw new TypeException($"Cannot return value of type 'void' from scope of type '{_scope.ReturnType}'", Token);
         }
     }
@@ -50,11 +50,11 @@ public class ReturnExpression : Expression
         IRVariable ret;
         if (_value != null)
         {
-            if (_value.ValueType == VKType.BUILTIN_VOID)
+            if (_value.ValueType == VKType.VOID)
             {
                 gen.Counter++;
                 gen.Operation($"ret void");
-                return new IRVariable("__void", VKType.BUILTIN_VOID, IRVariableType.Immediate);
+                return new IRVariable("__void", VKType.VOID, IRVariableType.Immediate);
             }
             gen.Comment("START RETURN VALUE");
             ret = _value.GenerateCode(gen);
@@ -64,7 +64,7 @@ public class ReturnExpression : Expression
         }
         else
         {
-            ret = new IRVariable("__err", VKType.BUILTIN_VOID, IRVariableType.Immediate);
+            ret = new IRVariable("__err", VKType.VOID, IRVariableType.Immediate);
             gen.Operation("ret void");
         }
         return ret;

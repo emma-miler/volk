@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 namespace Volk.Core.Objects;
 public class VKObject
 {
-    public VKType Type { get; private set; }
-    public string Name { get; }
+    public VKType Type { get; protected set; }
+    public string Name { get; init; }
 
     public VKObject(string name, VKType type)
     {

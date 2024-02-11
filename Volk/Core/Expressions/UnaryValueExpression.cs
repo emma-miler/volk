@@ -25,12 +25,12 @@ public class UnaryValueExpression : ValueExpression
         _value.Print(depth + 1);
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         _value.ResolveNames(scope);
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         _value.TypeCheck(scope);
         ValueType = _value.ValueType;
@@ -51,7 +51,7 @@ public class UnaryValueExpression : ValueExpression
             // To do that, we directly get the variable name form the IndirectValueExpression.
             // This will break when the type system gets classes!!!
             if (indirectValueExpression is not null)
-                left = new IRVariable(indirectValueExpression.Token.Value, VKType.BUILTIN_SYSTEM_POINTER, IRVariableType.Variable);
+                left = new IRVariable(indirectValueExpression.Token.Value, VKType.SYSTEM_POINTER, IRVariableType.Variable);
             gen.Operation($"store {ret}, {left}");
             return ret;
         }

@@ -25,7 +25,7 @@ public class IndirectValueExpression : ValueExpression
             Log.Info($"{prefix}[IndirectValueExpression] '{_variable.Name}': {_variable.Type}");
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         _variable = scope.FindVariable(Token.Value);
         if (_variable == null)
@@ -33,7 +33,7 @@ public class IndirectValueExpression : ValueExpression
         ValueType = _variable.Type;
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         return;
     }

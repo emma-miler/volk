@@ -22,7 +22,7 @@ public class FunctionDeclarationExpression : Expression
         Log.Info($"{prefix}[FunctionDeclarationExpression] Func='{_function.Name}'");
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         foreach(Expression expr in _function.Scope.Expressions)
         {
@@ -30,7 +30,7 @@ public class FunctionDeclarationExpression : Expression
         }
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         return;
     }

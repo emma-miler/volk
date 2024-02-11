@@ -9,11 +9,11 @@ public class ForExpression : Expression
     public ValueExpression Condition;
     public Expression Increment;
 
-    public Scope Scope;
+    public VKScope Scope;
 
     public bool HasElseClause { get; set; }
 
-    public ForExpression(Token token, List<Expression> initializer, ValueExpression condition, Expression increment, Scope scope) : base(ExpressionType.For, token)
+    public ForExpression(Token token, List<Expression> initializer, ValueExpression condition, Expression increment, VKScope scope) : base(ExpressionType.For, token)
     {
         Initializer = initializer;
         Condition = condition;
@@ -41,7 +41,7 @@ public class ForExpression : Expression
         }
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         foreach (Expression expr in Initializer)
         {
@@ -55,7 +55,7 @@ public class ForExpression : Expression
         }
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         foreach (Expression initializer in Initializer)
         {
@@ -88,9 +88,9 @@ public class ForExpression : Expression
         // Derefence the value if its a pointer value
         conditionVar = gen.DereferenceIfPointer(conditionVar);
         // If it it's for example int, truncate it to bool
-        if (conditionVar.Type != VKType.BUILTIN_BOOL)
+        if (conditionVar.Type != VKType.BOOL)
         {
-            IRVariable tmp = gen.NewVariable(VKType.BUILTIN_BOOL);
+            IRVariable tmp = gen.NewVariable(VKType.BOOL);
             gen.Operation($"{tmp.Reference} = trunc {conditionVar} to i1");
             conditionVar = tmp;
         }

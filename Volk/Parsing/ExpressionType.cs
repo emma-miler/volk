@@ -12,4 +12,5 @@ public enum ExpressionType
     Return,
     If,
     For,
+    ScopeClose,
 }

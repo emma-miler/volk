@@ -18,4 +18,6 @@ public enum TokenType
     For,
     Return,
     FunctionDeclaration,
+    ClassDeclaration,
+    NewExpression,
 }

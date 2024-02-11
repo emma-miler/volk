@@ -19,12 +19,12 @@ public abstract class Expression
     /// Resolve all string references to objects
     /// </summary>
     /// <param name="scope"></param>
-    public abstract void ResolveNames(Scope scope);
+    public abstract void ResolveNames(VKScope scope);
 
     /// <summary>
     /// Type-check this expression
     /// </summary>
-    public abstract void TypeCheck(Scope scope);
+    public abstract void TypeCheck(VKScope scope);
 
     /// <summary>
     /// Run code generation for this expression

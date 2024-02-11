@@ -13,10 +13,13 @@ public class FunctionCallValueExpression : ValueExpression
 
     VKFunction? _function;
 
+    string _functionName;
 
-    public FunctionCallValueExpression(Token function, List<ValueExpression> arguments) : base(ValueExpressionType.Call, function)
+
+    public FunctionCallValueExpression(Token function, List<ValueExpression> arguments, string? functionName = null) : base(ValueExpressionType.Call, function)
     {
         Arguments = arguments;
+        _functionName = functionName ?? function.Value;
     }
 
     public override void Print(int depth)
@@ -34,22 +37,22 @@ public class FunctionCallValueExpression : ValueExpression
         Log.Info($"{prefix} ]");
     }
 
-    public override void ResolveNames(Scope scope)
+    public override void ResolveNames(VKScope scope)
     {
         foreach(ValueExpression expr in Arguments)
         {
             expr.ResolveNames(scope);
         }
 
-        _function = (VKFunction?)scope.FindVariable(Token.Value) ?? throw new NameException($"Undefined function '{Token.Value}'", Token);
+        _function = (VKFunction?)scope.FindFunction(_functionName) ?? throw new NameException($"Undefined function '{_functionName}'", Token);
 
         if (_function is VKFunction func)
             ValueType = func.ReturnType;
         else
-            throw new TypeException($"Object with name '{Token.Value}' is not a function, as it is of type '{_function.Type}'", Token);
+            throw new TypeException($"Object with name '{_functionName}' is not a function, as it is of type '{_function.Type}'", Token);
     }
 
-    public override void TypeCheck(Scope scope)
+    public override void TypeCheck(VKScope scope)
     {
         int i = 0;
         foreach (ValueExpression arg in Arguments)
