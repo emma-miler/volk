@@ -39,7 +39,7 @@ public class ImplicitCastExpression : ValueExpression
         // NOTE: probably redundant since this expression only gets created after typechecking anyway
         //_value.TypeCheck(scope);
 
-        _castFunction = _value.ValueType!.FindCastFunction(_targetType);
+        _castFunction = _targetType.FindCastFunction(_value.ValueType!);
         if (_castFunction == null)
             throw new TypeException($"Cannot implicitly cast from type '{_value.ValueType}' to type '{_targetType}'", Token);
     }

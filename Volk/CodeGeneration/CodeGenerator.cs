@@ -73,7 +73,7 @@ public class CodeGenerator
             LastJumpPoint = labelIfFalse;
     }
 
-    public IRVariable DereferenceIfPointer(IRVariable var, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
+    public IRVariable DecayToVariable(IRVariable var, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
     {
         if (var.VariableType != IRVariableType.Pointer)
         {

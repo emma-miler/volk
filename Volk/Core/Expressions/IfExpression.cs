@@ -77,7 +77,7 @@ public class IfExpression : Expression
         gen.Comment("START IF CONDITION");
         IRVariable condition = Condition.GenerateCode(gen);
         // Derefence the value if its a pointer value
-        condition = gen.DereferenceIfPointer(condition);
+        condition = gen.DecayToVariable(condition);
         gen.Comment("END IF CONDITION");
 
         string name = "if" + gen.Counter.ToString();

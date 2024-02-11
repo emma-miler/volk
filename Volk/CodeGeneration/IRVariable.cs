@@ -54,6 +54,6 @@ public record struct IRVariable
             case IRVariableType.Pointer: prefix = "%"; break;
             default: throw new InvalidEnumArgumentException();
         }
-        return $"{Type.IRType} {prefix}{Name}";
+        return $"{(VariableType == IRVariableType.Pointer ? "ptr" : Type.IRType)} {prefix}{Name}";
     }
 }

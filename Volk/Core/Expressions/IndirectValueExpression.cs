@@ -41,9 +41,9 @@ public class IndirectValueExpression : ValueExpression
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
         // If it is already the most recent value on the stack, we don't need to do anything
-        IRVariable ret = gen.NewVariable(_variable!.Type);
+        return new IRVariable(_variable!.Name, _variable!.Type, IRVariableType.Pointer);
         // Assign the value
-        gen.Operation($"{ret.Reference} = load {_variable.Type.IRType}, ptr %{_variable.Name}");
-        return ret;
+        //gen.Operation($"{ret.Reference} = load {_variable.Type.IRType}, ptr %{_variable.Name}");
+        //return ret;
     }
 }

@@ -62,6 +62,12 @@ public class ForExpression : Expression
             initializer.TypeCheck(scope);
         }
         Condition.TypeCheck(scope);
+        if (Condition.ValueType != VKType.BOOL)
+        {
+            Condition = new ImplicitCastExpression(Condition.Token, Condition, VKType.BOOL);
+            Condition.TypeCheck(scope);
+        }
+
         Increment.TypeCheck(scope);
 
         foreach (Expression expr in Scope.Expressions)
@@ -86,14 +92,8 @@ public class ForExpression : Expression
         // Generate IR for conditional
         IRVariable conditionVar = Condition.GenerateCode(gen);
         // Derefence the value if its a pointer value
-        conditionVar = gen.DereferenceIfPointer(conditionVar);
-        // If it it's for example int, truncate it to bool
-        if (conditionVar.Type != VKType.BOOL)
-        {
-            IRVariable tmp = gen.NewVariable(VKType.BOOL);
-            gen.Operation($"{tmp.Reference} = trunc {conditionVar} to i1");
-            conditionVar = tmp;
-        }
+        conditionVar = gen.DecayToVariable(conditionVar);
+
         gen.Branch(conditionVar, $"{name}.body", $"{name}.end");
         gen.Comment("END FOR_LOOP CONDITION");
         // TODO: is this important?

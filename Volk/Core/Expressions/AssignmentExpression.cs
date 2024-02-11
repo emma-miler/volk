@@ -9,46 +9,47 @@ using Volk.Core.Objects;
 namespace Volk.Core.Expressions;
 public class AssignmentExpression : Expression
 {
-    ValueExpression _valueExpression;
-    
-    VKObject? _variable;
+    ValueExpression _left;
+    ValueExpression _right;
 
-    public AssignmentExpression(Token name, ValueExpression value) : base(ExpressionType.Assigment, name)
+    public AssignmentExpression(Token name, ValueExpression left, ValueExpression right) : base(ExpressionType.Assigment, name)
     {
-        _valueExpression = value;
+        _left = left;
+        _right = right;
     }
 
     public override void Print(int depth)
     {
         string prefix = " ".Repeat(depth);
-        Log.Info($"{prefix}[AssignmentExpression] '{Token.Value}': {_variable?.Type.Name ?? "__builtin_error"}");
-        _valueExpression.Print(depth + 1);
+        Log.Info($"{prefix}[AssignmentExpression] '{Token.Value}': {_left.ValueType?.Name ?? "__builtin_error"}");
+        _left!.Print(depth + 1);
+        _right!.Print(depth + 1);
     }
 
     public override void ResolveNames(VKScope scope)
     {
-        _variable = scope.FindVariable(Token.Value);
-        if (_variable == null)
-            throw new NameException($"Could not find bound object with name '{Token.Value}'", Token);
-        _valueExpression.ResolveNames(scope);
+        _left.ResolveNames(scope);
+        _right.ResolveNames(scope);
     }
 
     public override void TypeCheck(VKScope scope)
     {
-        _valueExpression.TypeCheck(scope);
-        if (!VKType.IsEqualOrDerived(_variable!.Type, _valueExpression.ValueType!))
-            throw new TypeException($"Cannot assign value of type '{_valueExpression.ValueType}' to variable of type '{_variable!.Type}'", Token);
+        _left.TypeCheck(scope);
+        _right.TypeCheck(scope);
+        if (!VKType.IsEqualOrDerived(_left.ValueType!, _right.ValueType!))
+            throw new TypeException($"Cannot assign value of type '{_right.ValueType}' to variable of type '{_left!.ValueType}'", Token);
     }
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
         // We check if we have an immediate value here for optimization
-        if (_valueExpression.ValueExpressionType != ValueExpressionType.Immediate)
+        if (_right.ValueExpressionType != ValueExpressionType.Immediate)
             gen.Comment("START ASSIGNMENT VALUE");
-        IRVariable value = _valueExpression.GenerateCode(gen);
+        IRVariable leftVar = _left.GenerateCode(gen);
+        IRVariable rightVar = gen.DecayToVariable(_right.GenerateCode(gen));
         gen.Comment("START ASSIGNMENT");
-        gen.Operation($"store {value}, ptr %{_variable!.Name}");
+        gen.Operation($"store {rightVar}, ptr {leftVar.Reference}");
         gen.Comment("END ASSIGNMENT");
-        return new IRVariable(_variable.Name, _variable.Type, IRVariableType.Variable);
+        return leftVar;
     }
 }

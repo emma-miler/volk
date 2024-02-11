@@ -121,6 +121,15 @@ public class Lexer
             }
 
             // =========================
+            // Dot Operator
+            // =========================
+            if (c == '.')
+            {
+                yield return new OperatorToken(OperatorType.Dot, GetInputTokenValue());
+                continue;
+            }
+
+            // =========================
             // Comments
             // =========================
             if (c == '/' && PeekByte() == '/')
@@ -166,7 +175,7 @@ public class Lexer
                 ReadByte();
                 SourcePosition newPos = new SourcePosition(_fs, _offset - _length + 1, _length - 2, _lineOffset - _length + 1, _lineNumber);
                 _length = 0;
-                yield return new ValueToken(VKType.BUILTIN_C_STRING, newPos);
+                yield return new ValueToken(VKType.STRING, newPos);
                 continue;
             }
 

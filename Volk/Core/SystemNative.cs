@@ -11,6 +11,14 @@ public class SystemNative
 
     public static void AddBuiltinTypes(VKScope rootScope)
     {
+
+        rootScope.AddType(VKType.BOOL);
+        rootScope.AddType(VKType.REAL);
+        rootScope.AddType(VKType.INT);
+        rootScope.AddType(VKType.VOID);
+        rootScope.AddType(VKType.STRING);
+        rootScope.AddType(VKType.SYSTEM_POINTER);
+
         VKObject[] intParams = new[]
         {
             new VKObject("left", VKType.INT),
@@ -38,7 +46,7 @@ public class SystemNative
         {
             new VKObject("left", VKType.INT),
         };
-        VKType.BOOL.AddFunction(new VKNativeFunction(rootScope, "__" + OperatorType.Cast.ToString(), VKType.BOOL, (a,b,c) => { return CastIntToBool(a, b, c); }, intCastParams));
+        VKType.BOOL.AddFunction(new VKNativeFunction(rootScope, "__" + OperatorType.Cast.ToString(), VKType.BOOL, (a,b,c) => { return Compare(OperatorType.Ne, a, b, new IRVariable[] { c.Single(), new IRVariable("0", VKType.INT, IRVariableType.Immediate)}); }, intCastParams));
         VKType.REAL.AddFunction(new VKNativeFunction(rootScope, "__" + OperatorType.Cast.ToString(), VKType.REAL, (a,b,c) => { return CastIntToReal(a, b, c); }, intCastParams));
 
 
@@ -116,7 +124,7 @@ public class SystemNative
         else if (operationType == VKType.BOOL) cmpOp = "icmp";
         else throw new InvalidEnumArgumentException($"Invalid VKType '{operationType}'");
         IRVariable retVal = gen.NewVariable(returnType);
-        gen.Operation($"{retVal.Reference} = {cmpOp} {op} {operationType.IRType} {args[1].Reference}, {args[0].Reference}");
+        gen.Operation($"{retVal.Reference} = {cmpOp} {op} {operationType.IRType} {args[0].Reference}, {args[1].Reference}");
         return retVal;
     }
 
@@ -137,7 +145,7 @@ public class SystemNative
 
     static IRVariable CastIntToBool(VKType returnType, CodeGenerator gen, IRVariable[] args)
     {
-        IRVariable var = gen.DereferenceIfPointer(args[0]);
+        IRVariable var = gen.DecayToVariable(args[0]);
         IRVariable ret = gen.NewVariable(returnType);
         gen.Operation($"{ret.Reference} = trunc {var} to {returnType.IRType}");
         return ret;
@@ -145,7 +153,7 @@ public class SystemNative
 
     static IRVariable CastIntToReal(VKType returnType, CodeGenerator gen, IRVariable[] args)
     {
-        IRVariable var = gen.DereferenceIfPointer(args[0]);
+        IRVariable var = gen.DecayToVariable(args[0]);
         IRVariable ret = gen.NewVariable(returnType);
         gen.Operation($"{ret.Reference} = sitofp {var} to {returnType.IRType}");
         return ret;
@@ -153,7 +161,7 @@ public class SystemNative
 
     static IRVariable CastRealToInt(VKType returnType, CodeGenerator gen, IRVariable[] args)
     {
-        IRVariable var = gen.DereferenceIfPointer(args[0]);
+        IRVariable var = gen.DecayToVariable(args[0]);
         IRVariable ret = gen.NewVariable(returnType);
         gen.Operation($"{ret.Reference} = fptosi {var} to {returnType.IRType}");
         return ret;

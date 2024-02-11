@@ -13,6 +13,7 @@
 
   <Target Name="CopyCustomContent" AfterTargets="BeforeBuild">
     <Copy SourceFiles="debug_scripts/run.sh" DestinationFolder="$(OutDir)/" />
+    <Copy SourceFiles="debug_scripts/build.sh" DestinationFolder="$(OutDir)/" />
     <Copy SourceFiles="samples/test.vk" DestinationFolder="$(OutDir)/samples/" />
   </Target>
 </Project>

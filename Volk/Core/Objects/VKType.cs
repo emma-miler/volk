@@ -12,7 +12,7 @@ public class VKType : VKScope
     public static VKType INT = new VKType("int", false, irType: "i64", isBuiltin: true);
     public static VKType VOID = new VKType("void", false, irType: "void", isBuiltin: true);
     public static VKType STRING = new VKType("string", false, irType: "ptr", isBuiltin: true);
-    public static VKType SYSTEM_POINTER = new VKType("__system_ptr", false, irType: "ptr", isBuiltin: true);
+    public static VKType SYSTEM_POINTER = new VKType("__ptr", false, irType: "ptr", isBuiltin: true);
     public static VKType SYSTEM_ERROR = new VKType("__builtin_error", false, isBuiltin: true);
     public static VKType BUILTIN_FUNCTION = new VKType("function", true, isBuiltin: true);
     public static VKType BUILTIN_C_VARARGS = new VKType("__varargs", true, isBuiltin: true);
@@ -23,6 +23,9 @@ public class VKType : VKScope
     public string? IRType { get; }
     public bool IsBasicType { get; }
     public bool IsBuiltin { get; }
+
+    List<VKField> _fields = new();
+    public IEnumerable<VKField> Fields => _fields;
 
     public VKType(string name, bool isReferenceType, VKScope? parentScope = null, string? irType = null, bool isBuiltin = false) : base(name, parentScope, VKType.VOID)
     {
@@ -53,8 +56,28 @@ public class VKType : VKScope
         return Functions.FirstOrDefault(
             x => x.Name == $"__{OperatorType.Cast}" && 
             x.Parameters.Count == 1 && 
-            x.ReturnType == target
+            x.Parameters.Single().Type == target
         );
+    }
+
+    public override VKObject AddObject(VKObject obj)
+    {
+        int offset;
+        if (_fields.Any())
+            offset = _fields.Last().Offset + 8;
+        else
+            offset = 0;
+        VKField field = new VKField(obj.Token!, obj.Name, obj.Type, offset);
+        _fields.Add(field);
+        return field;
+    }
+
+    public override VKObject? FindVariable(string name)
+    {
+        VKObject? obj = _fields.FirstOrDefault(x => x.Name == name);
+        if (obj != null)
+            return obj;
+        return base.FindVariable(name);
     }
 
     public override IRVariable GenerateCode(CodeGenerator gen, bool forceReturnValue)
@@ -68,8 +91,10 @@ public class VKType : VKScope
 
     static IRVariable MallocConstructor(VKType returnType, CodeGenerator gen, IRVariable[] args)
     {
-        IRVariable ret = gen.NewVariable(VKType.SYSTEM_POINTER);
-        gen.Operation($"{ret.Reference} = call noalias ptr @malloc(i64 noundef {returnType.Fields.Count() * 8})");
+        IRVariable ret = gen.NewVariable(returnType, IRVariableType.Pointer);
+        int size = returnType.Fields.Count() * 8;
+        gen.Operation($"{ret.Reference} = call noalias ptr @malloc(i64 noundef {size})");
+        gen.Operation($"call void @llvm.memset.p0.i64({ret}, i8 0, i64 {size}, i1 false)");
         return ret;
     }
 }

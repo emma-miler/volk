@@ -69,7 +69,8 @@ class App
         }
         catch (TokenTaggedException ex)
         {
-            IndicateToken(ex.ErrorToken);
+            if (ex.ErrorToken != null)
+                IndicateToken(ex.ErrorToken);
             throw;
         }
         Log.Info($"END NAME RESOLUTION AND TYPE CHECK");

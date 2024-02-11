@@ -24,5 +24,6 @@ namespace Volk.Core
         UnaryIncrement,
         UnaryDecrement,
         Cast,
+        Dot,
     }
 }

@@ -3,6 +3,7 @@ namespace Volk.Core;
 public enum ExpressionType
 {
     Comment,
+    ClassDeclaration,
     Declaration,
     Function,
     Assigment,

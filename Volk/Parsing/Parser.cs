@@ -121,7 +121,7 @@ public class Parser
         if (t is ValueToken vt)
         {
             Log.Trace("consume value token");
-            if (vt.ValueType == VKType.BUILTIN_C_STRING)
+            if (vt.ValueType == VKType.STRING)
             {
                 VKCompileTimeString cts = _program.AddCompileTimeString(vt.Value);
                 expr = new ImmediateValueExpression(vt, cts);
@@ -207,7 +207,7 @@ public class Parser
     /// </summary>
     /// <param name="endMarker"></param>
     /// <returns></returns>
-    ValueExpression ParseValueExpression(int depth, TokenType endMarkers)
+    ValueExpression ParseValueExpression(int depth, TokenType endMarkers, bool breakOnAssignment = false)
     {
         bool lastTokenWasOperator = false;
         Stack<ValueExpression> expressions = new();
@@ -220,7 +220,7 @@ public class Parser
             Log.Trace($"Loop idx {depth} {i}");
             i++;
             t = PeekToken();
-            if (t.Type == endMarkers || (depth > 0 && t.Type == TokenType.CloseParenthesis))
+            if (t.Type == endMarkers || (depth > 0 && t.Type == TokenType.CloseParenthesis) || (breakOnAssignment && t.Type == TokenType.Operator && ((OperatorToken)t).OperatorType == OperatorType.Assignment))
             {
                 break;
             }
@@ -249,9 +249,16 @@ public class Parser
                         while (operators.Count != 0)
                         {
                             OperatorToken op = operators.Pop();
-                            ValueExpression left = expressions.Pop();
                             ValueExpression right = expressions.Pop();
-                            expressions.Push(new BinaryValueExpression(op, left, right));
+                            ValueExpression left = expressions.Pop();
+                            if (op.OperatorType == OperatorType.Dot)
+                            {
+                                if (right.ValueExpressionType != ValueExpressionType.Indirect)
+                                    throw new ParseException($"Cannot apply operator '{op}' on expression where right-hand side is not a simple name", op);
+                                expressions.Push(new DotValueExpression(op, left, right.Token));
+                            }
+                            else
+                                expressions.Push(new BinaryValueExpression(op, left, right));
                         }
                     }
                     continue;
@@ -294,9 +301,16 @@ public class Parser
                 {
                     throw new ParseException($"Expected 2 values for binary operator {op.OperatorType}, but got {expressions.Count}", op);
                 }
-                ValueExpression left = expressions.Pop();
                 ValueExpression right = expressions.Pop();
-                expressions.Push(new BinaryValueExpression(op, left, right));
+                ValueExpression left = expressions.Pop();
+                if (op.OperatorType == OperatorType.Dot)
+                {
+                    if (right.ValueExpressionType != ValueExpressionType.Indirect)
+                        throw new ParseException($"Cannot apply operator '{op}' on expression where right-hand side is not a simple name", op);
+                    expressions.Push(new DotValueExpression(op, left, right.Token));
+                }
+                else
+                    expressions.Push(new BinaryValueExpression(op, left, right));
             }
             
         }
@@ -318,10 +332,17 @@ public class Parser
     void ParseStatement(TokenType endMarker = TokenType.EndOfExpression)
     {
         Token t = PeekToken();
+
+        // =========================
+        // Commentstatement
+        // =========================
+        if (t.Type == TokenType.Comment)
+            PopToken();
+
         // =========================
         // Close Scope
         // =========================
-        if (t.Type == TokenType.CloseCurlyBracket)
+        else if (t.Type == TokenType.CloseCurlyBracket)
         {
             Expect(TokenType.CloseCurlyBracket);
             VKScope scope = _scopes.Pop();
@@ -346,7 +367,7 @@ public class Parser
             // Assignment
             // =========================
             else if (peekToken is OperatorToken ot && ot.OperatorType == OperatorType.Assignment)
-                ParseAssignment(endMarker);
+                ParseSimpleAssignment(endMarker);
 
             // =========================
             // Function call
@@ -356,7 +377,7 @@ public class Parser
 
             else if (peekType == TokenType.Operator)
             {
-                ParseTopLevelValueExpression(endMarker);
+                ParseTopLevelValueExpressionOrAssignment(endMarker, true);
             }
 
             else
@@ -412,7 +433,7 @@ public class Parser
             ActiveScope().CloseScope();
         }
         else
-            ParseTopLevelValueExpression(endMarker);
+            ParseTopLevelValueExpressionOrAssignment(endMarker);
     }
 
     #region Top Level Statements
@@ -449,6 +470,7 @@ public class Parser
         Expect(TokenType.CloseCurlyBracket);
         _scopes.Pop();
         ActiveScope().AddType(type);
+        ActiveScope().Expressions.Add(new ClassDeclarationExpression(decl, type));
     }
 
     void ParseFunctionDeclaration()
@@ -502,11 +524,24 @@ public class Parser
         Expect(TokenType.OpenCurlyBracket);
     }
 
-    void ParseTopLevelValueExpression(TokenType endMarker)
+    void ParseTopLevelValueExpressionOrAssignment(TokenType endMarker, bool breakOnAssignment = false)
     {
         // For convenience, we allow value expression to appear as a top level statement
-        ActiveScope().Expressions.Add(ParseValueExpression(0, endMarker));
-        Expect(endMarker);
+        ValueExpression left = ParseValueExpression(0, endMarker, breakOnAssignment);
+        if (PeekToken().Type == TokenType.Operator)
+        {
+            OperatorToken assignment = (OperatorToken)Expect(TokenType.Operator);
+            if (assignment.OperatorType != OperatorType.Assignment)
+                throw new ParseException($"Expected assignment operator, instead got '{assignment}'. Something went very wrong!", assignment);
+            ValueExpression right = ParseValueExpression(0, endMarker, breakOnAssignment);
+            ActiveScope().Expressions.Add(new AssignmentExpression(assignment, left, right));
+            Expect(endMarker);
+        }
+        else
+        {
+            ActiveScope().Expressions.Add(left);
+            Expect(endMarker);
+        }
     }
 
     void ParseDeclaration(TokenType endMarker)
@@ -515,11 +550,12 @@ public class Parser
         Token name = Expect(TokenType.Name);
         Token nextToken = Expect(TokenType.Operator, endMarker);
         VKObject newVar = new VKObject(name.Value, VKType.SYSTEM_ERROR);
+        newVar = ActiveScope().AddObject(newVar);
         // Declaration + assignment
         if (nextToken.Type == TokenType.Operator && ((OperatorToken)nextToken).OperatorType == OperatorType.Assignment)
         {
             ActiveScope().Expressions.Add(new DeclarationExpression(t, name, newVar));
-            ActiveScope().Expressions.Add(new AssignmentExpression(name, ParseValueExpression(0, endMarker)));
+            ActiveScope().Expressions.Add(new AssignmentExpression(nextToken, new IndirectValueExpression(name), ParseValueExpression(0, endMarker)));
             Expect(endMarker);
         }
         // Only declaration
@@ -528,14 +564,16 @@ public class Parser
             ActiveScope().Expressions.Add(new DeclarationExpression(t, name, newVar));
         }
         
-        ActiveScope().AddObject(newVar);
+        
     }
 
-    void ParseAssignment(TokenType endMarker)
+    void ParseSimpleAssignment(TokenType endMarker)
     {
         Token t = PopToken();
-        Expect(TokenType.Operator);
-        ActiveScope().Expressions.Add(new AssignmentExpression(t, ParseValueExpression(0, endMarker)));
+        OperatorToken assign = (OperatorToken)Expect(TokenType.Operator);
+        if (assign.OperatorType != OperatorType.Assignment)
+            throw new ParseException($"Operator '{assign}' is not valid in this position", assign);
+        ActiveScope().Expressions.Add(new AssignmentExpression(assign, new IndirectValueExpression(t), ParseValueExpression(0, endMarker)));
         Expect(endMarker);
     }
 

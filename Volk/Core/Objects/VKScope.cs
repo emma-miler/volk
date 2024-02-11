@@ -11,11 +11,11 @@ public class VKScope : VKObject
 {
     public List<Expression> Expressions = new();
     List<VKType> _types = new();
-    List<VKObject> _fields = new();
+    List<VKObject> _variables = new();
     List<VKFunction> _functions = new();
 
     public IEnumerable<VKType> Types => _types;
-    public IEnumerable<VKObject> Fields => _fields;
+    public IEnumerable<VKObject> Variables => _variables;
     public IEnumerable<VKFunction> Functions => _functions;
 
 
@@ -38,25 +38,28 @@ public class VKScope : VKObject
         ReturnType = returnType;
     }
 
-     public void AddType(VKType obj)
+     public virtual VKObject AddType(VKType obj)
     {
         if (_types.Any(x => x.Name == obj.Name))
             throw new DuplicateNameException($"Object with name '{obj.Name}' already exists in scope");
         _types.Add(obj);
+        return obj;
     }
 
-    public void AddObject(VKObject obj)
+    public virtual VKObject AddObject(VKObject obj)
     {
-        if (_fields.Any(x => x.Name == obj.Name))
+        if (_variables.Any(x => x.Name == obj.Name))
             throw new DuplicateNameException($"Object with name '{obj.Name}' already exists in scope");
-        _fields.Add(obj);
+        _variables.Add(obj);
+        return obj;
     }
 
-    public void AddFunction(VKFunction obj)
+    public virtual VKObject AddFunction(VKFunction obj)
     {
         if (_functions.Any(x => x.Name == obj.Name && Enumerable.SequenceEqual(x.Parameters, obj.Parameters)))
             throw new DuplicateNameException($"Function with name '{obj.Name}' with parameters '({string.Join(',', obj.Parameters)})' already exists in scope");
         _functions.Add(obj);
+        return obj;
     }
 
     public void CloseScope()
@@ -65,9 +68,9 @@ public class VKScope : VKObject
             throw new Exception($"Cannot exit non-void scope '{Name}' with return type '{ReturnType}' without a return statement");
     }
 
-    public VKObject? FindVariable(string name)
+    public virtual VKObject? FindVariable(string name)
     {
-        VKObject? obj = _fields.Find(x => x.Name == name);
+        VKObject? obj = _variables.Find(x => x.Name == name);
         if (obj != null && obj is VKObject varObj)
             return varObj;
         else if (_parentScope != null)
@@ -76,7 +79,7 @@ public class VKScope : VKObject
             return null;
     }
 
-    public VKFunction? FindFunction(string name)
+    public virtual VKFunction? FindFunction(string name)
     {
         // If the name contains any '$' characters, we have to do some special handling
         if (name.Contains('$'))
@@ -106,7 +109,6 @@ public class VKScope : VKObject
             else
                 return null;
         }
-        
     }
 
     public VKType? FindType(string name)

@@ -8,5 +8,6 @@ public enum ValueExpressionType
     Binary,
     Call,
     StringConstant,
-    ValueCast
+    ValueCast,
+    Dot,
 }

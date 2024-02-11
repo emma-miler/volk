@@ -16,11 +16,19 @@ public class FunctionCallValueExpression : ValueExpression
     string _functionName;
 
 
-    public FunctionCallValueExpression(Token function, List<ValueExpression> arguments, string? functionName = null) : base(ValueExpressionType.Call, function)
+     public FunctionCallValueExpression(Token function, List<ValueExpression> arguments, string? functionName = null) : base(ValueExpressionType.Call, function)
     {
         Arguments = arguments;
         _functionName = functionName ?? function.Value;
     }
+
+    public FunctionCallValueExpression(Token token, List<ValueExpression> arguments, VKFunction function) : base(ValueExpressionType.Call, token)
+    {
+        Arguments = arguments;
+        _functionName = function.Name;
+        _function = function;
+    }
+    
 
     public override void Print(int depth)
     {
@@ -44,8 +52,10 @@ public class FunctionCallValueExpression : ValueExpression
             expr.ResolveNames(scope);
         }
 
+        // If we already have a bound function, no need to look for it
+        if (_function != null)
+            return;
         _function = (VKFunction?)scope.FindFunction(_functionName) ?? throw new NameException($"Undefined function '{_functionName}'", Token);
-
         if (_function is VKFunction func)
             ValueType = func.ReturnType;
         else
@@ -80,7 +90,7 @@ public class FunctionCallValueExpression : ValueExpression
         {
             gen.Comment($"ARG {i}");
             IRVariable argVar = arg.GenerateCode(gen);
-            argVar = gen.DereferenceIfPointer(argVar);
+            argVar = gen.DecayToVariable(argVar);
             Log.Debug($"Has varargs: {hasVarArgs}");
             Log.Debug($"Arg type: {arg.ValueType}");
             argVariables.Add(argVar);

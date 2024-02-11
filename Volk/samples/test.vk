@@ -5,3 +5,7 @@ class Test
 }
 
 Test t = new Test();
+int a;
+a = 5;
+t._size = 1;
+printf("%d\n", t._size);

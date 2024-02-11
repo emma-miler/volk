@@ -58,7 +58,7 @@ public class ReturnExpression : Expression
             }
             gen.Comment("START RETURN VALUE");
             ret = _value.GenerateCode(gen);
-            ret = gen.DereferenceIfPointer(ret);
+            ret = gen.DecayToVariable(ret);
             gen.Operation($"ret {ret}");
             gen.Comment("END RETURN VALUE");
         }

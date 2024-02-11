@@ -86,20 +86,8 @@ public class BinaryValueExpression : ValueExpression
         if (left.VariableType == IRVariableType.Pointer || right.VariableType == IRVariableType.Pointer)
         {
             gen.Comment("START BINARY OPERATOR DEREFERENCE");
-            if (left.VariableType == IRVariableType.Pointer)
-            {
-                IRVariable tmp = gen.NewVariable(Left.ValueType!);
-                // Dereference the variable
-                gen.Operation($"{tmp.Reference} = load {left.Type}, {left}");
-                left = new IRVariable(tmp.Name, left.Type, IRVariableType.Immediate);
-            }
-            if (left.VariableType == IRVariableType.Pointer)
-            {
-                IRVariable tmp = gen.NewVariable(Right.ValueType!);
-                // Dereference the variable
-                gen.Operation($"{tmp.Reference} = load {right.Type}, {right}");
-                right = new IRVariable(tmp.Name, right.Type, IRVariableType.Immediate);
-            }
+            left = gen.DecayToVariable(left);
+            right = gen.DecayToVariable(right);
             gen.Comment("END BINARY OPERATOR DEREFERENCE");
         }
 

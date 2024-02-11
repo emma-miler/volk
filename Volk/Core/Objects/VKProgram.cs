@@ -20,11 +20,7 @@ public class VKProgram
     public VKProgram()
     {
         RootScope = new VKScope("__root", null!, VKType.INT);
-        RootScope.AddType(VKType.BOOL);
-        RootScope.AddType(VKType.REAL);
-        RootScope.AddType(VKType.INT);
-        RootScope.AddType(VKType.VOID);
-        RootScope.AddType(VKType.STRING);
+        
         VKFunction mainFunc = new VKFunction(null!, "main", VKType.INT) {
             Scope = RootScope
         };
