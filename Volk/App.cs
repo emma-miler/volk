@@ -98,7 +98,6 @@ class App
         string newFileName = args[0];
         newFileName = newFileName.ReplaceLast(".vk", ".ll");
         File.WriteAllText(newFileName, outputString);
-        
     }
 
     static void IndicateToken(Token t)

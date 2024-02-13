@@ -12,7 +12,7 @@ public class VKType : VKScope
     public static VKType INT = new VKType("int", false, irType: "i64", isBuiltin: true);
     public static VKType VOID = new VKType("void", false, irType: "void", isBuiltin: true);
     public static VKType STRING = new VKType("string", false, irType: "ptr", isBuiltin: true);
-    public static VKType SYSTEM_POINTER = new VKType("__ptr", false, irType: "ptr", isBuiltin: true);
+    public static VKType SYSTEM_POINTER = new VKType("__ptr", true, irType: "ptr", isBuiltin: true);
     public static VKType SYSTEM_ERROR = new VKType("__builtin_error", false, isBuiltin: true);
     public static VKType BUILTIN_FUNCTION = new VKType("function", true, isBuiltin: true);
     public static VKType BUILTIN_C_VARARGS = new VKType("__varargs", true, isBuiltin: true);
@@ -64,7 +64,7 @@ public class VKType : VKScope
     {
         int offset;
         if (_fields.Any())
-            offset = _fields.Last().Offset + 8;
+            offset = _fields.Last().Offset + 1;
         else
             offset = 0;
         VKField field = new VKField(obj.Token!, obj.Name, obj.Type, offset);

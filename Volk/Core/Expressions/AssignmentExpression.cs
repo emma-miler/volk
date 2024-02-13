@@ -46,10 +46,10 @@ public class AssignmentExpression : Expression
         if (_right.ValueExpressionType != ValueExpressionType.Immediate)
             gen.Comment("START ASSIGNMENT VALUE");
         IRVariable leftVar = _left.GenerateCode(gen);
-        IRVariable rightVar = gen.DecayToVariable(_right.GenerateCode(gen));
+        IRVariable rightVar = _right.GenerateCode(gen);
         gen.Comment("START ASSIGNMENT");
         gen.Operation($"store {rightVar}, ptr {leftVar.Reference}");
         gen.Comment("END ASSIGNMENT");
-        return leftVar;
+        return rightVar;
     }
 }

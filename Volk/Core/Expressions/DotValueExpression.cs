@@ -46,9 +46,10 @@ public class DotValueExpression : ValueExpression
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
-        IRVariable ret = gen.NewVariable(_field!.Type, IRVariableType.Pointer);
         IRVariable left = _left.GenerateCode(gen);
-        gen.Operation($"{ret.Reference} = getelementptr inbounds %class.{_left.ValueType!.Name}, ptr {left.Reference}, i64 {_field.Offset}");
+        left = gen.DecayToVariable(left);
+        IRVariable ret = gen.NewVariable(_field!.Type, IRVariableType.Pointer);
+        gen.Operation($"{ret.Reference} = getelementptr inbounds %class.{_left.ValueType!.Name}, ptr {left.Reference}, i32 0, i32 {_field.Offset}");
         return ret;
     }
 
