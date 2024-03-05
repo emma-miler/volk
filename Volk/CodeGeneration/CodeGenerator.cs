@@ -21,11 +21,20 @@ public class CodeGenerator
         }
     }
 
-    public IRVariable NewVariable(VKType type, IRVariableType variableType = IRVariableType.Variable, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
+    public IRVariable NewVariable(VKType type, IRVariableType varType = IRVariableType.Variable, int pointerDepth = 0, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
     {
         if (RuntimeConfig.IRVerbosity >= 3)
             Lines.Add($"\t\t; COUNTER {Counter} -> {Counter + 1} {file.Split('/').Last()}:{lineNumber}");
-        IRVariable var = new IRVariable(Counter.ToString(), type, variableType);
+        IRVariable var = new IRVariable(Counter.ToString(), type, varType, pointerDepth);
+        Counter++;
+        return var;
+    }
+
+    public IRVariable NewPointerVariable(VKType type, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
+    {
+        if (RuntimeConfig.IRVerbosity >= 3)
+            Lines.Add($"\t\t; COUNTER {Counter} -> {Counter + 1} {file.Split('/').Last()}:{lineNumber}");
+        IRVariable var = new IRVariable(Counter.ToString(), type, IRVariableType.Variable, 1);
         Counter++;
         return var;
     }
@@ -75,15 +84,15 @@ public class CodeGenerator
 
     public IRVariable DecayToVariable(IRVariable var, [CallerFilePath] string file = "", [CallerLineNumber] int lineNumber = 0)
     {
-        if (var.VariableType != IRVariableType.Pointer)
+        if (var.PointerDepth > 0)
         {
-            return var;
+            IRVariable tmp = NewVariable(var.Type, IRVariableType.Variable, var.PointerDepth - 1);
+            Operation($"{tmp.Reference} = load {tmp.IRType}, {var}");
+            return tmp;
         }
         else
         {
-            IRVariable tmp = NewVariable(var.Type, IRVariableType.Variable);
-            Operation($"{tmp.Reference} = load {var.Type.IRType}, {var}");
-            return tmp;
+            return var;
         }
     }
 }

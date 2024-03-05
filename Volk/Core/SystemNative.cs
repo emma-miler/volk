@@ -17,7 +17,7 @@ public class SystemNative
         rootScope.AddType(VKType.INT);
         rootScope.AddType(VKType.VOID);
         rootScope.AddType(VKType.STRING);
-        rootScope.AddType(VKType.SYSTEM_POINTER);
+        rootScope.AddType(VKType.SYSTEM_GENERIC_POINTER);
 
         VKObject[] intParams = new[]
         {
@@ -94,16 +94,16 @@ public class SystemNative
         program.Functions.Add(printf);
         
 
-        VKExternFunction malloc = new VKExternFunction(scope, "malloc", VKType.SYSTEM_POINTER, new VKObject("size", VKType.INT));
+        VKExternFunction malloc = new VKExternFunction(scope, "malloc", VKType.SYSTEM_GENERIC_POINTER, new VKObject("size", VKType.INT));
         scope.AddFunction(malloc);
         program.Functions.Add(malloc);
 
-        VKExternFunction free = new VKExternFunction(scope, "free", VKType.VOID, new VKObject("address", VKType.SYSTEM_POINTER));
+        VKExternFunction free = new VKExternFunction(scope, "free", VKType.VOID, new VKObject("address", VKType.SYSTEM_GENERIC_POINTER));
         scope.AddFunction(free);
         program.Functions.Add(free);
 
         VKExternFunction memset = new VKExternFunction(scope, "llvm.memset.p0.i64", VKType.VOID, 
-                new VKObject("dest", VKType.SYSTEM_POINTER),
+                new VKObject("dest", VKType.SYSTEM_GENERIC_POINTER),
                 new VKObject("value", VKType.BUILTIN_C_BYTE),
                 new VKObject("length", VKType.INT),
                 new VKObject("isVolatile", VKType.BOOL)
@@ -118,13 +118,15 @@ public class SystemNative
         string op = OperatorToken.GetIROperator(opType);
         if (opType == OperatorType.Gt || opType == OperatorType.Ge || opType == OperatorType.Lt || opType == OperatorType.Le)
             op = "s" + op;
-        VKType operationType = args[0].Type;
+        IRVariable left = gen.DecayToVariable(args[0]);
+        IRVariable right = gen.DecayToVariable(args[1]);
+        VKType operationType = left.Type;
         if (operationType == VKType.INT) cmpOp = "icmp";
         else if (operationType == VKType.REAL) cmpOp = "fcmp";
         else if (operationType == VKType.BOOL) cmpOp = "icmp";
         else throw new InvalidEnumArgumentException($"Invalid VKType '{operationType}'");
         IRVariable retVal = gen.NewVariable(returnType);
-        gen.Operation($"{retVal.Reference} = {cmpOp} {op} {operationType.IRType} {args[0].Reference}, {args[1].Reference}");
+        gen.Operation($"{retVal.Reference} = {cmpOp} {op} {operationType.IRType} {left.Reference}, {right.Reference}");
         return retVal;
     }
 

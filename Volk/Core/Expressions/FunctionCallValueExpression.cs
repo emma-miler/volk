@@ -37,12 +37,12 @@ public class FunctionCallValueExpression : ValueExpression
             Log.Info($"{prefix}[FunctionCallValueExpression] unresolved '{Token.Value}'");
         else
             Log.Info($"{prefix}[FunctionCallValueExpression] {_function}");
-        Log.Info($"{prefix} [");
+        Log.Info($"{prefix}(");
         foreach (ValueExpression expr in Arguments)
         {
             expr.Print(depth + 2);
         }
-        Log.Info($"{prefix} ]");
+        Log.Info($"{prefix})");
     }
 
     public override void ResolveNames(VKScope scope)

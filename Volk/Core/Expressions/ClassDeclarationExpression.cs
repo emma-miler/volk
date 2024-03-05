@@ -21,12 +21,12 @@ public class ClassDeclarationExpression : Expression
     {
         string prefix = " ".Repeat(depth);
         Log.Info($"{prefix}[ClassDeclarationExpression] {_classType}");
-        Log.Info($"{prefix} [");
+        Log.Info($"{prefix}[");
         foreach (VKField field in _classType.Fields)
         {
-            Log.Info(field.ToString());
+            Log.Info($"{prefix} {field}");
         }
-        Log.Info($"{prefix} ]");
+        Log.Info($"{prefix}]");
     }
 
     public override void ResolveNames(VKScope scope)
@@ -43,6 +43,6 @@ public class ClassDeclarationExpression : Expression
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
-        return new IRVariable(_classType.Name, _classType, IRVariableType.Immediate);
+        return new IRVariable(_classType.Name, _classType, IRVariableType.Variable);
     }
 }

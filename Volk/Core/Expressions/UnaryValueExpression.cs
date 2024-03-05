@@ -41,7 +41,7 @@ public class UnaryValueExpression : ValueExpression
         IndirectValueExpression? indirectValueExpression = _value as IndirectValueExpression; 
         IRVariable left = _value.GenerateCode(gen);
         gen.Comment("START UNARY OPERATOR");
-        if (left.VariableType == IRVariableType.Variable || left.VariableType == IRVariableType.Pointer)
+        if (left.VariableType == IRVariableType.Variable || left.PointerDepth > 0)
         {
             left = gen.DecayToVariable(left);
             IRVariable ret = gen.NewVariable(left.Type);
@@ -51,7 +51,7 @@ public class UnaryValueExpression : ValueExpression
             // This will break when the type system gets classes!!!
             if (indirectValueExpression is not null)
             {
-                left = new IRVariable(indirectValueExpression.Token.Value, VKType.SYSTEM_POINTER, IRVariableType.Variable);
+                left = new IRVariable(indirectValueExpression.Token.Value, left.Type, IRVariableType.Variable, 1);
             }
             gen.Operation($"store {ret}, {left}");
             return ret;

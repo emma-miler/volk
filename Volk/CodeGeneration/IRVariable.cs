@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Osiris.Extensions;
 using Volk.Core.Objects;
 
 namespace Volk.Core;
@@ -12,20 +13,25 @@ public enum IRVariableType
     Immediate = 0,
     Constant = 1,
     Variable = 2,
-    Pointer = 3,
 }
 
 public record struct IRVariable
 {
     public string Name;
     public VKType Type;
+    public string IRType => Type.IRType! + '*'.Repeat(PointerDepth);
+    public VKType? PointingType;
     public IRVariableType VariableType;
 
-    public IRVariable(string name, VKType type, IRVariableType variableType)
+    public int PointerDepth;
+
+    public IRVariable(string name, VKType type, IRVariableType variableType, int pointerDepth = 0)
     {
         Name = name;
-        Type = type;
         VariableType = variableType;
+        Type = type;
+        PointingType = null;
+        PointerDepth = pointerDepth;
     }
 
     public string Reference 
@@ -36,7 +42,6 @@ public record struct IRVariable
                 case IRVariableType.Immediate: prefix = ""; break;
                 case IRVariableType.Constant: prefix = "@"; break;
                 case IRVariableType.Variable: prefix = "%"; break;
-                case IRVariableType.Pointer: prefix = "%"; break;
                 default: throw new InvalidEnumArgumentException();
             }
             return $"{prefix}{Name}";
@@ -51,9 +56,8 @@ public record struct IRVariable
             case IRVariableType.Immediate: prefix = ""; break;
             case IRVariableType.Constant: prefix = "@"; break;
             case IRVariableType.Variable: prefix = "%"; break;
-            case IRVariableType.Pointer: prefix = "%"; break;
             default: throw new InvalidEnumArgumentException();
         }
-        return $"{(VariableType == IRVariableType.Pointer ? "ptr" : Type.IRType)} {prefix}{Name}";
+        return $"{IRType} {prefix}{Name}";
     }
 }

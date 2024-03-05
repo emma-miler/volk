@@ -89,14 +89,16 @@ class App
         .Select((line, num) => (num+1).ToString().PadLeft(3, '0') + " " + line.First)
         .ToList();
 
-        string outputString = string.Join('\n', output); 
-        string consoleOutputString = string.Join('\n', consoleOutput);
-
         Log.LogDetailLevel = Log.DetailLevel.None;
-        Log.Info(consoleOutputString);
+        foreach (string line in consoleOutput)
+        {
+            Log.Custom(LogLevel.Information, line, null, line.Contains(";") ? ConsoleColor.DarkGray : ConsoleColor.Green);
+        }
+        
         Log.LogDetailLevel = Log.DetailLevel.Detailed;
         string newFileName = args[0];
         newFileName = newFileName.ReplaceLast(".vk", ".ll");
+        string outputString = string.Join('\n', output); 
         File.WriteAllText(newFileName, outputString);
     }
 

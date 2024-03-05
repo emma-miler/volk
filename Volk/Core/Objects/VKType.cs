@@ -12,13 +12,13 @@ public class VKType : VKScope
     public static VKType INT = new VKType("int", false, irType: "i64", isBuiltin: true);
     public static VKType VOID = new VKType("void", false, irType: "void", isBuiltin: true);
     public static VKType STRING = new VKType("string", false, irType: "ptr", isBuiltin: true);
-    public static VKType SYSTEM_POINTER = new VKType("__ptr", true, irType: "ptr", isBuiltin: true);
     public static VKType SYSTEM_ERROR = new VKType("__builtin_error", false, isBuiltin: true);
     public static VKType BUILTIN_FUNCTION = new VKType("function", true, isBuiltin: true);
-    public static VKType BUILTIN_C_VARARGS = new VKType("__varargs", true, isBuiltin: true);
-    public static VKType BUILTIN_C_STRING = new VKType("__cstring", true, irType: "ptr", isBuiltin: true);
     public static VKType BUILTIN_C_BYTE = new VKType("__byte", false, irType: "i8", isBuiltin: true);
+    public static VKType SYSTEM_GENERIC_POINTER = new VKType("_generic_ptr", false, irType: "i8*", isBuiltin: true);
+    public static VKType BUILTIN_C_VARARGS = new VKType("__varargs", true, irType: "i8*", isBuiltin: true);
 
+    
     public bool IsReferenceType { get; }
     public string? IRType { get; }
     public bool IsBasicType { get; }
@@ -30,7 +30,7 @@ public class VKType : VKScope
     public VKType(string name, bool isReferenceType, VKScope? parentScope = null, string? irType = null, bool isBuiltin = false) : base(name, parentScope, VKType.VOID)
     {
         IsReferenceType = isReferenceType;
-        IRType = irType ?? (IsBasicType ? $"__INVALID_IR_TYPE({name})" : "ptr");
+        IRType = irType ?? (IsBasicType ? $"__INVALID_IR_TYPE({name})" : $"%class.{name}*");
         Type = VKType.TYPE;
         IsBuiltin = isBuiltin;
         IsBasicType = irType != null;
@@ -84,14 +84,14 @@ public class VKType : VKScope
     {
         if (!IsBuiltin)
         {
-            gen.Label($"%class.{Name} = type {{ {string.Join(", ", Fields.Select(x => x.Type.IsBasicType ? x.Type.IRType : "ptr"))} }}");
+            gen.Label($"%class.{Name} = type {{ {string.Join(", ", Fields.Select(x => x.Type.IRType))} }}");
         }
         return new IRVariable("__null", VKType.VOID, IRVariableType.Immediate);
     }
 
     static IRVariable MallocConstructor(VKType returnType, CodeGenerator gen, IRVariable[] args)
     {
-        IRVariable ret = gen.NewVariable(returnType, IRVariableType.Pointer);
+        IRVariable ret = gen.NewVariable(returnType);
         int size = returnType.Fields.Count() * 8;
         gen.Operation($"{ret.Reference} = call noalias ptr @malloc(i64 noundef {size})");
         gen.Operation($"call void @llvm.memset.p0.i64({ret}, i8 0, i64 {size}, i1 false)");

@@ -48,6 +48,10 @@ public class AssignmentExpression : Expression
         IRVariable leftVar = _left.GenerateCode(gen);
         IRVariable rightVar = _right.GenerateCode(gen);
         gen.Comment("START ASSIGNMENT");
+        //if (leftVar.VariableType == IRVariableType.Pointer && rightVar.VariableType == IRVariableType.Pointer)
+        //    gen.Operation($"store {gen.DecayToVariable(rightVar)}, ptr {leftVar.Reference}");
+        //else 
+        rightVar = gen.DecayToVariable(rightVar);
         gen.Operation($"store {rightVar}, ptr {leftVar.Reference}");
         gen.Comment("END ASSIGNMENT");
         return rightVar;

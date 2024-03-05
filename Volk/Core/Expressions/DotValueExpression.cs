@@ -48,7 +48,7 @@ public class DotValueExpression : ValueExpression
     {
         IRVariable left = _left.GenerateCode(gen);
         left = gen.DecayToVariable(left);
-        IRVariable ret = gen.NewVariable(_field!.Type, IRVariableType.Pointer);
+        IRVariable ret = gen.NewPointerVariable(_field!.Type);
         gen.Operation($"{ret.Reference} = getelementptr inbounds %class.{_left.ValueType!.Name}, ptr {left.Reference}, i32 0, i32 {_field.Offset}");
         return ret;
     }

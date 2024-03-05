@@ -40,6 +40,6 @@ public class IndirectValueExpression : ValueExpression
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
-        return new IRVariable(_variable!.Name, _variable!.Type, IRVariableType.Pointer);
+        return new IRVariable(_variable!.Name, _variable!.Type, IRVariableType.Variable, 1);
     }
 }

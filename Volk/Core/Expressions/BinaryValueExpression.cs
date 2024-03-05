@@ -83,7 +83,7 @@ public class BinaryValueExpression : ValueExpression
         // Generate right-hand side of operator
         IRVariable right = Right.GenerateCode(gen);
         // If either value is a pointer, we first need to dereference it
-        if (left.VariableType == IRVariableType.Pointer || right.VariableType == IRVariableType.Pointer)
+        if (left.PointerDepth > 0 || right.PointerDepth > 0)
         {
             gen.Comment("START BINARY OPERATOR DEREFERENCE");
             left = gen.DecayToVariable(left);

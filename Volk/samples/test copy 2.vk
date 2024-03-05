@@ -1,0 +1,16 @@
+class Test
+{
+    int _size;
+    int _count;
+}
+
+function void printTest(Test obj)
+{
+    printf("%d\n", obj._size);
+}
+
+Test var = new Test();
+var._size = 69;
+printf("value: \n");
+printTest(var);
+return 42;

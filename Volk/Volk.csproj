@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Osiris" Version="0.1.4" />
+    <PackageReference Include="Osiris" Version="0.1.6" />
   </ItemGroup>
 
   <Target Name="CopyCustomContent" AfterTargets="BeforeBuild">
