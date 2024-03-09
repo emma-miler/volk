@@ -3,6 +3,7 @@ namespace Volk.Core
     public enum OperatorType
     {
         Assignment,
+        Call,
         LogicalOr,
         LogicalAnd,
         BitwiseOr,

@@ -16,10 +16,13 @@ public class VKFunction : VKObject
 
     public string MangledName => Scope.ChainName == "" ? Name : Scope.ChainName;
 
-    public VKFunction(VKScope parentScope, string name, VKType returnType, params VKObject[] parameters) : base(name, VKType.BUILTIN_FUNCTION)
+    public bool IsStatic { get; }
+
+    public VKFunction(VKScope parentScope, string name, VKType returnType, bool isStatic, params VKObject[] parameters) : base(name, VKType.BUILTIN_FUNCTION)
     {
         Parameters = parameters.ToList();
         Scope = new VKScope(name, parentScope, returnType);
+        IsStatic = isStatic;
 
         foreach (VKObject param in Parameters)
             Scope.AddObject(param);

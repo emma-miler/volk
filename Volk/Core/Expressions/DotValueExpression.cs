@@ -10,14 +10,16 @@ namespace Volk.Core.Expressions;
 public class DotValueExpression : ValueExpression
 {
 
-    ValueExpression _left;
+    public ValueExpression Expression { get; }
     Token _right;
+    public string Name { get; }
 
     VKField? _field;
 
     public DotValueExpression(Token token, ValueExpression left, Token right) : base(ValueExpressionType.Dot, token)
     {
-        _left = left;
+        Expression = left;
+        Name = right.Value;
         _right = right;
     }
 
@@ -25,34 +27,34 @@ public class DotValueExpression : ValueExpression
     {
         string prefix = " ".Repeat(depth);
         Log.Info($"{prefix}[DotValueExpression] {_right}");
-        _left.Print(depth + 1);
+        Expression.Print(depth + 1);
     }
 
 
     public override void ResolveNames(VKScope scope)
     {
-        _left.ResolveNames(scope);
-        VKObject? obj = _left.ValueType!.FindVariable(_right.Value);
+        Expression.ResolveNames(scope);
+        VKObject? obj = Expression.ValueType!.FindVariable(Name);
         if (obj == null)
-            throw new NameException($"Unknown field '{_right.Value}' on type '{_left.ValueType!}'", Token);
+            throw new NameException($"Unknown field '{Name}' on type '{Expression.ValueType!}'", Token);
         _field = (VKField)obj;
         ValueType = _field.Type;
     }
 
     public override void TypeCheck(VKScope scope)
     {
-        _left.TypeCheck(scope);
+        Expression.TypeCheck(scope);
     }
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
-        IRVariable left = _left.GenerateCode(gen);
+        IRVariable left = Expression.GenerateCode(gen);
         left = gen.DecayToVariable(left);
         IRVariable ret = gen.NewPointerVariable(_field!.Type);
-        gen.Operation($"{ret.Reference} = getelementptr inbounds %class.{_left.ValueType!.Name}, ptr {left.Reference}, i32 0, i32 {_field.Offset}");
+        gen.Operation($"{ret.Reference} = getelementptr inbounds %class.{Expression.ValueType!.Name}, ptr {left.Reference}, i32 0, i32 {_field.Offset}");
         return ret;
     }
 
-   
-    
+
+
 }

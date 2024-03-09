@@ -20,4 +20,5 @@ public enum TokenType
     FunctionDeclaration,
     ClassDeclaration,
     NewExpression,
+    KeywordConstructor
 }

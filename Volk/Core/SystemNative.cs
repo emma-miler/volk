@@ -86,7 +86,7 @@ public class SystemNative
 
     public static void AddBuiltinFunctions(VKProgram program, VKScope scope)
     {
-        VKExternFunction printf = new VKExternFunction(scope, "printf", VKType.INT, 
+        VKExternFunction printf = new VKExternFunction(scope, "printf", VKType.INT, true,
             new VKObject("format_string", VKType.STRING),
             new VKObject("args", VKType.BUILTIN_C_VARARGS)
         );
@@ -94,15 +94,15 @@ public class SystemNative
         program.Functions.Add(printf);
         
 
-        VKExternFunction malloc = new VKExternFunction(scope, "malloc", VKType.SYSTEM_GENERIC_POINTER, new VKObject("size", VKType.INT));
+        VKExternFunction malloc = new VKExternFunction(scope, "malloc", VKType.SYSTEM_GENERIC_POINTER, true, new VKObject("size", VKType.INT));
         scope.AddFunction(malloc);
         program.Functions.Add(malloc);
 
-        VKExternFunction free = new VKExternFunction(scope, "free", VKType.VOID, new VKObject("address", VKType.SYSTEM_GENERIC_POINTER));
+        VKExternFunction free = new VKExternFunction(scope, "free", VKType.VOID, true, new VKObject("address", VKType.SYSTEM_GENERIC_POINTER));
         scope.AddFunction(free);
         program.Functions.Add(free);
 
-        VKExternFunction memset = new VKExternFunction(scope, "llvm.memset.p0.i64", VKType.VOID, 
+        VKExternFunction memset = new VKExternFunction(scope, "llvm.memset.p0.i64", VKType.VOID, true,
                 new VKObject("dest", VKType.SYSTEM_GENERIC_POINTER),
                 new VKObject("value", VKType.BUILTIN_C_BYTE),
                 new VKObject("length", VKType.INT),

@@ -2,6 +2,12 @@ class Test
 {
     int _size;
     int _count;
+
+    constructor (int size, int count)
+    {
+        this._size = size;
+        this._count = count;
+    }
 }
 
 function void printTest(Test obj)
@@ -10,7 +16,7 @@ function void printTest(Test obj)
 }
 
 Test var = new Test();
-var._size = 69;
+var.__ctor(1, 2);
 printf("value: \n");
 printTest(var);
 return 42;

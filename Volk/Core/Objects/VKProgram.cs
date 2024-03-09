@@ -21,7 +21,7 @@ public class VKProgram
     {
         RootScope = new VKScope("__root", null!, VKType.INT);
         
-        VKFunction mainFunc = new VKFunction(null!, "main", VKType.INT) {
+        VKFunction mainFunc = new VKFunction(null!, "main", VKType.INT, true) {
             Scope = RootScope
         };
         Functions.Add(mainFunc);

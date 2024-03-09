@@ -37,7 +37,7 @@ public class VKType : VKScope
 
         if (!isBuiltin)
         {
-            AddFunction(new VKNativeFunction(parentScope!, "__constructor", this, MallocConstructor));
+            AddFunction(new VKNativeFunction(parentScope!, "__allocate", this, MallocConstructor));
         }
     }
 

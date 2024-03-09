@@ -1,7 +1,9 @@
 using System.Linq.Expressions;
+using System.Security.Cryptography.X509Certificates;
 using Osiris;
 using Volk.Core.Expressions;
 using Volk.Core.Objects;
+using Volk.Parsing;
 
 namespace Volk.Core;
 public class Parser
@@ -72,11 +74,32 @@ public class Parser
 
     #endregion Token Functions
 
+    List<ValueExpression> ParseFunctionCall(int depth)
+    {
+        Log.Trace("  consume func call");
+        List<ValueExpression> args = new();
+        Expect(TokenType.OpenParenthesis);
+        if (_tokens.Peek().Type == TokenType.CloseParenthesis)
+            PopToken();
+        else
+        {
+            while (_tokens.Peek().Type != TokenType.CloseParenthesis)
+            {
+                args.Add(ParseValueExpression(depth + 1, TokenType.CommaSeparator));
+                Log.Trace($"func argument {args.Last()}");
+                if (SoftExpect(TokenType.CommaSeparator) == null)
+                    break;
+            }
+            Expect(TokenType.CloseParenthesis);
+        }
+        return args;
+    }
+
     /// <summary>
     /// This function parses a singular top-level value expression. Note: ValueExpressions wrapped in parenthesis are considered a single expression.
     /// </summary>
     /// <returns></returns>
-    ValueExpression ConsumeNullaryOrUnaryValueExpression(int depth)
+    ValueExpression ConsumeNullaryOrUnaryValueExpression(int depth, bool expectFunctionCall = false)
     {
         Log.Trace($"ConsumeNullaryOrUnaryValueExpression with depth {depth}");
         OperatorToken? opToken = null;
@@ -91,11 +114,19 @@ public class Parser
         // Maybe need to add a context variable to this function's arguments
         if (t.Type == TokenType.OpenParenthesis)
         {
-            Expect(TokenType.OpenParenthesis);
-            Log.Trace("consume open paren");
-            ValueExpression subExpression = ParseValueExpression(depth + 1, TokenType.CloseParenthesis);
-            Expect(TokenType.CloseParenthesis);
-            return subExpression;
+            if (expectFunctionCall)
+            {
+                return new ArgumentPackValueExpression(t, ParseFunctionCall(depth));
+            }
+            else
+            {
+                Expect(TokenType.OpenParenthesis);
+                Log.Trace("consume open paren");
+                ValueExpression subExpression = ParseValueExpression(depth + 1, TokenType.CloseParenthesis);
+                Token next = PeekToken();
+                Expect(TokenType.CloseParenthesis);
+                return subExpression;
+            }
         }
 
         /// ==========
@@ -134,38 +165,8 @@ public class Parser
         }
         else if (t.Type == TokenType.Name)
         {
-            Log.Trace("consume name");
-            /// ==========
-            /// Function call
-            /// ==========
-            if (_tokens.Peek().Type == TokenType.OpenParenthesis)
-            {
-                Log.Trace("  consume func call");
-                List<ValueExpression> args = new();
-                PopToken();
-                if (_tokens.Peek().Type == TokenType.CloseParenthesis)
-                    PopToken();
-                else
-                {
-                    while (_tokens.Peek().Type != TokenType.CloseParenthesis)
-                    {
-                        args.Add(ParseValueExpression(depth + 1, TokenType.CommaSeparator));
-                        Log.Trace($"func argument {args.Last()}");
-                        if (SoftExpect(TokenType.CommaSeparator) == null)
-                            break;
-                    }
-                    Expect(TokenType.CloseParenthesis);
-                }
-                expr = new FunctionCallValueExpression(t, args);
-            }
-            /// ==========
-            /// LValue reference
-            /// ==========
-            else
-            {
-                Log.Trace("  consume lvalue ref");
-                expr = new IndirectValueExpression(t);
-            }
+            Log.Trace("  consume lvalue ref");
+            expr = new IndirectValueExpression(t);
         }
         /// ==========
         /// Type instantiation
@@ -189,12 +190,10 @@ public class Parser
                 }
                 Expect(TokenType.CloseParenthesis);
             }
-            expr = new FunctionCallValueExpression(nameToken, args, $"{nameToken.Value}$__constructor");
+            expr = new FunctionCallValueExpression(nameToken, new ArgumentPackValueExpression(t, args), new IndirectValueExpression(new Token(TokenType.Name, new DummySourcePosition($"{nameToken.Value}$__allocate"))));
         }
         else
-        {
             throw new ParseException($"Unexpected token '{t}' while parsing ConsumeNullaryOrUnaryValueExpression", t);
-        }
 
         if (!isUnaryExpression)
             return expr;
@@ -210,8 +209,7 @@ public class Parser
     ValueExpression ParseValueExpression(int depth, TokenType endMarkers, bool breakOnAssignment = false)
     {
         bool lastTokenWasOperator = false;
-        Stack<ValueExpression> expressions = new();
-        Stack<OperatorToken> operators = new();
+        ShuntingYard yard = new();
         Log.Trace($"ParseValueExpression with depth {depth}");
         int i = 0;
         Token t;
@@ -227,39 +225,25 @@ public class Parser
 
             // If we encounter an operator token, and the last token was not also an operator,
             // Apply the shunting yard algorithm
-            if (t is OperatorToken ot && !lastTokenWasOperator && !ot.IsComparisonOperator)
+            if (t is OperatorToken ot && !ot.IsComparisonOperator&& !lastTokenWasOperator)
             {
-                Log.Trace("got operator");
                 PopToken();
+                Log.Trace("got operator");
                 if (!lastTokenWasOperator)
                 {
                     lastTokenWasOperator = true;
                     // If we have only 2 expressions, we don't yet have enough items to complete this chain,
                     // so we push it to the queue
-                    if (expressions.Count < 2)
-                        operators.Push(ot);
+                    if (yard.Expressions.Count < 2)
+                        yard.Operators.Push(ot);
                     // If we have a higher precedence than the last operator, 
                     // we also push it to the queue
-                    else if (ot.OperatorType > operators.Last().OperatorType)
-                        operators.Push(ot);
+                    else if (yard.Operators.Count() == 0 || ot.OperatorType > yard.Operators.Last().OperatorType)
+                        yard.Operators.Push(ot);
                     // Otherwise, collapse the queue and get the value
                     else
                     {
-                        // This is an implementation of the shunting yard algorithm
-                        while (operators.Count != 0)
-                        {
-                            OperatorToken op = operators.Pop();
-                            ValueExpression right = expressions.Pop();
-                            ValueExpression left = expressions.Pop();
-                            if (op.OperatorType == OperatorType.Dot)
-                            {
-                                if (right.ValueExpressionType != ValueExpressionType.Indirect)
-                                    throw new ParseException($"Cannot apply operator '{op}' on expression where right-hand side is not a simple name", op);
-                                expressions.Push(new DotValueExpression(op, left, right.Token));
-                            }
-                            else
-                                expressions.Push(new BinaryValueExpression(op, left, right));
-                        }
+                        yard.Reduce();
                     }
                     continue;
                 }
@@ -272,56 +256,41 @@ public class Parser
             {
                 Log.Trace("got comparison operator");
                 PopToken();
-                operators.Push(comp);
+                yard.Operators.Push(comp);
             }
             else
             {
                 Log.Trace("getting single value");
-                expressions.Push(ConsumeNullaryOrUnaryValueExpression(depth + 1));
+                if (t.Type == TokenType.Name)
+                {
+                    PopToken();
+                    yard.Expressions.Push(new IndirectValueExpression(t));
+                    if (PeekToken().Type == TokenType.OpenParenthesis)
+                    {
+                        yard.Reduce();
+                        yard.Operators.Push(new OperatorToken(OperatorType.Call, PeekToken().ValueSource));
+                        yard.Expressions.Push(ConsumeNullaryOrUnaryValueExpression(depth + 1, true));
+                    }
+                }
+                else
+                {
+                    yard.Expressions.Push(ConsumeNullaryOrUnaryValueExpression(depth + 1, false));
+                }
+                
                 lastTokenWasOperator = false;
             }
         }
 
         // This is an implementation of the shunting yard algorithm
-        while (operators.Count != 0)
-        {
-            OperatorToken op = operators.Pop();
-            if (op.IsUnaryOperator)
-            {
-                if (expressions.Count < 1)
-                {
-                    throw new ParseException($"Expected 1 value for unary operator {op.OperatorType}, but got {expressions.Count}", op);
-                }
-                ValueExpression operand = expressions.Pop();
-                expressions.Push(new UnaryValueExpression(op, operand));
-            }
-            else
-            {
-                if (expressions.Count < 2)
-                {
-                    throw new ParseException($"Expected 2 values for binary operator {op.OperatorType}, but got {expressions.Count}", op);
-                }
-                ValueExpression right = expressions.Pop();
-                ValueExpression left = expressions.Pop();
-                if (op.OperatorType == OperatorType.Dot)
-                {
-                    if (right.ValueExpressionType != ValueExpressionType.Indirect)
-                        throw new ParseException($"Cannot apply operator '{op}' on expression where right-hand side is not a simple name", op);
-                    expressions.Push(new DotValueExpression(op, left, right.Token));
-                }
-                else
-                    expressions.Push(new BinaryValueExpression(op, left, right));
-            }
-            
-        }
+        yard.Reduce();
 
-        int exprCount = expressions.Count();
+        int exprCount = yard.Expressions.Count();
         if (exprCount == 0)
             throw new ParseException($"Expected a value expression, but did not find any", t);
         if (exprCount == 2)
             throw new ParseException($"Expected a single value expression, but found multiple. This is a syntax error", t);
 
-        return expressions.Single();
+        return yard.Expressions.Single();
     }
 
     /// <summary>
@@ -459,13 +428,17 @@ public class Parser
         Token decl = Expect(TokenType.ClassDeclaration);
         Token name = Expect(TokenType.Name);
         Expect(TokenType.OpenCurlyBracket);
-        VKType type = new VKType(name.Value, true);
+        VKType type = new VKType(name.Value, true, ActiveScope());
         _scopes.Push(type);
         while (PeekToken().Type != TokenType.CloseCurlyBracket)
         {
             Token t = PeekToken();
             if (t.Type == TokenType.Name)
                 ParseDeclaration(TokenType.EndOfExpression);
+            else if (t.Type == TokenType.KeywordConstructor)
+                ParseConstructorDeclaration(type);
+            else
+                throw new ParseException($"Unexpected token '{t}' during class declaration", t);
         }
         Expect(TokenType.CloseCurlyBracket);
         _scopes.Pop();
@@ -473,7 +446,29 @@ public class Parser
         ActiveScope().Expressions.Add(new ClassDeclarationExpression(decl, type));
     }
 
-    void ParseFunctionDeclaration()
+    void ParseConstructorDeclaration(VKType type)
+    {
+        Token token = Expect(TokenType.KeywordConstructor);
+        
+        List<VKObject> parameters = new();
+        parameters.Add(new VKObject("this", type));
+        parameters.AddRange(ParseFunctionHead());
+        
+        VKFunction func = new VKFunction(ActiveScope(), "__constructor", VKType.VOID, false, parameters.ToArray());
+        type.AddFunction(func);
+        ActiveScope().Expressions.Add(new FunctionDeclarationExpression(token, func));
+        _scopes.Push(func.Scope);
+        _program.Functions.Add(func);
+        Expect(TokenType.OpenCurlyBracket);
+        while (PeekToken().Type != TokenType.CloseCurlyBracket)
+        {
+            ParseStatement();
+        }
+        Expect(TokenType.CloseCurlyBracket);
+        _scopes.Pop();
+    }
+
+    void ParseFunctionDeclaration(bool skipTypeToken = false)
     {
         Expect(TokenType.FunctionDeclaration);
         Token type = Expect(TokenType.Name);
@@ -482,6 +477,19 @@ public class Parser
         if (returnType == null)
             throw new TypeException($"Unknown type '{type}'", type);
 
+        List<VKObject> parameters = ParseFunctionHead();
+        
+        VKFunction func = new VKFunction(ActiveScope(), name.Value, returnType, true, parameters.ToArray());
+        ActiveScope().AddFunction(func);
+        ActiveScope().Expressions.Add(new FunctionDeclarationExpression(name, func));
+        _scopes.Push(func.Scope);
+        _program.Functions.Add(func);
+        Expect(TokenType.OpenCurlyBracket);
+    }
+
+
+    List<VKObject> ParseFunctionHead()
+    {
         Expect(TokenType.OpenParenthesis);
         // Loop through all arguments
         List<VKObject> parameters = new();
@@ -501,7 +509,7 @@ public class Parser
             // TODO: add support for optional and default parameters right here
             VKType? resolvedType = ActiveScope().FindType(paramType.Value);
             if  (resolvedType == null)
-                throw new TypeException($"Unknown type '{paramType}'", paramType);
+                throw new TypeException($"Unknown type '{paramType.Value}'", paramType);
             parameters.Add(new VKObject(paramName.Value, resolvedType));
 
             // Then, peek again to see if we've reached the parameter pack end, or if we need to keep parsing
@@ -515,13 +523,7 @@ public class Parser
             // If we haven't, expect a comma separator
             Expect(TokenType.CommaSeparator);
         }
-
-        VKFunction func = new VKFunction(ActiveScope(), name.Value, returnType, parameters.ToArray());
-        ActiveScope().AddFunction(func);
-        ActiveScope().Expressions.Add(new FunctionDeclarationExpression(name, func));
-        _scopes.Push(func.Scope);
-        _program.Functions.Add(func);
-        Expect(TokenType.OpenCurlyBracket);
+        return parameters;
     }
 
     void ParseTopLevelValueExpressionOrAssignment(TokenType endMarker, bool breakOnAssignment = false)

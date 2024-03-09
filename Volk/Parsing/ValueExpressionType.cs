@@ -10,4 +10,5 @@ public enum ValueExpressionType
     StringConstant,
     ValueCast,
     Dot,
+    ArgumentPack,
 }

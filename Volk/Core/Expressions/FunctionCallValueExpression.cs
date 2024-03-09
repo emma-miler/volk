@@ -9,45 +9,54 @@ using Volk.Core.Objects;
 namespace Volk.Core.Expressions;
 public class FunctionCallValueExpression : ValueExpression
 {
-    public List<ValueExpression> Arguments { get; }
+    public ArgumentPackValueExpression ArgumentPack { get; }
 
     VKFunction? _function;
 
     string _functionName;
+    ValueExpression? _classInstance;
 
-
-     public FunctionCallValueExpression(Token function, List<ValueExpression> arguments, string? functionName = null) : base(ValueExpressionType.Call, function)
+    public FunctionCallValueExpression(Token token, ArgumentPackValueExpression argumentPack, VKFunction function) : base(ValueExpressionType.Call, token)
     {
-        Arguments = arguments;
-        _functionName = functionName ?? function.Value;
-    }
-
-    public FunctionCallValueExpression(Token token, List<ValueExpression> arguments, VKFunction function) : base(ValueExpressionType.Call, token)
-    {
-        Arguments = arguments;
+        ArgumentPack = argumentPack;
         _functionName = function.Name;
         _function = function;
     }
-    
+
+    public FunctionCallValueExpression(Token function, ArgumentPackValueExpression argumentPack, IndirectValueExpression functionNameReference) : base(ValueExpressionType.Call, function)
+    {
+        ArgumentPack = argumentPack;
+        _functionName = functionNameReference.Token.Value;
+    }
+
+    public FunctionCallValueExpression(Token function, ArgumentPackValueExpression argumentPack, DotValueExpression dotValueExpression) : base(ValueExpressionType.Call, function)
+    {
+        ArgumentPack = argumentPack;
+        _functionName = dotValueExpression.Name;
+        _classInstance = dotValueExpression.Expression;
+    }
 
     public override void Print(int depth)
     {
         string prefix = " ".Repeat(depth);
         if (_function == null)
-            Log.Info($"{prefix}[FunctionCallValueExpression] unresolved '{Token.Value}'");
+        {
+            if (_classInstance == null)
+                Log.Info($"{prefix}[FunctionCallValueExpression] unresolved '{_functionName}'");
+            else
+            {
+                Log.Info($"{prefix}[FunctionCallValueExpression] unresolved '{_functionName}' with DotExpression");
+                _classInstance.Print(depth + 1);
+            }
+        }
         else
             Log.Info($"{prefix}[FunctionCallValueExpression] {_function}");
-        Log.Info($"{prefix}(");
-        foreach (ValueExpression expr in Arguments)
-        {
-            expr.Print(depth + 2);
-        }
-        Log.Info($"{prefix})");
+        ArgumentPack.Print(depth + 1);
     }
 
     public override void ResolveNames(VKScope scope)
     {
-        foreach(ValueExpression expr in Arguments)
+        foreach (ValueExpression expr in ArgumentPack.Expressions)
         {
             expr.ResolveNames(scope);
         }
@@ -55,17 +64,32 @@ public class FunctionCallValueExpression : ValueExpression
         // If we already have a bound function, no need to look for it
         if (_function != null)
             return;
-        _function = (VKFunction?)scope.FindFunction(_functionName) ?? throw new NameException($"Undefined function '{_functionName}'", Token);
-        if (_function is VKFunction func)
-            ValueType = func.ReturnType;
+
+        if (_classInstance != null)
+        {
+            _classInstance.ResolveNames(scope);
+            _function = _classInstance.ValueType!.FindFunction(_functionName);
+        }
         else
-            throw new TypeException($"Object with name '{_functionName}' is not a function, as it is of type '{_function.Type}'", Token);
+        {
+            _function = scope.FindFunction(_functionName);
+        }
+
+        if (_function == null)
+            throw new NameException($"Undefined function '{_functionName}'", Token);
+
+        ValueType = _function.ReturnType;
+
+        if (!_function.IsStatic)
+        {
+            ArgumentPack.Expressions.Insert(0, _classInstance!);
+        }
     }
 
     public override void TypeCheck(VKScope scope)
     {
         int i = 0;
-        foreach (ValueExpression arg in Arguments)
+        foreach (ValueExpression arg in ArgumentPack.Expressions)
         {
             if (_function!.Parameters[i].Type == VKType.BUILTIN_C_VARARGS)
             {
@@ -86,7 +110,7 @@ public class FunctionCallValueExpression : ValueExpression
         gen.Comment("STACK FUNCTION CALL ARGUMENTS");
         List<IRVariable> argVariables = new();
         int i = 0;
-        foreach (ValueExpression arg in Arguments)
+        foreach (ValueExpression arg in ArgumentPack.Expressions)
         {
             gen.Comment($"ARG {i}");
             IRVariable argVar = arg.GenerateCode(gen);
