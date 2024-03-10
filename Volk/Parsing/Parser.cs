@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using System.Security.Cryptography.X509Certificates;
 using Osiris;
 using Volk.Core.Expressions;
+using Volk.Core.Expressions.Internal;
 using Volk.Core.Objects;
 using Volk.Parsing;
 
@@ -190,7 +191,9 @@ public class Parser
                 }
                 Expect(TokenType.CloseParenthesis);
             }
-            expr = new FunctionCallValueExpression(nameToken, new ArgumentPackValueExpression(t, args), new IndirectValueExpression(new Token(TokenType.Name, new DummySourcePosition($"{nameToken.Value}$__allocate"))));
+            IndirectValueExpression typeName = new IndirectValueExpression(nameToken);
+            DotValueExpression constructorName = new DotValueExpression(t, typeName, new Token(TokenType.Name, new DummySourcePosition("__new")));
+            expr = new FunctionCallValueExpression(t, new ArgumentPackValueExpression(t, args), constructorName);
         }
         else
             throw new ParseException($"Unexpected token '{t}' while parsing ConsumeNullaryOrUnaryValueExpression", t);
@@ -451,10 +454,18 @@ public class Parser
         Token token = Expect(TokenType.KeywordConstructor);
         
         List<VKObject> parameters = new();
-        parameters.Add(new VKObject("this", type));
         parameters.AddRange(ParseFunctionHead());
         
-        VKFunction func = new VKFunction(ActiveScope(), "__constructor", VKType.VOID, false, parameters.ToArray());
+        VKFunction func = new VKFunction(ActiveScope(), "__new", type, true, parameters.ToArray());
+        Token thisToken = new Token(TokenType.Name, new DummySourcePosition("this"));
+        Token typeToken = new Token(TokenType.Name, new DummySourcePosition(type.Name));
+        VKObject thisObject = new VKObject("this", type);
+        InstanceAllocationExpression alloc = new InstanceAllocationExpression(token, type);
+        DeclarationExpression decl = new DeclarationExpression(typeToken, thisToken, thisObject);
+        AssignmentExpression assignmentExpression = new AssignmentExpression(token, new IndirectValueExpression(thisToken), alloc);
+        func.Scope.AddObject(thisObject);
+        func.Scope.Expressions.Add(decl);
+        func.Scope.Expressions.Add(assignmentExpression);
         type.AddFunction(func);
         ActiveScope().Expressions.Add(new FunctionDeclarationExpression(token, func));
         _scopes.Push(func.Scope);
@@ -465,6 +476,10 @@ public class Parser
             ParseStatement();
         }
         Expect(TokenType.CloseCurlyBracket);
+
+        IndirectValueExpression returnThisExpr = new IndirectValueExpression(thisToken);
+        ReturnExpression returnExpr = new ReturnExpression(token, returnThisExpr, func.Scope);
+        func.Scope.Expressions.Add(returnExpr);
         _scopes.Pop();
     }
 

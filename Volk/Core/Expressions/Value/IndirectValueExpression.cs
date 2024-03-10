@@ -10,7 +10,7 @@ namespace Volk.Core.Expressions;
 public class IndirectValueExpression : ValueExpression
 {
 
-    VKObject? _variable;
+    public VKObject? Value {get; private set; }
     
     public IndirectValueExpression(Token name) : base(ValueExpressionType.Indirect, name)
     {
@@ -19,18 +19,31 @@ public class IndirectValueExpression : ValueExpression
     public override void Print(int depth)
     {
         string prefix = " ".Repeat(depth);
-        if (_variable == null)
+        if (Value == null)
             Log.Info($"{prefix}[IndirectValueExpression] '{Token.Value}'");
         else
-            Log.Info($"{prefix}[IndirectValueExpression] '{_variable.Name}': {_variable.Type}");
+            Log.Info($"{prefix}[IndirectValueExpression] '{Value.Name}': {Value.Type}");
     }
 
     public override void ResolveNames(VKScope scope)
     {
-        _variable = scope.FindVariable(Token.Value);
-        if (_variable == null)
-            throw new NameException($"Undefined variable '{Token.Value}'", Token);
-        ValueType = _variable.Type;
+        Value = scope.FindVariable(Token.Value);
+        if (Value != null)
+        {
+            ValueType = Value.Type;
+        }
+        else
+        {
+            Value = scope.FindType(Token.Value);
+            if (Value != null)
+            {
+                ValueType = (VKType)Value;
+            }
+            else
+            {
+                throw new NameException($"Undefined variable '{Token.Value}'", Token);
+            }
+        }
     }
 
     public override void TypeCheck(VKScope scope)
@@ -40,6 +53,6 @@ public class IndirectValueExpression : ValueExpression
 
     public override IRVariable GenerateCode(CodeGenerator gen)
     {
-        return new IRVariable(_variable!.Name, _variable!.Type, IRVariableType.Variable, 1);
+        return new IRVariable(Value!.Name, Value!.Type, IRVariableType.Variable, 1);
     }
 }

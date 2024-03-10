@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Volk.Core.Expressions;
 using Volk.Core.Objects;
@@ -79,36 +80,31 @@ public class VKScope : VKObject
             return null;
     }
 
-    public virtual VKFunction? FindFunction(string name)
+    public virtual VKFunction? FindFunction(string name, IEnumerable<VKType> argumentTypes)
     {
-        // If the name contains any '$' characters, we have to do some special handling
-        if (name.Contains('$'))
-        {
-            string[] parts = name.Split('$');
-            if (parts.Length > 2)
-                throw new Exception("Found more than 2 parts to function name resolution. Dont know what to do!");
-            // Here, we check if the function is a member function of a class, e.g a constructor
-            VKType? type = FindType(parts[0]);
-            if (type == null)
-                throw new Exception("Found member function but cannot find type. Dont know what to do!");
-            VKFunction? obj = type.FindFunction(parts[1]);
-            if (obj != null)
-                return obj;
-            else if (_parentScope != null)
-                return _parentScope.FindFunction(name);
-            else
-                return null;
-        }
+        List<VKFunction> candidates = _functions.Where(x => {
+            if (x.Name != name)
+                return false;
+            int indexOfVarargs = x.Parameters.FindIndex(x => x.Type == VKType.BUILTIN_C_VARARGS);
+            IEnumerable<VKObject> parameters = x.Parameters;
+            // Special handling for functions with varargs
+            if (indexOfVarargs > -1)
+            {
+                parameters = parameters.Take(indexOfVarargs);
+                argumentTypes = argumentTypes.Take(indexOfVarargs);
+            }
+            bool paramCountsMatch = parameters.Count() == argumentTypes.Count();
+            bool paramTypesMatch = parameters.Zip(argumentTypes).All(param => VKType.IsEqualOrDerived(param.First.Type, param.Second));
+            return paramCountsMatch && paramTypesMatch;
+        }).ToList();
+
+        if (candidates.Count == 0)
+            return _parentScope?.FindFunction(name, argumentTypes);
+        else if (candidates.Count == 1)
+            return candidates.Single();
         else
-        {
-            VKFunction? obj = _functions.Find(x => x.Name == name);
-            if (obj != null)
-                return obj;
-            else if (_parentScope != null)
-                return _parentScope.FindFunction(name);
-            else
-                return null;
-        }
+            return null;
+            //throw new TypeException($"Found two or more candidates for constructor", Token!);
     }
 
     public VKType? FindType(string name)

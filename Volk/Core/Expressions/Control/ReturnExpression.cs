@@ -52,7 +52,6 @@ public class ReturnExpression : Expression
         {
             if (_value.ValueType == VKType.VOID)
             {
-                gen.Counter++;
                 gen.Operation($"ret void");
                 return new IRVariable("__void", VKType.VOID, IRVariableType.Immediate);
             }
@@ -67,6 +66,7 @@ public class ReturnExpression : Expression
             ret = new IRVariable("__err", VKType.VOID, IRVariableType.Immediate);
             gen.Operation("ret void");
         }
+        gen.Counter++;
         return ret;
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Osiris;
 using Osiris.Extensions;
@@ -65,18 +66,21 @@ public class FunctionCallValueExpression : ValueExpression
         if (_function != null)
             return;
 
+        string functionNamePrefix = string.Empty;
+
         if (_classInstance != null)
         {
             _classInstance.ResolveNames(scope);
-            _function = _classInstance.ValueType!.FindFunction(_functionName);
+            _function = _classInstance.ValueType!.FindFunction(_functionName, ArgumentPack.ArgumentTypes);
+            functionNamePrefix = _classInstance.ValueType.Name + "::";
         }
         else
         {
-            _function = scope.FindFunction(_functionName);
+            _function = scope.FindFunction(_functionName, ArgumentPack.ArgumentTypes);
         }
 
         if (_function == null)
-            throw new NameException($"Undefined function '{_functionName}'", Token);
+            throw new NameException($"Undefined function '{functionNamePrefix}{_functionName}'", Token);
 
         ValueType = _function.ReturnType;
 

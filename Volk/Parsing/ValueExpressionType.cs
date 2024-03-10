@@ -11,4 +11,5 @@ public enum ValueExpressionType
     ValueCast,
     Dot,
     ArgumentPack,
+    Allocation,
 }

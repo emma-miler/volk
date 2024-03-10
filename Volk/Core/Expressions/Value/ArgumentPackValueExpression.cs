@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Osiris;
 using Osiris.Extensions;
+using Volk.Core.Objects;
 
 namespace Volk.Core.Expressions
 {
@@ -11,6 +12,8 @@ namespace Volk.Core.Expressions
     {
         
         public List<ValueExpression> Expressions;
+
+        public IEnumerable<VKType> ArgumentTypes => Expressions.Select(x => x.ValueType!);
 
         public ArgumentPackValueExpression(Token token, List<ValueExpression> expressions) : base (ValueExpressionType.ArgumentPack, token)
         {

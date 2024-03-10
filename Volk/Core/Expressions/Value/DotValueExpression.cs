@@ -26,7 +26,7 @@ public class DotValueExpression : ValueExpression
     public override void Print(int depth)
     {
         string prefix = " ".Repeat(depth);
-        Log.Info($"{prefix}[DotValueExpression] {_right}");
+        Log.Info($"{prefix}[DotValueExpression] {_right} '{Name}'");
         Expression.Print(depth + 1);
     }
 

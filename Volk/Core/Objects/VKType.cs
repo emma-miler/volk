@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Volk.Core.Expressions;
 
 namespace Volk.Core.Objects;
 public class VKType : VKScope
@@ -27,6 +28,8 @@ public class VKType : VKScope
     List<VKField> _fields = new();
     public IEnumerable<VKField> Fields => _fields;
 
+    List<VKFunction> _constructors = new();
+
     public VKType(string name, bool isReferenceType, VKScope? parentScope = null, string? irType = null, bool isBuiltin = false) : base(name, parentScope, VKType.VOID)
     {
         IsReferenceType = isReferenceType;
@@ -34,11 +37,6 @@ public class VKType : VKScope
         Type = VKType.TYPE;
         IsBuiltin = isBuiltin;
         IsBasicType = irType != null;
-
-        if (!isBuiltin)
-        {
-            AddFunction(new VKNativeFunction(parentScope!, "__allocate", this, MallocConstructor));
-        }
     }
 
     public override string ToString()
@@ -87,14 +85,5 @@ public class VKType : VKScope
             gen.Label($"%class.{Name} = type {{ {string.Join(", ", Fields.Select(x => x.Type.IRType))} }}");
         }
         return new IRVariable("__null", VKType.VOID, IRVariableType.Immediate);
-    }
-
-    static IRVariable MallocConstructor(VKType returnType, CodeGenerator gen, IRVariable[] args)
-    {
-        IRVariable ret = gen.NewVariable(returnType);
-        int size = returnType.Fields.Count() * 8;
-        gen.Operation($"{ret.Reference} = call noalias ptr @malloc(i64 noundef {size})");
-        gen.Operation($"call void @llvm.memset.p0.i64({ret}, i8 0, i64 {size}, i1 false)");
-        return ret;
     }
 }
