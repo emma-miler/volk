@@ -13,11 +13,11 @@ public class VKScope : VKObject
     public List<Expression> Expressions = new();
     List<VKType> _types = new();
     List<VKObject> _variables = new();
-    List<VKFunction> _functions = new();
+    Dictionary<string, FunctionGroup> _functionGroups = new();
 
     public IEnumerable<VKType> Types => _types;
     public IEnumerable<VKObject> Variables => _variables;
-    public IEnumerable<VKFunction> Functions => _functions;
+    public IEnumerable<FunctionGroup> FunctionGroups => _functionGroups.Values;
 
 
     public VKType ReturnType { get; }
@@ -57,9 +57,13 @@ public class VKScope : VKObject
 
     public virtual VKObject AddFunction(VKFunction obj)
     {
-        if (_functions.Any(x => x.Name == obj.Name && Enumerable.SequenceEqual(x.Parameters, obj.Parameters)))
-            throw new DuplicateNameException($"Function with name '{obj.Name}' with parameters '({string.Join(',', obj.Parameters)})' already exists in scope");
-        _functions.Add(obj);
+        if (!_functionGroups.ContainsKey(obj.Name))
+            _functionGroups[obj.Name] = new FunctionGroup(obj.Name,new List<VKFunction> {obj});
+        else
+        {
+            FunctionGroup group = _functionGroups[obj.Name];
+            group.AddFunction(obj);
+        }
         return obj;
     }
 
@@ -80,11 +84,20 @@ public class VKScope : VKObject
             return null;
     }
 
-    public virtual VKFunction? FindFunction(string name, IEnumerable<VKType> argumentTypes)
+    public virtual FunctionGroup? FindFunctionGroup(string name, IEnumerable<VKType> argumentTypes)
     {
-        List<VKFunction> candidates = _functions.Where(x => {
-            if (x.Name != name)
-                return false;
+        if (_functionGroups.TryGetValue(name, out FunctionGroup? group))
+            return group;
+        else 
+            return _parentScope?.FindFunctionGroup(name, argumentTypes);
+    }
+
+    public virtual IEnumerable<VKFunction> FindFunction(string name, IEnumerable<VKType> argumentTypes)
+    {
+        if (!_functionGroups.TryGetValue(name, out FunctionGroup? group))
+            return _parentScope!.FindFunction(name, argumentTypes);
+
+        List<VKFunction> candidates = group.Functions.Where(x => { 
             int indexOfVarargs = x.Parameters.FindIndex(x => x.Type == VKType.BUILTIN_C_VARARGS);
             IEnumerable<VKObject> parameters = x.Parameters;
             // Special handling for functions with varargs
@@ -97,15 +110,9 @@ public class VKScope : VKObject
             bool paramTypesMatch = parameters.Zip(argumentTypes).All(param => VKType.IsEqualOrDerived(param.First.Type, param.Second));
             return paramCountsMatch && paramTypesMatch;
         }).ToList();
-
-        if (candidates.Count == 0)
-            return _parentScope?.FindFunction(name, argumentTypes);
-        else if (candidates.Count == 1)
-            return candidates.Single();
-        else
-            return null;
-            //throw new TypeException($"Found two or more candidates for constructor", Token!);
+        return candidates;
     }
+    
 
     public VKType? FindType(string name)
     {

@@ -51,11 +51,7 @@ public class VKType : VKScope
 
     public VKFunction? FindCastFunction(VKType target)
     {
-        return Functions.FirstOrDefault(
-            x => x.Name == $"__{OperatorType.Cast}" && 
-            x.Parameters.Count == 1 && 
-            x.Parameters.Single().Type == target
-        );
+        return FindFunction($"__{OperatorType.Cast}", new List<VKType> { target }).FirstOrDefault();
     }
 
     public override VKObject AddObject(VKObject obj)

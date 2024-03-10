@@ -376,7 +376,14 @@ public class Parser
         // Function Declaration
         // =========================
         else if (t.Type == TokenType.FunctionDeclaration)
-            ParseFunctionDeclaration();
+        {
+            VKFunction func = ParseFunctionDeclaration();
+            ActiveScope().AddFunction(func);
+            ActiveScope().Expressions.Add(new FunctionDeclarationExpression(func.Token!, func));
+            _scopes.Push(func.Scope);
+            _program.Functions.Add(func);
+            Expect(TokenType.OpenCurlyBracket);
+        }
 
         // =========================
         // Class Declaration
@@ -440,6 +447,25 @@ public class Parser
                 ParseDeclaration(TokenType.EndOfExpression);
             else if (t.Type == TokenType.KeywordConstructor)
                 ParseConstructorDeclaration(type);
+            else if (t.Type == TokenType.FunctionDeclaration)
+            {
+                VKFunction func = ParseFunctionDeclaration(false);
+                VKObject thisParam = new VKObject("this", type);
+                func.Parameters.Insert(0, thisParam);
+                func.Scope.AddObject(thisParam);
+
+                ActiveScope().AddFunction(func);
+                ActiveScope().Expressions.Add(new FunctionDeclarationExpression(func.Token!, func));
+                _scopes.Push(func.Scope);
+                _program.Functions.Add(func);
+                Expect(TokenType.OpenCurlyBracket);
+                while (PeekToken().Type != TokenType.CloseCurlyBracket)
+                {
+                    ParseStatement();
+                }
+                Expect(TokenType.CloseCurlyBracket);
+                _scopes.Pop();
+            }
             else
                 throw new ParseException($"Unexpected token '{t}' during class declaration", t);
         }
@@ -449,7 +475,7 @@ public class Parser
         ActiveScope().Expressions.Add(new ClassDeclarationExpression(decl, type));
     }
 
-    void ParseConstructorDeclaration(VKType type)
+    VKFunction ParseConstructorDeclaration(VKType type)
     {
         Token token = Expect(TokenType.KeywordConstructor);
         
@@ -481,9 +507,10 @@ public class Parser
         ReturnExpression returnExpr = new ReturnExpression(token, returnThisExpr, func.Scope);
         func.Scope.Expressions.Add(returnExpr);
         _scopes.Pop();
+        return func;
     }
 
-    void ParseFunctionDeclaration(bool skipTypeToken = false)
+    VKFunction ParseFunctionDeclaration(bool isStatic = true)
     {
         Expect(TokenType.FunctionDeclaration);
         Token type = Expect(TokenType.Name);
@@ -494,12 +521,10 @@ public class Parser
 
         List<VKObject> parameters = ParseFunctionHead();
         
-        VKFunction func = new VKFunction(ActiveScope(), name.Value, returnType, true, parameters.ToArray());
-        ActiveScope().AddFunction(func);
-        ActiveScope().Expressions.Add(new FunctionDeclarationExpression(name, func));
-        _scopes.Push(func.Scope);
-        _program.Functions.Add(func);
-        Expect(TokenType.OpenCurlyBracket);
+        return new VKFunction(ActiveScope(), name.Value, returnType, isStatic, parameters.ToArray())
+        {
+            Token = name
+        };
     }
 
 

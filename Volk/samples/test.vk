@@ -1,22 +1,20 @@
-class Test
+function void countdown(int num)
 {
-    int _size;
-    int _count;
-
-    constructor (int size, int count)
+    printf("%d\n", num);
+    for (int i = num; i >= 0; i--)
     {
-        this._size = size;
-        this._count = count;
-        return this;
+        printf("%d\n", i);
     }
 }
 
-function void printTest(Test obj)
+function void countUp(int num)
 {
-    printf("%d\n", obj._size);
+    for (int i = 0; i < num; i++)
+    {
+        printf("%d\n", i);
+    }
 }
 
-Test var = new Test(420, 2);
-printf("value: \n");
-printTest(var);
-return 42;
+countUp(15);
+countdown(15);
+return 5;

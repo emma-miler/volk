@@ -67,23 +67,67 @@ public class FunctionCallValueExpression : ValueExpression
             return;
 
         string functionNamePrefix = string.Empty;
+        FunctionGroup? possibleFunctions;
 
         if (_classInstance != null)
         {
             _classInstance.ResolveNames(scope);
-            _function = _classInstance.ValueType!.FindFunction(_functionName, ArgumentPack.ArgumentTypes);
+            possibleFunctions = _classInstance.ValueType!.FindFunctionGroup(_functionName, ArgumentPack.ArgumentTypes);
             functionNamePrefix = _classInstance.ValueType.Name + "::";
         }
         else
         {
-            _function = scope.FindFunction(_functionName, ArgumentPack.ArgumentTypes);
+            possibleFunctions = scope.FindFunctionGroup(_functionName, ArgumentPack.ArgumentTypes);
         }
 
-        if (_function == null)
-            throw new NameException($"Undefined function '{functionNamePrefix}{_functionName}'", Token);
+        if (possibleFunctions == null) 
+            throw new NameException($"No function with name '{functionNamePrefix}{_functionName}' exists", Token);
 
+        List<VKFunction> candidates = possibleFunctions.Functions.Where(x => { 
+            int indexOfVarargs = x.Parameters.FindIndex(x => x.Type == VKType.BUILTIN_C_VARARGS);
+            IEnumerable<VKObject> parameters = x.Parameters;
+            IEnumerable<VKType> argumentTypes = ArgumentPack.ArgumentTypes;
+            // If the function is non-static, we need to skip the first "this" parameter
+            if (!x.IsStatic)
+            {
+                parameters = parameters.Skip(1);
+            }
+            // Special handling for functions with varargs
+            if (indexOfVarargs > -1)
+            {
+                parameters = parameters.Take(indexOfVarargs);
+                argumentTypes = argumentTypes.Take(indexOfVarargs);
+            }
+            bool paramCountsMatch = parameters.Count() == argumentTypes.Count();
+            bool paramTypesMatch = parameters.Zip(argumentTypes).All(param => VKType.IsEqualOrDerived(param.First.Type, param.Second));
+            return paramCountsMatch && paramTypesMatch;
+        }).ToList();
+
+        if (candidates.Count == 0)
+        {
+            Log.Error($"No variant of function '{functionNamePrefix}{_functionName}' matches argument pack types: ({string.Join(", ", ArgumentPack.ArgumentTypes)})");
+            Log.Error("Possible matches are:");
+            foreach (VKFunction function in possibleFunctions.Functions)
+            {
+                string paramPack = string.Join(", ", function.Parameters.Select(x => $"{x.Type} {x.Name}"));
+                Log.Error($"{functionNamePrefix}{_functionName}({paramPack})");
+            }
+            throw new NameException($"No variant of function '{functionNamePrefix}{_functionName}' matches argument pack types", Token);
+        }
+        if (candidates.Count > 1)
+        {
+            Log.Error($"No variant of function '{functionNamePrefix}{_functionName}' matches argument pack types: ({string.Join(", ", ArgumentPack.ArgumentTypes)})");
+            Log.Error("Possible matches are:");
+            foreach (VKFunction function in candidates)
+            {
+                string paramPack = string.Join(", ", function.Parameters.Select(x => $"{x.Type} {x.Name}"));
+                Log.Error($"{functionNamePrefix}{_functionName}({paramPack})");
+            }
+            throw new NameException($"Ambiguous type resolution for function '{functionNamePrefix}{_functionName}'. {candidates.Count} functions match this argument pack.", Token);
+        }
+
+        _function = candidates.Single();
         ValueType = _function.ReturnType;
-
         if (!_function.IsStatic)
         {
             ArgumentPack.Expressions.Insert(0, _classInstance!);

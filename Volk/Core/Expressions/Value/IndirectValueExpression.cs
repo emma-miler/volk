@@ -41,6 +41,7 @@ public class IndirectValueExpression : ValueExpression
             }
             else
             {
+                Log.Debug($"Scope: {scope.ChainName}");
                 throw new NameException($"Undefined variable '{Token.Value}'", Token);
             }
         }

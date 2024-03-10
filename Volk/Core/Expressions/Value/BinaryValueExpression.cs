@@ -43,7 +43,8 @@ public class BinaryValueExpression : ValueExpression
         if (!VKType.IsEqualOrDerived(Left.ValueType!, Right.ValueType!))
             throw new TypeException($"Cannot apply operator '{Operator}' value of type '{Left.ValueType}' to variable of type '{Right.ValueType}'", Token);
 
-        _function = Left.ValueType!.Functions.Where(x => x.Name == $"__{Operator.OperatorType}" && x.Parameters.Count == 2 && x.Parameters.First().Type == Right.ValueType).FirstOrDefault();
+        // TODO: this might be broken, oops
+        _function = Left.ValueType!.FindFunction($"__{Operator.OperatorType}", new List<VKType> { Right.ValueType!, Left.ValueType }).FirstOrDefault();
         if (_function == null)
             throw new TypeException($"Type '{Left.ValueType}' does not support operation '{Operator.OperatorType}' with type '{Right.ValueType}'", Operator);
         ValueType = _function.ReturnType;
