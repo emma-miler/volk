@@ -5,6 +5,7 @@ using Volk.Core.Expressions;
 using Volk.Core.Expressions.Internal;
 using Volk.Core.Expressions.Value;
 using Volk.Core.Objects;
+using Volk.Lexing;
 using Volk.Parsing;
 
 namespace Volk.Core;
@@ -297,7 +298,7 @@ public class Parser
             throw new ParseException($"Unbalanced binary operator {yard.Operators.First()} was not given two values.", yard.Operators.First());
         if (exprCount == 0)
             throw new ParseException($"Expected a value expression, but did not find any", t);
-        if (exprCount == 2)
+        if (exprCount > 1)
             throw new ParseException($"Expected a single value expression, but found multiple. This is a syntax error", t);
 
         return yard.Expressions.Single();
@@ -325,8 +326,7 @@ public class Parser
         {
             Expect(TokenType.CloseCurlyBracket);
             VKScope scope = _scopes.Pop();
-            scope.Expressions.Add(new ScopeCloseExpression(t));
-            scope.CloseScope();
+            scope.CloseScope(t);
         }
 
         // =========================
@@ -412,11 +412,11 @@ public class Parser
             if (ActiveScope().Expressions.LastOrDefault()?.ExpressionType != ExpressionType.Return)
             {
                 ImmediateValueExpression value = new ImmediateValueExpression(new ValueToken(VKType.INT, new DummySourcePosition("0")));
-                ReturnExpression returnExpr = new ReturnExpression(new Token(TokenType.Return, new DummySourcePosition("return")), value, ActiveScope());
+                ReturnExpression returnExpr = new ReturnExpression(new DummyToken(TokenType.Return, "return"), value, ActiveScope());
                 ActiveScope().Expressions.Add(returnExpr);
             }
 
-            ActiveScope().CloseScope();
+            ActiveScope().CloseScope(t);
         }
         else
             ParseTopLevelValueExpressionOrAssignment(endMarker);
@@ -448,7 +448,7 @@ public class Parser
         VKType type = new VKType(name.Value, true, ActiveScope());
 
         // Create allocator function
-        VKFunction allocFunc = new VKFunction(ActiveScope(), "__allocate", type, true, new VKType[] {});
+        VKFunction allocFunc = new VKFunction(type, "__allocate", type, true, new VKType[] {});
         InstanceAllocationExpression allocExpr = new InstanceAllocationExpression(name, type);
         ReturnExpression returnExpr = new ReturnExpression(name, allocExpr, allocFunc.Scope);
         allocFunc.Scope.Expressions.Add(returnExpr);
@@ -511,7 +511,7 @@ public class Parser
         List<VKObject> parameters = new() { thisObject };
         parameters.AddRange(ParseFunctionHead());
         VKFunction func = new VKFunction(ActiveScope(), "__new", type, false, parameters.ToArray());
-        Token thisToken = new Token(TokenType.Name, new DummySourcePosition("this"));
+        Token thisToken = new DummyToken(TokenType.Name, "this");
         type.AddFunction(func);
         ActiveScope().Expressions.Add(new FunctionDeclarationExpression(token, func));
         _scopes.Push(func.Scope);

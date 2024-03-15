@@ -230,6 +230,11 @@ public class Lexer
             // =========================
             // Operators
             // =========================
+            if (c == '@')
+            {
+                yield return new OperatorToken(OperatorType.Cast, GetInputTokenValue());
+                continue;
+            }
             if (c == '=')
             {
                 if (PeekByte() == '=')

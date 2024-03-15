@@ -64,7 +64,8 @@ public class ForExpression : Expression
         Condition.TypeCheck(scope);
         if (Condition.ValueType != VKType.BOOL)
         {
-            Condition = new ImplicitCastExpression(Condition.Token, Condition, VKType.BOOL);
+            Condition = new CastValueExpression(Condition.Token, Condition, VKType.BOOL);
+            Condition.ResolveNames(scope);
             Condition.TypeCheck(scope);
         }
 

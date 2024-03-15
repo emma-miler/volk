@@ -13,4 +13,5 @@ public enum ValueExpressionType
     ArgumentPack,
     Allocation,
     Constructor,
+    Constant,
 }

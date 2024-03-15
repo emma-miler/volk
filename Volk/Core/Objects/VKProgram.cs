@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Osiris;
 using Volk.Core.Objects;
+using Volk.Std;
 
 namespace Volk.Core;
 public class VKProgram
@@ -29,6 +30,7 @@ public class VKProgram
 
         SystemNative.AddBuiltinFunctions(this, RootScope);
         SystemNative.AddBuiltinTypes(RootScope);
+        StdString.Add(this);
     }
 
 
@@ -37,8 +39,15 @@ public class VKProgram
         Log.LogDetailLevel = Log.DetailLevel.None;
         foreach (VKFunction func in Functions)
         {
-            Log.Info($"FUNC: {func.Name}");
+            // Dont print extern functions, since theyre empty anyway
+            // and they end up just bloating the console output
+            if (func is VKExternFunction)
+                continue;
+            Log.Info("");
+            Log.Info("###############");
+            Log.Info($"FUNC: {(func.IsStatic ? "static " : "")}{func.Name} ({string.Join(", ", func.Parameters.Select(x => $"{x.Type} {x.Name}"))})");
             Log.Info($"SCOPE: {func.Scope.ChainName}");
+            Log.Info("###############");
             foreach (Expression expr in func.Scope.Expressions)
             {
                 expr.Print(0);

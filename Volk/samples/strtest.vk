@@ -1,0 +1,14 @@
+class String
+{
+    __cstring _str;
+    int _size;
+
+    constructor (__cstring str, int size)
+    {
+        this._str = str;
+        this._size = size;
+    }
+}
+
+String str = "test";
+return 0;

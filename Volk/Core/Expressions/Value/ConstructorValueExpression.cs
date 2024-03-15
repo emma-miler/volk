@@ -10,7 +10,7 @@ namespace Volk.Core.Expressions.Value
 {
     public class ConstructorValueExpression : ValueExpression
     {
-        Token _typeName;
+        Token? _typeName;
         ArgumentPackValueExpression _arguments;
 
         VKType? _targetType;
@@ -21,6 +21,12 @@ namespace Volk.Core.Expressions.Value
         public ConstructorValueExpression(Token token, Token typename, ArgumentPackValueExpression arguments) : base(ValueExpressionType.Constructor, token)
         {
             _typeName = typename;
+            _arguments = arguments;
+        }
+
+        public ConstructorValueExpression(Token token, VKType type, ArgumentPackValueExpression arguments) : base(ValueExpressionType.Constructor, token)
+        {
+            _targetType = type;
             _arguments = arguments;
         }
 
@@ -37,10 +43,11 @@ namespace Volk.Core.Expressions.Value
         public override void ResolveNames(VKScope scope)
         {
             _arguments.ResolveNames(scope);
-
-            _targetType = scope.FindType(_typeName.Value);
             if (_targetType == null)
-                throw new ParseException($"Unknown type '{_typeName.Value}'", _typeName);
+                _targetType = scope.FindType(_typeName!.Value);
+
+            if (_targetType == null)
+                throw new ParseException($"Unknown type '{_typeName!.Value}'", _typeName);
 
             List<VKFunction> allocators = _targetType.FindFunction("__allocate", true, new VKType[] {}).ToList();
             if (allocators.Count == 0)
@@ -58,16 +65,16 @@ namespace Volk.Core.Expressions.Value
             if (constructors.Count == 0)
             {
                 Log.Error($"Type '{_targetType}' has no constructor matching provided argument types. Argument types were:");   
-                Log.Error(string.Join(", ", constructorArgumentTypes));
+                Log.Error($"({string.Join(", ", constructorArgumentTypes)})");
                 Log.Error("Available options are:");
-                foreach (VKFunction function in constructors)
+                foreach (VKFunction function in constructorGroup.Functions)
                     Log.Error(function.ToString());
                 throw new TypeException($"Type '{_targetType}' has no constructor matching constructor.", Token);
             }
             if (constructors.Count > 1)
             {
                 Log.Error($"Type '{_targetType}' has more than one possible matching constructor, and one could not be chosen unambiguously. Argument types were:");   
-                Log.Error(string.Join(", ", constructorArgumentTypes));
+                Log.Error($"({string.Join(", ", constructorArgumentTypes)})");
                 Log.Error("Ambiguous matches are:");
                 foreach (VKFunction function in constructorGroup.Functions)
                     Log.Error(function.ToString());

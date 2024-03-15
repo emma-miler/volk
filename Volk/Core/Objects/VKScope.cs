@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Volk.Core.Expressions;
 using Volk.Core.Objects;
+using Volk.Lexing;
 
 namespace Volk.Core;
 public class VKScope : VKObject
@@ -67,10 +68,10 @@ public class VKScope : VKObject
         return obj;
     }
 
-    public void CloseScope()
+    public void CloseScope(Token t)
     {
-        if (ReturnType != VKType.VOID && Expressions.Last().ExpressionType != ExpressionType.Return)
-            throw new Exception($"Cannot exit non-void scope '{Name}' with return type '{ReturnType}' without a return statement");
+        if (ReturnType != VKType.VOID && (!Expressions.Any() || Expressions.Last().ExpressionType != ExpressionType.Return))
+            throw new ParseException($"Last statement before closing non-void scope '{Name}' must be a return statement.", t);
     }
 
     public virtual VKObject? FindVariable(string name)
@@ -95,7 +96,7 @@ public class VKScope : VKObject
     public virtual IEnumerable<VKFunction> FindFunction(string name, bool isStatic, IEnumerable<VKType> argumentTypes)
     {
         if (!_functionGroups.TryGetValue(name, out FunctionGroup? group))
-            return _parentScope!.FindFunction(name, isStatic, argumentTypes);
+            return _parentScope?.FindFunction(name, isStatic, argumentTypes) ?? Enumerable.Empty<VKFunction>();
         return group.FindFunction(isStatic, argumentTypes);
     }
     
@@ -124,7 +125,7 @@ public class VKScope : VKObject
         if (forceReturnValue && (!Expressions.Any() || Expressions.Last().ExpressionType != ExpressionType.Return))
         {
             ImmediateValueExpression value = new ImmediateValueExpression(new ValueToken(VKType.VOID, new DummySourcePosition("0")));
-            ReturnExpression returnExpr = new ReturnExpression(new Token(TokenType.Return, new DummySourcePosition("return")), value, this);
+            ReturnExpression returnExpr = new ReturnExpression(new DummyToken(TokenType.Return, "return"), value, this);
             Expressions.Add(returnExpr);
             returnExpr.GenerateCode(gen);
         }

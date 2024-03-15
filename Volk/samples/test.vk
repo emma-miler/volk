@@ -1,31 +1,3 @@
-class Test
-{
-    int _size;
-    int _count;
-
-    constructor (int size, int count)
-    {
-        this._size = size;
-        this._count = count;
-    }
-
-    function int GetSize()
-    {
-        return this._size;
-    }
-
-    function int TestAbc()
-    {
-        return this._size;
-    }
-
-    static function int Test()
-    {
-        return 13;
-    }
-}
-
-Test var = new Test(420, 2);
-int size = var.GetSize();
-printf("var._size: %d \n", size);
-return 42;
+string testA = "Hello, world!";
+printf("size of string testA: %d\n"._str, testA._size);
+return 0;

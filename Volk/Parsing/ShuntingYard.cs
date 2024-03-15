@@ -39,6 +39,10 @@ namespace Volk.Parsing
                         if (right.ValueExpressionType != ValueExpressionType.Indirect) throw new ParseException($"Cannot apply operator '{op}' on expression where right-hand side is not a simple name ({right})", op);
                         Expressions.Push(new DotValueExpression(op, left, right.Token));
                     }
+                    else if (op.OperatorType == OperatorType.Cast)
+                    {
+                        Expressions.Push(new CastValueExpression(op, left, right));
+                    }
                     else if (op.OperatorType == OperatorType.Call)
                     {
                         if (Operators.Any() && Operators.Peek().OperatorType == OperatorType.Dot)

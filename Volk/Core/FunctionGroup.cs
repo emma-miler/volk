@@ -18,6 +18,11 @@ namespace Volk.Core
             _functions = functions;
         }
 
+        public override string ToString()
+        {
+            return $"FunctionGroup('{_groupName}')";
+        }
+
         public void AddFunction(VKFunction func)
         {
             if (_functions.Any(x => 

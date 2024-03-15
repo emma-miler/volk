@@ -50,22 +50,23 @@ class App
             throw;
         }
 
-        
+
         program.PrintExpressions();
 
         Log.Info($"START NAME RESOLUTION AND TYPE CHECK");
-        try{
-        foreach (VKFunction function in program.Functions)
+        try
         {
-            foreach (Expression expr in function.Scope.Expressions)
+            foreach (VKFunction function in program.Functions)
             {
-                expr.ResolveNames(function.Scope);
+                foreach (Expression expr in function.Scope.Expressions)
+                {
+                    expr.ResolveNames(function.Scope);
+                }
+                foreach (Expression expr in function.Scope.Expressions)
+                {
+                    expr.TypeCheck(function.Scope);
+                }
             }
-            foreach (Expression expr in function.Scope.Expressions)
-            {
-                expr.TypeCheck(function.Scope);
-            }
-        }
         }
         catch (TokenTaggedException ex)
         {
@@ -82,11 +83,11 @@ class App
         gen.AddStringTable(program.CompileTimeStrings);
         foreach (VKFunction function in program.Functions)
         {
-           function.GenerateCode(gen);
+            function.GenerateCode(gen);
         }
         output.AddRange(gen.Lines);
         List<string> consoleOutput = output.Zip(Enumerable.Range(0, output.Count))
-        .Select((line, num) => (num+1).ToString().PadLeft(3, '0') + " " + line.First)
+        .Select((line, num) => (num + 1).ToString().PadLeft(3, '0') + " " + line.First)
         .ToList();
 
         Log.LogDetailLevel = Log.DetailLevel.None;
@@ -94,20 +95,27 @@ class App
         {
             Log.Custom(LogLevel.Information, line, null, line.Contains(";") ? ConsoleColor.DarkGray : ConsoleColor.Green);
         }
-        
+
         Log.LogDetailLevel = Log.DetailLevel.Detailed;
         string newFileName = args[0];
         newFileName = newFileName.ReplaceLast(".vk", ".ll");
-        string outputString = string.Join('\n', output); 
+        string outputString = string.Join('\n', output);
         File.WriteAllText(newFileName, outputString);
     }
 
     static void IndicateToken(Token t)
     {
-        string line = _lexer.GetLine(t.ValueSource.LineNumber).GetValue().Replace('\n', ' ');
-        Log.Error(line);
-        string prefix = " ".Repeat(t.ValueSource.LineOffset);
-        Log.Error(prefix + "^".Repeat(t.ValueSource.Length));
-        Log.Error($"Line: {t.ValueSource.LineNumber}, Offset: {t.ValueSource.Offset}, Token Length: {t.Value.Length}");
+        try
+        {
+            string line = _lexer.GetLine(t.ValueSource.LineNumber).GetValue().Replace('\n', ' ');
+            Log.Error(line);
+            string prefix = " ".Repeat(t.ValueSource.LineOffset);
+            Log.Error(prefix + "^".Repeat(t.ValueSource.Length));
+            Log.Error($"Line: {t.ValueSource.LineNumber}, Offset: {t.ValueSource.Offset}, Token Length: {t.Value.Length}");
+        }
+        catch (Exception)
+        {
+
+        }
     }
 }

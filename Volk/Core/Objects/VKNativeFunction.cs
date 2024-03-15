@@ -5,12 +5,12 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Volk.Core.Objects;
-public class VKNativeFunction : VKFunction
+public class VKInlineFunction : VKFunction
 {
 
     Func<VKType, CodeGenerator, IRVariable[], IRVariable> _function;
 
-    public VKNativeFunction(VKScope parentScope, string name, VKType returnType, Func<VKType, CodeGenerator, IRVariable[], IRVariable> function, params VKObject[] parameters) : base(parentScope, name, returnType, true, parameters.ToArray())
+    public VKInlineFunction(VKScope parentScope, string name, VKType returnType, bool isStatic, Func<VKType, CodeGenerator, IRVariable[], IRVariable> function, params VKObject[] parameters) : base(parentScope, name, returnType, isStatic, parameters.ToArray())
     {
         _function = function;
     }

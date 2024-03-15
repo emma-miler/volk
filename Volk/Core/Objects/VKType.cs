@@ -12,11 +12,12 @@ public class VKType : VKScope
     public static VKType REAL = new VKType("real", false, irType: "double", isBuiltin: true);
     public static VKType INT = new VKType("int", false, irType: "i64", isBuiltin: true);
     public static VKType VOID = new VKType("void", false, irType: "void", isBuiltin: true);
-    public static VKType STRING = new VKType("string", false, irType: "ptr", isBuiltin: true);
+    public static VKType STRING = null!;
     public static VKType SYSTEM_ERROR = new VKType("__builtin_error", false, isBuiltin: true);
     public static VKType BUILTIN_FUNCTION = new VKType("function", true, isBuiltin: true);
     public static VKType BUILTIN_C_BYTE = new VKType("__byte", false, irType: "i8", isBuiltin: true);
     public static VKType SYSTEM_GENERIC_POINTER = new VKType("_generic_ptr", false, irType: "i8*", isBuiltin: true);
+    public static VKType SYSTEM_C_STRING = new VKType("__cstring", false, irType: "i8*", isBuiltin: true);
     public static VKType BUILTIN_C_VARARGS = new VKType("__varargs", true, irType: "i8*", isBuiltin: true);
     
     public bool IsReferenceType { get; }
@@ -24,8 +25,7 @@ public class VKType : VKScope
     public bool IsBasicType { get; }
     public bool IsBuiltin { get; }
 
-    List<VKField> _fields = new();
-    public IEnumerable<VKField> Fields => _fields;
+    public List<VKField> Fields = new();
 
     public VKType(string name, bool isReferenceType, VKScope? parentScope = null, string? irType = null, bool isBuiltin = false) : base(name, parentScope, VKType.VOID)
     {
@@ -54,18 +54,18 @@ public class VKType : VKScope
     public override VKObject AddObject(VKObject obj)
     {
         int offset;
-        if (_fields.Any())
-            offset = _fields.Last().Offset + 1;
+        if (Fields.Any())
+            offset = Fields.Last().Offset + 1;
         else
             offset = 0;
         VKField field = new VKField(obj.Token!, obj.Name, obj.Type, offset);
-        _fields.Add(field);
+        Fields.Add(field);
         return field;
     }
 
     public override VKObject? FindVariable(string name)
     {
-        VKObject? obj = _fields.FirstOrDefault(x => x.Name == name);
+        VKObject? obj = Fields.FirstOrDefault(x => x.Name == name);
         if (obj != null)
             return obj;
         return base.FindVariable(name);

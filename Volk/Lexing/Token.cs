@@ -12,6 +12,8 @@ namespace Volk.Core;
 public class Token
 {
 
+    public static Token Empty => new Token(TokenType.Name, new DummySourcePosition(" "));
+
     public TokenType Type { get; }
     public SourcePosition ValueSource { get; }
     protected string? _value;

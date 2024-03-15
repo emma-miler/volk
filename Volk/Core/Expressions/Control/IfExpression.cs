@@ -57,7 +57,8 @@ public class IfExpression : Expression
 
         if (Condition.ValueType != VKType.BOOL)
         {
-            Condition = new ImplicitCastExpression(Token, Condition, VKType.BOOL);
+            Condition = new CastValueExpression(Token, Condition, VKType.BOOL);
+            Condition.ResolveNames(scope);
             Condition.TypeCheck(scope);
         }
         

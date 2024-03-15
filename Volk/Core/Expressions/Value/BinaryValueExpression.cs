@@ -34,6 +34,12 @@ public class BinaryValueExpression : ValueExpression
     {
         Left.ResolveNames(scope);
         Right.ResolveNames(scope);
+        
+        // TODO: this might be broken, oops
+        _function = Left.ValueType!.FindFunction($"__{Operator.OperatorType}", false, new List<VKType> { Right.ValueType!, Left.ValueType }).FirstOrDefault();
+        if (_function == null)
+            throw new TypeException($"Type '{Left.ValueType}' does not support operation '{Operator.OperatorType}' with type '{Right.ValueType}'", Operator);
+        ValueType = _function.ReturnType;
     }
 
     public override void TypeCheck(VKScope scope)
@@ -42,12 +48,6 @@ public class BinaryValueExpression : ValueExpression
         Right.TypeCheck(scope);
         if (!VKType.IsEqualOrDerived(Left.ValueType!, Right.ValueType!))
             throw new TypeException($"Cannot apply operator '{Operator}' value of type '{Left.ValueType}' to variable of type '{Right.ValueType}'", Token);
-
-        // TODO: this might be broken, oops
-        _function = Left.ValueType!.FindFunction($"__{Operator.OperatorType}", false, new List<VKType> { Right.ValueType!, Left.ValueType }).FirstOrDefault();
-        if (_function == null)
-            throw new TypeException($"Type '{Left.ValueType}' does not support operation '{Operator.OperatorType}' with type '{Right.ValueType}'", Operator);
-        ValueType = _function.ReturnType;
     }
 
     public override IRVariable GenerateCode(CodeGenerator gen)
