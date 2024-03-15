@@ -3,6 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 using Osiris;
 using Volk.Core.Expressions;
 using Volk.Core.Expressions.Internal;
+using Volk.Core.Expressions.Value;
 using Volk.Core.Objects;
 using Volk.Parsing;
 
@@ -191,9 +192,7 @@ public class Parser
                 }
                 Expect(TokenType.CloseParenthesis);
             }
-            IndirectValueExpression typeName = new IndirectValueExpression(nameToken);
-            DotValueExpression constructorName = new DotValueExpression(t, typeName, new Token(TokenType.Name, new DummySourcePosition("__new")));
-            expr = new FunctionCallValueExpression(t, new ArgumentPackValueExpression(t, args), constructorName);
+            expr = new ConstructorValueExpression(t, nameToken, new ArgumentPackValueExpression(t, args));
         }
         else
             throw new ParseException($"Unexpected token '{t}' while parsing ConsumeNullaryOrUnaryValueExpression", t);
@@ -231,11 +230,11 @@ public class Parser
             if (t is OperatorToken ot && !ot.IsComparisonOperator&& !lastTokenWasOperator)
             {
                 PopToken();
-                Log.Trace("got operator");
+                Log.Trace($"got operator {t}");
                 if (!lastTokenWasOperator)
                 {
                     lastTokenWasOperator = true;
-                    // If we have only 2 expressions, we don't yet have enough items to complete this chain,
+                    // If we have only 1 expression, we don't yet have enough items to complete this chain,
                     // so we push it to the queue
                     if (yard.Expressions.Count < 2)
                         yard.Operators.Push(ot);
@@ -247,6 +246,7 @@ public class Parser
                     else
                     {
                         yard.Reduce();
+                        yard.Operators.Push(ot);
                     }
                     continue;
                 }
@@ -257,7 +257,7 @@ public class Parser
             }
             else if (t is OperatorToken comp && comp.IsComparisonOperator)
             {
-                Log.Trace("got comparison operator");
+                Log.Trace($"got comparison operator {t}");
                 PopToken();
                 yard.Operators.Push(comp);
             }
@@ -267,12 +267,17 @@ public class Parser
                 if (t.Type == TokenType.Name)
                 {
                     PopToken();
-                    yard.Expressions.Push(new IndirectValueExpression(t));
                     if (PeekToken().Type == TokenType.OpenParenthesis)
                     {
                         yard.Reduce();
+                        yard.Expressions.Push(new IndirectValueExpression(t));
                         yard.Operators.Push(new OperatorToken(OperatorType.Call, PeekToken().ValueSource));
+                        // Argument pack
                         yard.Expressions.Push(ConsumeNullaryOrUnaryValueExpression(depth + 1, true));
+                    }
+                    else
+                    {
+                        yard.Expressions.Push(new IndirectValueExpression(t));
                     }
                 }
                 else
@@ -288,6 +293,8 @@ public class Parser
         yard.Reduce();
 
         int exprCount = yard.Expressions.Count();
+        if (yard.Operators.Count != 0)
+            throw new ParseException($"Unbalanced binary operator {yard.Operators.First()} was not given two values.", yard.Operators.First());
         if (exprCount == 0)
             throw new ParseException($"Expected a value expression, but did not find any", t);
         if (exprCount == 2)
@@ -439,20 +446,41 @@ public class Parser
         Token name = Expect(TokenType.Name);
         Expect(TokenType.OpenCurlyBracket);
         VKType type = new VKType(name.Value, true, ActiveScope());
+
+        // Create allocator function
+        VKFunction allocFunc = new VKFunction(ActiveScope(), "__allocate", type, true, new VKType[] {});
+        InstanceAllocationExpression allocExpr = new InstanceAllocationExpression(name, type);
+        ReturnExpression returnExpr = new ReturnExpression(name, allocExpr, allocFunc.Scope);
+        allocFunc.Scope.Expressions.Add(returnExpr);
+        type.AddFunction(allocFunc);
+        _program.Functions.Add(allocFunc);
+
         _scopes.Push(type);
         while (PeekToken().Type != TokenType.CloseCurlyBracket)
         {
             Token t = PeekToken();
+            bool isStatic = false;
+            
+            if (t.Type == TokenType.KeywordStatic)
+            {
+                isStatic = true;
+                PopToken();
+                t = PeekToken();
+            }
+
             if (t.Type == TokenType.Name)
                 ParseDeclaration(TokenType.EndOfExpression);
             else if (t.Type == TokenType.KeywordConstructor)
                 ParseConstructorDeclaration(type);
             else if (t.Type == TokenType.FunctionDeclaration)
             {
-                VKFunction func = ParseFunctionDeclaration(false);
-                VKObject thisParam = new VKObject("this", type);
-                func.Parameters.Insert(0, thisParam);
-                func.Scope.AddObject(thisParam);
+                VKFunction func = ParseFunctionDeclaration(isStatic);
+                if (!isStatic)
+                {
+                    VKObject thisParam = new VKObject("this", type);
+                    func.Parameters.Insert(0, thisParam);
+                    func.Scope.AddObject(thisParam);
+                }
 
                 ActiveScope().AddFunction(func);
                 ActiveScope().Expressions.Add(new FunctionDeclarationExpression(func.Token!, func));
@@ -479,19 +507,11 @@ public class Parser
     {
         Token token = Expect(TokenType.KeywordConstructor);
         
-        List<VKObject> parameters = new();
-        parameters.AddRange(ParseFunctionHead());
-        
-        VKFunction func = new VKFunction(ActiveScope(), "__new", type, true, parameters.ToArray());
-        Token thisToken = new Token(TokenType.Name, new DummySourcePosition("this"));
-        Token typeToken = new Token(TokenType.Name, new DummySourcePosition(type.Name));
         VKObject thisObject = new VKObject("this", type);
-        InstanceAllocationExpression alloc = new InstanceAllocationExpression(token, type);
-        DeclarationExpression decl = new DeclarationExpression(typeToken, thisToken, thisObject);
-        AssignmentExpression assignmentExpression = new AssignmentExpression(token, new IndirectValueExpression(thisToken), alloc);
-        func.Scope.AddObject(thisObject);
-        func.Scope.Expressions.Add(decl);
-        func.Scope.Expressions.Add(assignmentExpression);
+        List<VKObject> parameters = new() { thisObject };
+        parameters.AddRange(ParseFunctionHead());
+        VKFunction func = new VKFunction(ActiveScope(), "__new", type, false, parameters.ToArray());
+        Token thisToken = new Token(TokenType.Name, new DummySourcePosition("this"));
         type.AddFunction(func);
         ActiveScope().Expressions.Add(new FunctionDeclarationExpression(token, func));
         _scopes.Push(func.Scope);
@@ -605,8 +625,6 @@ public class Parser
         {
             ActiveScope().Expressions.Add(new DeclarationExpression(t, name, newVar));
         }
-        
-        
     }
 
     void ParseSimpleAssignment(TokenType endMarker)

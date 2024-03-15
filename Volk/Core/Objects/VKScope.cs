@@ -84,33 +84,19 @@ public class VKScope : VKObject
             return null;
     }
 
-    public virtual FunctionGroup? FindFunctionGroup(string name, IEnumerable<VKType> argumentTypes)
+    public virtual FunctionGroup? FindFunctionGroup(string name)
     {
         if (_functionGroups.TryGetValue(name, out FunctionGroup? group))
             return group;
         else 
-            return _parentScope?.FindFunctionGroup(name, argumentTypes);
+            return _parentScope?.FindFunctionGroup(name);
     }
 
-    public virtual IEnumerable<VKFunction> FindFunction(string name, IEnumerable<VKType> argumentTypes)
+    public virtual IEnumerable<VKFunction> FindFunction(string name, bool isStatic, IEnumerable<VKType> argumentTypes)
     {
         if (!_functionGroups.TryGetValue(name, out FunctionGroup? group))
-            return _parentScope!.FindFunction(name, argumentTypes);
-
-        List<VKFunction> candidates = group.Functions.Where(x => { 
-            int indexOfVarargs = x.Parameters.FindIndex(x => x.Type == VKType.BUILTIN_C_VARARGS);
-            IEnumerable<VKObject> parameters = x.Parameters;
-            // Special handling for functions with varargs
-            if (indexOfVarargs > -1)
-            {
-                parameters = parameters.Take(indexOfVarargs);
-                argumentTypes = argumentTypes.Take(indexOfVarargs);
-            }
-            bool paramCountsMatch = parameters.Count() == argumentTypes.Count();
-            bool paramTypesMatch = parameters.Zip(argumentTypes).All(param => VKType.IsEqualOrDerived(param.First.Type, param.Second));
-            return paramCountsMatch && paramTypesMatch;
-        }).ToList();
-        return candidates;
+            return _parentScope!.FindFunction(name, isStatic, argumentTypes);
+        return group.FindFunction(isStatic, argumentTypes);
     }
     
 
@@ -135,7 +121,7 @@ public class VKScope : VKObject
         }
 
         // Add default return value for scope
-        if (forceReturnValue && Expressions.Last().ExpressionType != ExpressionType.Return)
+        if (forceReturnValue && (!Expressions.Any() || Expressions.Last().ExpressionType != ExpressionType.Return))
         {
             ImmediateValueExpression value = new ImmediateValueExpression(new ValueToken(VKType.VOID, new DummySourcePosition("0")));
             ReturnExpression returnExpr = new ReturnExpression(new Token(TokenType.Return, new DummySourcePosition("return")), value, this);

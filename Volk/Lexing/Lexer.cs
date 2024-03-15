@@ -14,7 +14,7 @@ public class Lexer
 {
     int _offset = 0;
     int _length = 0;
-    int _lineNumber = 0;
+    int _lineNumber = 1;
     int _lineOffset = 0;
 
     Stream _fs;
@@ -31,7 +31,7 @@ public class Lexer
         _program = program;
     }
 
-    public SourcePosition GetLine(int lineNumber) => _lines[lineNumber];
+    public SourcePosition GetLine(int lineNumber) => _lines[lineNumber - 1];
 
     #region State Tracking
 

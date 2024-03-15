@@ -18,7 +18,6 @@ public class VKType : VKScope
     public static VKType BUILTIN_C_BYTE = new VKType("__byte", false, irType: "i8", isBuiltin: true);
     public static VKType SYSTEM_GENERIC_POINTER = new VKType("_generic_ptr", false, irType: "i8*", isBuiltin: true);
     public static VKType BUILTIN_C_VARARGS = new VKType("__varargs", true, irType: "i8*", isBuiltin: true);
-
     
     public bool IsReferenceType { get; }
     public string? IRType { get; }
@@ -27,8 +26,6 @@ public class VKType : VKScope
 
     List<VKField> _fields = new();
     public IEnumerable<VKField> Fields => _fields;
-
-    List<VKFunction> _constructors = new();
 
     public VKType(string name, bool isReferenceType, VKScope? parentScope = null, string? irType = null, bool isBuiltin = false) : base(name, parentScope, VKType.VOID)
     {
@@ -51,7 +48,7 @@ public class VKType : VKScope
 
     public VKFunction? FindCastFunction(VKType target)
     {
-        return FindFunction($"__{OperatorType.Cast}", new List<VKType> { target }).FirstOrDefault();
+        return FindFunction($"__{OperatorType.Cast}", true, new List<VKType> { target }).FirstOrDefault();
     }
 
     public override VKObject AddObject(VKObject obj)

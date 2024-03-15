@@ -18,6 +18,7 @@ public static class Keyword
             case "class": return TokenType.ClassDeclaration;
             case "new": return TokenType.NewExpression;
             case "constructor": return TokenType.KeywordConstructor;
+            case "static": return TokenType.KeywordStatic;
             default: return null!;
         }
     }

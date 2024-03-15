@@ -12,4 +12,5 @@ public enum ValueExpressionType
     Dot,
     ArgumentPack,
     Allocation,
+    Constructor,
 }

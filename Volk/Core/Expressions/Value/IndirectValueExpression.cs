@@ -11,7 +11,7 @@ public class IndirectValueExpression : ValueExpression
 {
 
     public VKObject? Value {get; private set; }
-    
+
     public IndirectValueExpression(Token name) : base(ValueExpressionType.Indirect, name)
     {
     }
@@ -35,15 +35,13 @@ public class IndirectValueExpression : ValueExpression
         else
         {
             Value = scope.FindType(Token.Value);
-            if (Value != null)
-            {
-                ValueType = (VKType)Value;
-            }
-            else
+            if (Value == null)
             {
                 Log.Debug($"Scope: {scope.ChainName}");
                 throw new NameException($"Undefined variable '{Token.Value}'", Token);
             }
+            CompileTimeValue = Value;
+            ValueType = VKType.TYPE;
         }
     }
 

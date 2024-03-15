@@ -42,6 +42,12 @@ public abstract class ValueExpression : Expression
     /// <value></value>
     public VKType? ValueType { get; protected set; }
 
+    /// <summary>
+    /// The value of this expression if it is known at compile time
+    /// </summary>
+    /// <value></value>
+    public object? CompileTimeValue { get; protected set; }
+
     public ValueExpression(ValueExpressionType type, Token token) : base(ExpressionType.Value, token)
     {
         ValueExpressionType = type;

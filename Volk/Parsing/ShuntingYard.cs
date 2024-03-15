@@ -25,6 +25,12 @@ namespace Volk.Parsing
                 }
                 else
                 {
+                    // Nothing to do here
+                    if (Operators.Count == 0 && Expressions.Count == 1)
+                    {
+                        Operators.Push(op);
+                        return;
+                    }
                     if (Expressions.Count < 2) throw new ParseException($"Expected 2 values for binary operator {op.OperatorType}, but got {Expressions.Count}", op);
                     ValueExpression right = Expressions.Pop();
                     ValueExpression left = Expressions.Pop();
@@ -35,12 +41,16 @@ namespace Volk.Parsing
                     }
                     else if (op.OperatorType == OperatorType.Call)
                     {
-                        if (left is IndirectValueExpression indirect)
-                            Expressions.Push(new FunctionCallValueExpression(op, (ArgumentPackValueExpression)right, indirect));
-                        else if (left is DotValueExpression dotValue)
-                            Expressions.Push(new FunctionCallValueExpression(op, (ArgumentPackValueExpression)right, dotValue));
+                        if (Operators.Any() && Operators.Peek().OperatorType == OperatorType.Dot)
+                        {
+                            Operators.Pop();
+                            ValueExpression third = Expressions.Pop();
+                            Expressions.Push(new FunctionCallValueExpression(op, (ArgumentPackValueExpression)right, left.Token.Value, third));
+                        }
                         else
-                            throw new ParseException($"Cannot use expression '{left}' as function reference for function call", left.Token);
+                        {
+                            Expressions.Push(new FunctionCallValueExpression(op, (ArgumentPackValueExpression)right, left.Token.Value, null));
+                        }
                     }
                     else
                     {

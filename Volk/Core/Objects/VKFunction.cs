@@ -30,7 +30,7 @@ public class VKFunction : VKObject
 
     public override string ToString()
     {
-        return $"function {ReturnType} {Name} ({string.Join(',', Parameters)})";
+        return $"{(IsStatic ? "static " : "")}function {ReturnType} {Name} ({string.Join(", ", Parameters.Select(x => $"{x.Type} {x.Name}"))})";
     }
 
     public virtual void GenerateCode(CodeGenerator gen)

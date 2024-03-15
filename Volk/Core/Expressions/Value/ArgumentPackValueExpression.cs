@@ -30,19 +30,19 @@ namespace Volk.Core.Expressions
             }
         }
 
-        public override IRVariable GenerateCode(CodeGenerator gen)
-        {
-            throw new NotImplementedException();
-        }
-
-        
-
         public override void ResolveNames(VKScope scope)
         {
-            throw new NotImplementedException();
+            foreach (ValueExpression expr in Expressions)
+                expr.ResolveNames(scope);
         }
 
         public override void TypeCheck(VKScope scope)
+        {
+            foreach (ValueExpression expr in Expressions)
+                expr.TypeCheck(scope);
+        }
+
+        public override IRVariable GenerateCode(CodeGenerator gen)
         {
             throw new NotImplementedException();
         }

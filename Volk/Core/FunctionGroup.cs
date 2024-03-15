@@ -27,5 +27,25 @@ namespace Volk.Core
                 throw new TypeException($"Function group '{_groupName}' already contains a function with parameter types: ({string.Join(", ", func.Parameters.Select(x => $"{x.Type}"))})", func.Token!);
             _functions.Add(func);
         }
+
+        public IEnumerable<VKFunction> FindFunction(bool isStatic, IEnumerable<VKType> argumentTypes)
+        {
+            return Functions.Where(x => { 
+                int indexOfVarargs = x.Parameters.FindIndex(x => x.Type == VKType.BUILTIN_C_VARARGS);
+                IEnumerable<VKObject> parameters = x.Parameters;
+                // If the function is non-static, we need to skip the first "this" parameter
+                if (x.IsStatic != isStatic)
+                    return false;
+                // Special handling for functions with varargs
+                if (indexOfVarargs > -1)
+                {
+                    parameters = parameters.Take(indexOfVarargs);
+                    argumentTypes = argumentTypes.Take(indexOfVarargs);
+                }
+                bool paramCountsMatch = parameters.Count() == argumentTypes.Count();
+                bool paramTypesMatch = parameters.Zip(argumentTypes).All(param => VKType.IsEqualOrDerived(param.First.Type, param.Second));
+                return paramCountsMatch && paramTypesMatch;
+            });
+        }
     }
 }

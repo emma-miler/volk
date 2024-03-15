@@ -10,31 +10,25 @@ using Volk.Core.Objects;
 namespace Volk.Core.Expressions;
 public class FunctionCallValueExpression : ValueExpression
 {
-    public ArgumentPackValueExpression ArgumentPack { get; }
+    ArgumentPackValueExpression _arguments { get; }
 
     VKFunction? _function;
 
     string _functionName;
-    ValueExpression? _classInstance;
+    ValueExpression? _scopeSource;
 
     public FunctionCallValueExpression(Token token, ArgumentPackValueExpression argumentPack, VKFunction function) : base(ValueExpressionType.Call, token)
     {
-        ArgumentPack = argumentPack;
+        _arguments = argumentPack;
         _functionName = function.Name;
         _function = function;
     }
 
-    public FunctionCallValueExpression(Token function, ArgumentPackValueExpression argumentPack, IndirectValueExpression functionNameReference) : base(ValueExpressionType.Call, function)
+    public FunctionCallValueExpression(Token function, ArgumentPackValueExpression argumentPack, string functionName, ValueExpression? scopeSource) : base(ValueExpressionType.Call, function)
     {
-        ArgumentPack = argumentPack;
-        _functionName = functionNameReference.Token.Value;
-    }
-
-    public FunctionCallValueExpression(Token function, ArgumentPackValueExpression argumentPack, DotValueExpression dotValueExpression) : base(ValueExpressionType.Call, function)
-    {
-        ArgumentPack = argumentPack;
-        _functionName = dotValueExpression.Name;
-        _classInstance = dotValueExpression.Expression;
+        _arguments = argumentPack;
+        _functionName = functionName;
+        _scopeSource = scopeSource;
     }
 
     public override void Print(int depth)
@@ -42,114 +36,93 @@ public class FunctionCallValueExpression : ValueExpression
         string prefix = " ".Repeat(depth);
         if (_function == null)
         {
-            if (_classInstance == null)
+            if (_scopeSource == null)
                 Log.Info($"{prefix}[FunctionCallValueExpression] unresolved '{_functionName}'");
             else
             {
-                Log.Info($"{prefix}[FunctionCallValueExpression] unresolved '{_functionName}' with DotExpression");
-                _classInstance.Print(depth + 1);
+                Log.Info($"{prefix}[FunctionCallValueExpression] unresolved '{_functionName}' with source");
+                _scopeSource.Print(depth + 1);
             }
         }
         else
             Log.Info($"{prefix}[FunctionCallValueExpression] {_function}");
-        ArgumentPack.Print(depth + 1);
+        _arguments.Print(depth + 1);
     }
 
     public override void ResolveNames(VKScope scope)
     {
-        foreach (ValueExpression expr in ArgumentPack.Expressions)
-        {
-            expr.ResolveNames(scope);
-        }
+        _arguments.ResolveNames(scope);
 
         // If we already have a bound function, no need to look for it
         if (_function != null)
             return;
 
-        string functionNamePrefix = string.Empty;
-        FunctionGroup? possibleFunctions;
-
-        if (_classInstance != null)
+        // If the scope source turns out to be a type reference, then we may
+        // only use static functions, since we are doing
+        // Type.Function()
+        // as opposed to
+        // Instance.Function()
+        bool functionMustBeStatic = false;
+        if (_scopeSource != null)
         {
-            _classInstance.ResolveNames(scope);
-            possibleFunctions = _classInstance.ValueType!.FindFunctionGroup(_functionName, ArgumentPack.ArgumentTypes);
-            functionNamePrefix = _classInstance.ValueType.Name + "::";
+            _scopeSource.ResolveNames(scope);
+            if (_scopeSource.ValueType == VKType.TYPE)
+            {
+                functionMustBeStatic = true;
+                if (_scopeSource.CompileTimeValue == null)
+                    throw new ParseException($"Value of a static type reference must be known at compile, which expression '{_scopeSource}' does not provide.", Token);
+                scope = (VKType)_scopeSource.CompileTimeValue;
+            }
+            else
+            {
+                scope = _scopeSource.ValueType!;
+            }
         }
         else
         {
-            possibleFunctions = scope.FindFunctionGroup(_functionName, ArgumentPack.ArgumentTypes);
+            functionMustBeStatic = true;
         }
 
+        if (!functionMustBeStatic)
+            _arguments.Expressions.Insert(0, _scopeSource!);
+
+        string functionNamePrefix = string.Empty;
+        FunctionGroup? possibleFunctions;
+        possibleFunctions = scope.FindFunctionGroup(_functionName);
+        
         if (possibleFunctions == null) 
             throw new NameException($"No function with name '{functionNamePrefix}{_functionName}' exists", Token);
 
-        List<VKFunction> candidates = possibleFunctions.Functions.Where(x => { 
-            int indexOfVarargs = x.Parameters.FindIndex(x => x.Type == VKType.BUILTIN_C_VARARGS);
-            IEnumerable<VKObject> parameters = x.Parameters;
-            IEnumerable<VKType> argumentTypes = ArgumentPack.ArgumentTypes;
-            // If the function is non-static, we need to skip the first "this" parameter
-            if (!x.IsStatic)
-            {
-                parameters = parameters.Skip(1);
-            }
-            // Special handling for functions with varargs
-            if (indexOfVarargs > -1)
-            {
-                parameters = parameters.Take(indexOfVarargs);
-                argumentTypes = argumentTypes.Take(indexOfVarargs);
-            }
-            bool paramCountsMatch = parameters.Count() == argumentTypes.Count();
-            bool paramTypesMatch = parameters.Zip(argumentTypes).All(param => VKType.IsEqualOrDerived(param.First.Type, param.Second));
-            return paramCountsMatch && paramTypesMatch;
-        }).ToList();
+        List<VKFunction> candidates = possibleFunctions.FindFunction(functionMustBeStatic, _arguments.ArgumentTypes).ToList();
 
         if (candidates.Count == 0)
         {
-            Log.Error($"No variant of function '{functionNamePrefix}{_functionName}' matches argument pack types: ({string.Join(", ", ArgumentPack.ArgumentTypes)})");
+            Log.Error($"No variant of function '{functionNamePrefix}{_functionName}' matches argument pack types: {(functionMustBeStatic ? "static " : "")}({string.Join(", ", _arguments.ArgumentTypes)})");
             Log.Error("Possible matches are:");
             foreach (VKFunction function in possibleFunctions.Functions)
             {
-                string paramPack = string.Join(", ", function.Parameters.Select(x => $"{x.Type} {x.Name}"));
-                Log.Error($"{functionNamePrefix}{_functionName}({paramPack})");
+                Log.Error(function.ToString());
             }
             throw new NameException($"No variant of function '{functionNamePrefix}{_functionName}' matches argument pack types", Token);
         }
         if (candidates.Count > 1)
         {
-            Log.Error($"No variant of function '{functionNamePrefix}{_functionName}' matches argument pack types: ({string.Join(", ", ArgumentPack.ArgumentTypes)})");
+            Log.Error($"No variant of function '{functionNamePrefix}{_functionName}' matches argument pack types: {(functionMustBeStatic ? "static " : "")}({string.Join(", ", _arguments.ArgumentTypes)})");
             Log.Error("Possible matches are:");
-            foreach (VKFunction function in candidates)
+            foreach (VKFunction function in possibleFunctions.Functions)
             {
-                string paramPack = string.Join(", ", function.Parameters.Select(x => $"{x.Type} {x.Name}"));
-                Log.Error($"{functionNamePrefix}{_functionName}({paramPack})");
+                Log.Error(function.ToString());
             }
             throw new NameException($"Ambiguous type resolution for function '{functionNamePrefix}{_functionName}'. {candidates.Count} functions match this argument pack.", Token);
         }
 
         _function = candidates.Single();
         ValueType = _function.ReturnType;
-        if (!_function.IsStatic)
-        {
-            ArgumentPack.Expressions.Insert(0, _classInstance!);
-        }
     }
 
     public override void TypeCheck(VKScope scope)
     {
-        int i = 0;
-        foreach (ValueExpression arg in ArgumentPack.Expressions)
-        {
-            if (_function!.Parameters[i].Type == VKType.BUILTIN_C_VARARGS)
-            {
-                // If we hit a varargs, it doesnt make sense to continue searching, cause we cant guarantee type safety anymore anyway
-                return;
-            }
-            arg.TypeCheck(scope);
-            VKObject parameter = _function!.Parameters[i];
-            if (parameter.Type != arg.ValueType)
-                throw new TypeException($"Cannot use value of type '{arg.ValueType}' in parameter slot for type '{parameter.Type}'", Token);
-            i++;
-        }
+        _arguments.TypeCheck(scope);
     }
 
     public override IRVariable GenerateCode(CodeGenerator gen)
@@ -158,7 +131,7 @@ public class FunctionCallValueExpression : ValueExpression
         gen.Comment("STACK FUNCTION CALL ARGUMENTS");
         List<IRVariable> argVariables = new();
         int i = 0;
-        foreach (ValueExpression arg in ArgumentPack.Expressions)
+        foreach (ValueExpression arg in _arguments.Expressions)
         {
             gen.Comment($"ARG {i}");
             IRVariable argVar = arg.GenerateCode(gen);
